@@ -1,6 +1,6 @@
 {
   "name": "opencode-go-provider",
-  "publisher": "hidenobunagai",
+  "publisher": "HidenobuNagai",
   "displayName": "OpenCode Go Provider",
   "description": "OpenCode Go Chat Provider for VS Code Copilot Chat",
   "version": "0.1.0",
