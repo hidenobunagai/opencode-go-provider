@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- Background -->
+  <rect width="256" height="256" rx="32" ry="32" fill="#1A1A2E" />
+
+  <!-- "O" Shape -->
+  <circle cx="128" cy="128" r="64" fill="none" stroke="#4ECDC4" stroke-width="24" />
+
+  <!-- "C" / Code Brackets / Pulse effect -->
+  <path d="M128,64 A64,64 0 0,0 64,128" fill="none" stroke="#FF6B6B" stroke-width="24" stroke-linecap="round" />
+
+  <!-- "Go" arrow / play button -->
+  <polygon points="112,96 112,160 160,128" fill="#F7FFF7" />
+
+  <!-- Decorative Dots -->
+  <circle cx="192" cy="72" r="8" fill="#4ECDC4" />
+  <circle cx="72" cy="192" r="8" fill="#FF6B6B" />
+</svg>

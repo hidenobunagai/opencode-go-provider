@@ -1,0 +1,85 @@
+{
+  "name": "opencode-go-provider",
+  "publisher": "hidenobunagai",
+  "displayName": "OpenCode Go Provider",
+  "description": "OpenCode Go Chat Provider for VS Code Copilot Chat",
+  "version": "0.1.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hidenobunagai/opencode-go-provider"
+  },
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#1A1A2E",
+    "theme": "dark"
+  },
+  "keywords": [
+    "copilot",
+    "opencode",
+    "chat",
+    "kimi",
+    "glm",
+    "qwen",
+    "minimax"
+  ],
+  "engines": {
+    "vscode": "^1.104.0"
+  },
+  "categories": [
+    "AI",
+    "Chat"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languageModelChatProviders": [
+      {
+        "vendor": "opencode-go",
+        "displayName": "OpenCode Go",
+        "managementCommand": "opencode-go.manage"
+      }
+    ],
+    "commands": [
+      {
+        "command": "opencode-go.manage",
+        "title": "Manage OpenCode Go API Key",
+        "category": "OpenCode Go"
+      },
+      {
+        "command": "opencode-go.refreshModels",
+        "title": "Refresh Models",
+        "category": "OpenCode Go"
+      },
+      {
+        "command": "opencode-go.toggleDebugLogging",
+        "title": "Toggle Debug Logging",
+        "category": "OpenCode Go"
+      },
+      {
+        "command": "opencode-go.openDebugLog",
+        "title": "Open Debug Log",
+        "category": "OpenCode Go"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "bun run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -w -p ./",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "package:vsix": "bun run compile && bunx @vscode/vsce package --allow-missing-repository"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.0.0",
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.104.0",
+    "jest": "^29.0.0",
+    "jest-util": "^29.7.0",
+    "ts-jest": "^29.0.0",
+    "typescript": "^5.9.0"
+  }
+}

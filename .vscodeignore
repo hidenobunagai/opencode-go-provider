@@ -1,0 +1,11 @@
+src/**
+tests/**
+docs/**
+__mocks__/**
+.vscode/**
+node_modules/**
+.gitignore
+package-lock.json
+jest.config.js
+tsconfig.json
+bunfig.toml

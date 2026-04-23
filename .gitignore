@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Compiled output
+out/
+dist/
+
+# Test coverage
+coverage/
+
+# VS Code
+.vscode-test/
+*.vsix
+
+# Misc
+.DS_Store
+*.log
