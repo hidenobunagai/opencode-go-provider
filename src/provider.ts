@@ -13,6 +13,7 @@ import {
   ProvideLanguageModelChatResponseOptions,
 } from "vscode";
 import { BASE_URL, streamChatCompletion } from "./api";
+import { debugEnabled, debugLog } from "./output-channel";
 import { OcGoMcpClient } from "./mcp";
 import {
   AnthropicRequestBody,
@@ -183,25 +184,6 @@ function hasRequiredToolArguments(args: unknown, schema: ToolSchema | undefined)
     (key) =>
       key in record && record[key] !== undefined && record[key] !== null && record[key] !== "",
   );
-}
-
-function debugEnabled(): boolean {
-  return process.env.OPENCODE_GO_DEBUG === "1";
-}
-
-function debugLog(label: string, value: unknown): void {
-  if (!debugEnabled()) {
-    return;
-  }
-  const globalWindow = globalThis as typeof globalThis & {
-    __opencodeGoOutputChannel?: vscode.OutputChannel;
-  };
-  const message = typeof value === "string" ? value : JSON.stringify(value, null, 2);
-  if (globalWindow.__opencodeGoOutputChannel) {
-    globalWindow.__opencodeGoOutputChannel.appendLine(`[OpenCode Go Debug] ${label}: ${message}`);
-    return;
-  }
-  console.log(`[OpenCode Go Debug] ${label}:`, value);
 }
 
 function buildInvalidToolCallFallback(

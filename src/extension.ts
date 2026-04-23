@@ -1,23 +1,11 @@
 import * as vscode from "vscode";
 import { fetchModels } from "./api";
 import { EXTENSION_VERSION } from "./constants";
+import { debugLog, getOutputChannel } from "./output-channel";
 import { OcGoChatModelProvider } from "./provider";
 import { registerOcGoTools } from "./tools";
 
 let _provider: OcGoChatModelProvider | null = null;
-
-function getOutputChannel(): vscode.OutputChannel {
-  const globalWindow = globalThis as typeof globalThis & {
-    __opencodeGoOutputChannel?: vscode.OutputChannel;
-  };
-  globalWindow.__opencodeGoOutputChannel ??= vscode.window.createOutputChannel("OpenCode Go");
-  return globalWindow.__opencodeGoOutputChannel;
-}
-
-function logDebug(message: string): void {
-  const channel = getOutputChannel();
-  channel.appendLine(`[${new Date().toISOString()}] ${message}`);
-}
 
 async function refreshModelsFromApi(
   context: vscode.ExtensionContext,
@@ -37,19 +25,19 @@ async function refreshModelsFromApi(
     if (models && models.length > 0) {
       await context.globalState.update("opencode-go.models", models);
       _provider?.fireModelInfoChanged();
-      logDebug(`Refreshed ${models.length} models from OpenCode Go API.`);
+      debugLog("refreshModels", `Refreshed ${models.length} models from OpenCode Go API.`);
       if (options.showMessages) {
         vscode.window.showInformationMessage(`Refreshed ${models.length} OpenCode Go models.`);
       }
       return;
     }
 
-    logDebug("Model refresh returned no models.");
+    debugLog("refreshModels", "Model refresh returned no models.");
     if (options.showMessages) {
       vscode.window.showWarningMessage("Failed to refresh models from OpenCode Go API.");
     }
   } catch (error) {
-    logDebug(`Model refresh failed: ${error instanceof Error ? error.message : String(error)}`);
+    debugLog("refreshModels", `Model refresh failed: ${error instanceof Error ? error.message : String(error)}`);
     if (options.showMessages) {
       vscode.window.showErrorMessage(
         `Failed to refresh models: ${error instanceof Error ? error.message : String(error)}`,
@@ -64,7 +52,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(channel);
   const debugEnabled = context.globalState.get<boolean>("opencode-go.debug", false);
   process.env.OPENCODE_GO_DEBUG = debugEnabled ? "1" : "0";
-  logDebug(`Extension activated. Debug logging ${debugEnabled ? "enabled" : "disabled"}.`);
+  debugLog("activate", `Extension activated. Debug logging ${debugEnabled ? "enabled" : "disabled"}.`);
   const provider = new OcGoChatModelProvider(context.secrets, ua, context.globalState);
   _provider = provider;
 
@@ -117,7 +105,7 @@ export function activate(context: vscode.ExtensionContext) {
       const next = !current;
       await context.globalState.update("opencode-go.debug", next);
       process.env.OPENCODE_GO_DEBUG = next ? "1" : "0";
-      logDebug(`Debug logging ${next ? "enabled" : "disabled"}.`);
+      debugLog("toggleDebug", `Debug logging ${next ? "enabled" : "disabled"}.`);
       vscode.window.showInformationMessage(
         `OpenCode Go debug logging ${next ? "enabled" : "disabled"}.`,
       );

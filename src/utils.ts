@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { debugLog } from "./output-channel";
 import {
   AnthropicContentBlock,
   AnthropicMessage,
@@ -25,17 +26,6 @@ function asObjectRecord(value: unknown): Record<string, unknown> | undefined {
     return undefined;
   }
   return value as Record<string, unknown>;
-}
-
-function debugEnabled(): boolean {
-  return process.env.OPENCODE_GO_DEBUG === "1";
-}
-
-function debugLog(label: string, value: unknown): void {
-  if (!debugEnabled()) {
-    return;
-  }
-  console.log(`[OpenCode Go Debug] ${label}:`, value);
 }
 
 function toUint8Array(
