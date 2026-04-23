@@ -12,9 +12,10 @@ import {
   Progress,
   ProvideLanguageModelChatResponseOptions,
 } from "vscode";
-import { BASE_URL, streamChatCompletion } from "./api";
-import { debugEnabled, debugLog } from "./output-channel";
+import { streamChatCompletion } from "./api";
+import { BASE_URL } from "./constants";
 import { OcGoMcpClient } from "./mcp";
+import { debugLog } from "./output-channel";
 import {
   AnthropicRequestBody,
   AnthropicSSEEvent,

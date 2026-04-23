@@ -37,7 +37,10 @@ async function refreshModelsFromApi(
       vscode.window.showWarningMessage("Failed to refresh models from OpenCode Go API.");
     }
   } catch (error) {
-    debugLog("refreshModels", `Model refresh failed: ${error instanceof Error ? error.message : String(error)}`);
+    debugLog(
+      "refreshModels",
+      `Model refresh failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
     if (options.showMessages) {
       vscode.window.showErrorMessage(
         `Failed to refresh models: ${error instanceof Error ? error.message : String(error)}`,
@@ -52,7 +55,10 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(channel);
   const debugEnabled = context.globalState.get<boolean>("opencode-go.debug", false);
   process.env.OPENCODE_GO_DEBUG = debugEnabled ? "1" : "0";
-  debugLog("activate", `Extension activated. Debug logging ${debugEnabled ? "enabled" : "disabled"}.`);
+  debugLog(
+    "activate",
+    `Extension activated. Debug logging ${debugEnabled ? "enabled" : "disabled"}.`,
+  );
   const provider = new OcGoChatModelProvider(context.secrets, ua, context.globalState);
   _provider = provider;
 

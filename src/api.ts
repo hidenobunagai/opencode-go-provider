@@ -1,11 +1,7 @@
 import { BASE_URL } from "./constants";
 import { OcGoChatRequest, OcGoStreamResponse } from "./types";
 
-async function fetchWithRetry(
-  url: string,
-  init: RequestInit,
-  retries = 3
-): Promise<Response> {
+async function fetchWithRetry(url: string, init: RequestInit, retries = 3): Promise<Response> {
   let lastError: Error | undefined;
   for (let i = 0; i < retries; i++) {
     try {
@@ -13,39 +9,43 @@ async function fetchWithRetry(
       return response;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      if (lastError.name === 'AbortError') {
+      if (lastError.name === "AbortError") {
         throw lastError;
       }
       if (i < retries - 1) {
         const delay = Math.min(1000 * Math.pow(2, i), 8000);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
   }
-  throw lastError ?? new Error('Network request failed after retries');
+  throw lastError ?? new Error("Network request failed after retries");
 }
 
-export async function fetchModels(apiKey: string, signal?: AbortSignal, userAgent?: string): Promise<Array<{ id: string; name: string }> | null> {
+export async function fetchModels(
+  apiKey: string,
+  signal?: AbortSignal,
+  userAgent?: string,
+): Promise<Array<{ id: string; name: string }> | null> {
   try {
     const response = await fetchWithRetry(`${BASE_URL}/models`, {
-      method: 'GET',
+      method: "GET",
       headers: {
         Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        ...(userAgent ? { 'User-Agent': userAgent } : {}),
+        "Content-Type": "application/json",
+        ...(userAgent ? { "User-Agent": userAgent } : {}),
       },
       signal,
     });
     if (!response.ok) {
       return null;
     }
-    const data = await response.json() as { data?: Array<{ id: string; name: string }> };
+    const data = (await response.json()) as { data?: Array<{ id: string; name: string }> };
     return data.data ?? null;
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
+    if (error instanceof Error && error.name === "AbortError") {
       throw error;
     }
-    console.error('[OpenCode Go API] fetchModels failed:', error);
+    console.error("[OpenCode Go API] fetchModels failed:", error);
     return null;
   }
 }
@@ -54,14 +54,14 @@ export async function* streamChatCompletion(
   apiKey: string,
   requestBody: OcGoChatRequest,
   signal?: AbortSignal,
-  userAgent?: string
+  userAgent?: string,
 ): AsyncGenerator<OcGoStreamResponse, void, unknown> {
   const response = await fetchWithRetry(`${BASE_URL}/chat/completions`, {
-    method: 'POST',
+    method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      ...(userAgent ? { 'User-Agent': userAgent } : {}),
+      "Content-Type": "application/json",
+      ...(userAgent ? { "User-Agent": userAgent } : {}),
     },
     body: JSON.stringify(requestBody),
     signal,
@@ -73,19 +73,19 @@ export async function* streamChatCompletion(
     if (response.status === 401 || response.status === 403) {
       message = `Authentication failed. Your API key may be invalid or expired.\n${message}`;
     } else if (response.status === 429) {
-      const retryAfter = response.headers.get('retry-after');
-      message = `Rate limited. ${retryAfter ? `Retry after ${retryAfter}s. ` : ''}\n${message}`;
+      const retryAfter = response.headers.get("retry-after");
+      message = `Rate limited. ${retryAfter ? `Retry after ${retryAfter}s. ` : ""}\n${message}`;
     }
     throw new Error(`${message}\n${text}`);
   }
 
   if (!response.body) {
-    throw new Error('No response body from OpenCode Go API');
+    throw new Error("No response body from OpenCode Go API");
   }
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
-  let buffer = '';
+  let buffer = "";
 
   try {
     while (true) {
@@ -93,14 +93,14 @@ export async function* streamChatCompletion(
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
 
       for (const line of lines) {
         const trimmed = line.trim();
-        if (!trimmed.startsWith('data: ')) continue;
+        if (!trimmed.startsWith("data: ")) continue;
         const data = trimmed.slice(6);
-        if (data === '[DONE]') continue;
+        if (data === "[DONE]") continue;
         try {
           const parsed = JSON.parse(data) as OcGoStreamResponse;
           yield parsed;
@@ -113,12 +113,12 @@ export async function* streamChatCompletion(
     // Flush decoder internal state and process any remaining lines
     const remaining = decoder.decode();
     buffer += remaining;
-    const finalLines = buffer.split('\n');
+    const finalLines = buffer.split("\n");
     for (const line of finalLines) {
       const trimmed = line.trim();
-      if (!trimmed.startsWith('data: ')) continue;
+      if (!trimmed.startsWith("data: ")) continue;
       const data = trimmed.slice(6);
-      if (data === '[DONE]') continue;
+      if (data === "[DONE]") continue;
       try {
         const parsed = JSON.parse(data) as OcGoStreamResponse;
         yield parsed;

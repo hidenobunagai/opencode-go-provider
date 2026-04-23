@@ -87,10 +87,11 @@ describe("activate", () => {
     await flushAsyncWork();
 
     const providerInstance = (OcGoChatModelProvider as jest.Mock).mock.results[0]?.value;
+    const { version } = require("../package.json");
     expect(fetchModels).toHaveBeenCalledWith(
       "test-key",
       undefined,
-      "opencode-go-provider/0.1.0 VSCode/1.104.0",
+      `opencode-go-provider/${version} VSCode/1.104.0`,
     );
     expect(globalState.update).toHaveBeenCalledWith("opencode-go.models", models);
     expect(providerInstance.fireModelInfoChanged).toHaveBeenCalled();
