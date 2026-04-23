@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { fetchModels } from "./api";
+import { EXTENSION_VERSION } from "./constants";
 import { OcGoChatModelProvider } from "./provider";
 import { registerOcGoTools } from "./tools";
 
@@ -58,7 +59,7 @@ async function refreshModelsFromApi(
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  const ua = `opencode-go-provider/0.1.0 VSCode/${vscode.version}`;
+  const ua = `opencode-go-provider/${EXTENSION_VERSION} VSCode/${vscode.version}`;
   const channel = getOutputChannel();
   context.subscriptions.push(channel);
   const debugEnabled = context.globalState.get<boolean>("opencode-go.debug", false);

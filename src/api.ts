@@ -1,6 +1,5 @@
-import { OcGoChatRequest, OcGoStreamResponse } from './types';
-
-export const BASE_URL = 'https://opencode.ai/zen/go/v1';
+import { BASE_URL } from "./constants";
+import { OcGoChatRequest, OcGoStreamResponse } from "./types";
 
 async function fetchWithRetry(
   url: string,

@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
-
-const BASE_URL = "https://opencode.ai/zen/go/v1";
+import { BASE_URL } from "./constants";
 
 /**
  * OpenCode Go MCP Client for making HTTP-based MCP tool calls.
