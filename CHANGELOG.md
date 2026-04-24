@@ -1,5 +1,25 @@
 # Change Log
 
+## [0.1.2] - 2026-04-24
+
+### Added
+
+- Automated CI with GitHub Actions (lint → compile → test).
+- ESLint + Prettier configuration with lint/format scripts.
+- Comprehensive test suites for MCP client and tool registration.
+- HTTP retry logic with exponential backoff and `Retry-After` header support.
+
+### Changed
+
+- Unified `BASE_URL` and `EXTENSION_VERSION` into `src/constants.ts`.
+- Centralized debug logging into `src/output-channel.ts`.
+- Pinned `@vscode/vsce` as devDependency for reproducible packaging.
+
+### Fixed
+
+- `fetchWithRetry` now handles HTTP 429/502/503/504 in addition to network errors.
+- User-Agent version now matches `package.json` dynamically.
+
 ## [0.1.0] - 2026-04-24
 
 ### Added
