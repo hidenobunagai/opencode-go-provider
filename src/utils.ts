@@ -353,12 +353,16 @@ export function convertMessages(
         contentParts.push(...imageParts);
         const msg: OcGoChatMessage = { role, content: contentParts };
         if (role === "assistant") {
+          // Workaround: some models (e.g. Kimi K2.6) return incomplete responses
+          // when reasoning_content is absent. A single space prevents this without
+          // polluting the actual output.
           msg.reasoning_content = " ";
         }
         result.push(msg);
       } else {
         const msg: OcGoChatMessage = { role, content: textParts.join("") || "(empty message)" };
         if (role === "assistant") {
+          // Workaround: see above.
           msg.reasoning_content = " ";
         }
         result.push(msg);
