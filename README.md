@@ -49,10 +49,21 @@ The extension dynamically fetches available models from OpenCode Go. Fallback mo
 ```bash
 bun install --ignore-scripts
 bun run compile
+bun run lint
 bun run test -- --runInBand
 ```
 
 Press `F5` in VS Code to launch the Extension Development Host.
+
+### Available Scripts
+
+- `bun run compile` – TypeScript コンパイル
+- `bun run watch` – ファイル変更監視付きコンパイル
+- `bun run test` – テスト実行
+- `bun run lint` – ESLint チェック
+- `bun run lint:fix` – ESLint 自動修正
+- `bun run format` – Prettier フォーマット
+- `bun run package:vsix` – VSIX パッケージ作成
 
 ## Marketplace Packaging
 
