@@ -15,5 +15,6 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --ignore-scripts
+      - run: bun run lint
       - run: bun run compile
       - run: bun run test -- --runInBand
