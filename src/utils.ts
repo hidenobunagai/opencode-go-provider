@@ -357,10 +357,11 @@ export function convertMessages(
         const text = textParts.join("");
         if (text) contentParts.push({ type: "text", text });
         contentParts.push(...imageParts);
-        result.push(msg);
+        const newMsg: OcGoChatMessage = { role, content: contentParts };
+        result.push(newMsg);
       } else {
-        const msg: OcGoChatMessage = { role, content: textParts.join("") || "(empty message)" };
-        result.push(msg);
+        const newMsg: OcGoChatMessage = { role, content: textParts.join("") || "(empty message)" };
+        result.push(newMsg);
       }
     } else if (!isAssistantWithToolCalls && toolResults.length === 0 && !hasTextOrImage) {
       result.push({ role, content: "(empty message)" });
@@ -388,8 +389,7 @@ export function applyReasoningContentWorkaround(
       return { ...msg, reasoning_content: " " };
     }
     return msg;
-  })
-  return result;
+  });
 }
 
 export function convertTools(options: vscode.ProvideLanguageModelChatResponseOptions): {

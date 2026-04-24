@@ -427,6 +427,23 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     return preferred?.id ?? FALLBACK_MODELS.find((m) => m.supportsVision)?.id;
   }
 
+  /**
+   * Calculate max tool result characters based on model context window.
+   * Larger context windows allow larger tool results.
+   */
+  private calculateMaxToolResultChars(modelId: string): number {
+    const modelInfo = this.getModelInfo(modelId);
+    const contextWindow = modelInfo?.contextWindow ?? 262144;
+    if (contextWindow >= 500000) {
+      return 50000; // Very large context (e.g. Qwen, MiMo Pro)
+    } else if (contextWindow >= 200000) {
+      return 30000; // Large context (e.g. Kimi K2.6)
+    } else if (contextWindow >= 100000) {
+      return 20000; // Medium context
+    }
+    return 10000; // Smaller context
+  }
+
   /** Return true if any message contains image input parts. */
   private hasImageInput(messages: readonly LanguageModelChatMessage[]): boolean {
     for (const msg of messages) {
@@ -689,8 +706,9 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
 
     // When silent, avoid prompting or network calls; return cached/fallback models immediately.
     if (options.silent) {
-      const cached =
-        this.globalState?.get<Array<{ id: string; name: string }>>("opencode-go.models");
+      const cached = this.globalState?.get<Array<{ id: string; name: string }>>(
+        "opencode-go.models",
+      );
       const models = cached && cached.length > 0 ? cached : FALLBACK_MODELS;
       return this._mapToChatInformation(models);
     }
@@ -761,6 +779,9 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
       );
       const maxInputTokens = model.maxInputTokens;
 
+      // Apply safety margin to maxInputTokens to prevent context overflow
+      const effectiveMaxInputTokens = Math.max(1, maxInputTokens - CONTEXT_WINDOW_SAFETY_MARGIN);
+
       if (inputTokenCount > effectiveMaxInputTokens) {
         throw new Error(
           `Message exceeds token limit (${inputTokenCount} > ${effectiveMaxInputTokens}). Try reducing the conversation history or switching to a model with a larger context window.`,
@@ -772,9 +793,6 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         typeof maxTokensVal === "number" ? maxTokensVal : DEFAULT_MAX_TOKENS,
         model.maxOutputTokens,
       );
-
-      // Apply safety margin to maxInputTokens to prevent context overflow
-      const effectiveMaxInputTokens = Math.max(1, model.maxInputTokens - CONTEXT_WINDOW_SAFETY_MARGIN);
 
       // Resolve model info for apiFormat and fixedTemperature
       const modelInfo = this.getModelInfo(model.id);
@@ -819,7 +837,9 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
       // Dynamically adjust max tool result chars based on model context window
       const maxToolResultChars = this.calculateMaxToolResultChars(effectiveModelId);
 
-      let apiMessages = convertMessages(effectiveMessages);
+      let apiMessages = convertMessages(effectiveMessages, {
+        maxToolResultChars,
+      });
       apiMessages = applyReasoningContentWorkaround(apiMessages, effectiveModelId);
 
       const toolConfig = convertTools(options);

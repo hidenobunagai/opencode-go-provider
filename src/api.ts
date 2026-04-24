@@ -1,8 +1,4 @@
-import {
-  BASE_URL,
-  BASE_RETRY_DELAY_MS,
-  MAX_RETRY_DELAY_MS,
-} from "./constants";
+import { BASE_RETRY_DELAY_MS, BASE_URL, MAX_RETRY_DELAY_MS } from "./constants";
 import { debugLog } from "./output-channel";
 import { OcGoChatRequest, OcGoStreamResponse } from "./types";
 
@@ -32,10 +28,7 @@ function getRetryAfterMs(response: Response): number | undefined {
  * Calculate delay with exponential backoff and full jitter.
  * This prevents thundering herd when multiple clients retry simultaneously.
  */
-function calculateRetryDelay(
-  attempt: number,
-  retryAfter?: number,
-): number {
+function calculateRetryDelay(attempt: number, retryAfter?: number): number {
   if (retryAfter !== undefined && retryAfter > 0) {
     // Add jitter to server-provided retry-after (±25%)
     const jitter = retryAfter * 0.25 * (Math.random() * 2 - 1);
@@ -60,7 +53,10 @@ async function fetchWithRetry(url: string, init: RequestInit, retries = 3): Prom
       if (i < retries - 1) {
         const retryAfter = getRetryAfterMs(response);
         const delay = calculateRetryDelay(i, retryAfter);
-        debugLog("fetchWithRetry", `Attempt ${i + 1} failed with ${response.status}, retrying after ${delay}ms`);
+        debugLog(
+          "fetchWithRetry",
+          `Attempt ${i + 1} failed with ${response.status}, retrying after ${delay}ms`,
+        );
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     } catch (error) {
@@ -70,7 +66,10 @@ async function fetchWithRetry(url: string, init: RequestInit, retries = 3): Prom
       }
       if (i < retries - 1) {
         const delay = calculateRetryDelay(i);
-        debugLog("fetchWithRetry", `Attempt ${i + 1} failed with network error, retrying after ${delay}ms`);
+        debugLog(
+          "fetchWithRetry",
+          `Attempt ${i + 1} failed with network error, retrying after ${delay}ms`,
+        );
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
@@ -132,6 +131,8 @@ export async function* streamChatCompletion(
     } else if (response.status === 429) {
       const retryAfter = response.headers.get("retry-after");
       message = `Rate limited. ${retryAfter ? `Retry after ${retryAfter}s. ` : ""}\n${message}`;
+    } else if (response.status >= 500 && response.status < 600) {
+      message = `Server error. The OpenCode Go service may be experiencing issues.\n${message}`;
     }
     throw new Error(`${message}\n${text}`);
   }

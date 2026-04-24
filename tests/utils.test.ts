@@ -1,11 +1,11 @@
 import * as vscode from "vscode";
+import { OcGoChatMessage } from "../src/types";
 import {
   convertMessages,
-  estimateTokens,
-  estimateMessagesTokens,
   convertTools,
+  estimateMessagesTokens,
+  estimateTokens,
 } from "../src/utils";
-import { OcGoChatMessage } from "../src/types";
 
 describe("convertMessages", () => {
   it("converts user text message", () => {
@@ -27,9 +27,7 @@ describe("convertMessages", () => {
       },
     ];
     const result = convertMessages(messages as any);
-    expect(result).toEqual<OcGoChatMessage[]>([
-      { role: "assistant", content: "Hi there", reasoning_content: " " },
-    ]);
+    expect(result).toEqual<OcGoChatMessage[]>([{ role: "assistant", content: "Hi there" }]);
   });
 
   it("converts system text message", () => {
@@ -276,5 +274,62 @@ describe("convertMessages with tools", () => {
     expect(result).toHaveLength(1);
     expect(result[0].role).toBe("tool");
     expect(result[0].content).toBe("eyJ9");
+  });
+
+  it("truncates tool result content when maxToolResultChars is set", () => {
+    const longContent = "a".repeat(100);
+    const messages = [
+      {
+        role: vscode.LanguageModelChatMessageRole.User,
+        content: [
+          new vscode.LanguageModelToolResultPart("call_1", [
+            new vscode.LanguageModelTextPart(longContent),
+          ]),
+        ],
+      },
+    ];
+    const result = convertMessages(messages as any, { maxToolResultChars: 50 });
+    expect(result[0].content).toBe("a".repeat(50) + "…");
+  });
+
+  it("does not truncate when content is within limit", () => {
+    const shortContent = "short content";
+    const messages = [
+      {
+        role: vscode.LanguageModelChatMessageRole.User,
+        content: [
+          new vscode.LanguageModelToolResultPart("call_1", [
+            new vscode.LanguageModelTextPart(shortContent),
+          ]),
+        ],
+      },
+    ];
+    const result = convertMessages(messages as any, { maxToolResultChars: 100 });
+    expect(result[0].content).toBe(shortContent);
+  });
+});
+
+describe("applyReasoningContentWorkaround", () => {
+  it("adds reasoning_content for Kimi K2.6", () => {
+    const { applyReasoningContentWorkaround } = require("../src/utils");
+    const messages: OcGoChatMessage[] = [{ role: "assistant", content: "Hello" }];
+    const result = applyReasoningContentWorkaround(messages, "kimi-k2.6");
+    expect(result[0].reasoning_content).toBe(" ");
+  });
+
+  it("does not add reasoning_content for other models", () => {
+    const { applyReasoningContentWorkaround } = require("../src/utils");
+    const messages: OcGoChatMessage[] = [{ role: "assistant", content: "Hello" }];
+    const result = applyReasoningContentWorkaround(messages, "glm-5");
+    expect(result[0].reasoning_content).toBeUndefined();
+  });
+
+  it("preserves existing reasoning_content", () => {
+    const { applyReasoningContentWorkaround } = require("../src/utils");
+    const messages: OcGoChatMessage[] = [
+      { role: "assistant", content: "Hello", reasoning_content: "existing" },
+    ];
+    const result = applyReasoningContentWorkaround(messages, "kimi-k2.6");
+    expect(result[0].reasoning_content).toBe("existing");
   });
 });

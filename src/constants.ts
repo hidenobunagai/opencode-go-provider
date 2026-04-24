@@ -20,7 +20,4 @@ export const BASE_RETRY_DELAY_MS = 1000;
 export const ANTHROPIC_MAX_TOOL_RESULT_CHARS = 20000;
 
 /** Models that require the reasoning_content workaround */
-export const REASONING_CONTENT_WORKAROUND_MODELS = new Set([
-  "kimi-k2.5",
-  "kimi-k2.6",
-]);
+export const REASONING_CONTENT_WORKAROUND_MODELS = new Set(["kimi-k2.5", "kimi-k2.6"]);
