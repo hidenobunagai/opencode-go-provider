@@ -1,4 +1,8 @@
-import { BASE_URL } from "./constants";
+import {
+  BASE_URL,
+  BASE_RETRY_DELAY_MS,
+  MAX_RETRY_DELAY_MS,
+} from "./constants";
 import { debugLog } from "./output-channel";
 import { OcGoChatRequest, OcGoStreamResponse } from "./types";
 
@@ -24,6 +28,26 @@ function getRetryAfterMs(response: Response): number | undefined {
   return undefined;
 }
 
+/**
+ * Calculate delay with exponential backoff and full jitter.
+ * This prevents thundering herd when multiple clients retry simultaneously.
+ */
+function calculateRetryDelay(
+  attempt: number,
+  retryAfter?: number,
+): number {
+  if (retryAfter !== undefined && retryAfter > 0) {
+    // Add jitter to server-provided retry-after (±25%)
+    const jitter = retryAfter * 0.25 * (Math.random() * 2 - 1);
+    return Math.min(Math.max(Math.round(retryAfter + jitter), 0), MAX_RETRY_DELAY_MS);
+  }
+
+  const exponentialDelay = BASE_RETRY_DELAY_MS * Math.pow(2, attempt);
+  const cappedDelay = Math.min(exponentialDelay, MAX_RETRY_DELAY_MS);
+  // Full jitter: random delay between 0 and cappedDelay
+  return Math.round(Math.random() * cappedDelay);
+}
+
 async function fetchWithRetry(url: string, init: RequestInit, retries = 3): Promise<Response> {
   let lastError: Error | undefined;
   for (let i = 0; i < retries; i++) {
@@ -35,7 +59,8 @@ async function fetchWithRetry(url: string, init: RequestInit, retries = 3): Prom
       lastError = new Error(`HTTP ${response.status} ${response.statusText}`);
       if (i < retries - 1) {
         const retryAfter = getRetryAfterMs(response);
-        const delay = retryAfter ?? Math.min(1000 * Math.pow(2, i), 8000);
+        const delay = calculateRetryDelay(i, retryAfter);
+        debugLog("fetchWithRetry", `Attempt ${i + 1} failed with ${response.status}, retrying after ${delay}ms`);
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     } catch (error) {
@@ -44,7 +69,8 @@ async function fetchWithRetry(url: string, init: RequestInit, retries = 3): Prom
         throw lastError;
       }
       if (i < retries - 1) {
-        const delay = Math.min(1000 * Math.pow(2, i), 8000);
+        const delay = calculateRetryDelay(i);
+        debugLog("fetchWithRetry", `Attempt ${i + 1} failed with network error, retrying after ${delay}ms`);
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }

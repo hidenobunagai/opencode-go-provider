@@ -13,7 +13,7 @@ import {
   ProvideLanguageModelChatResponseOptions,
 } from "vscode";
 import { streamChatCompletion } from "./api";
-import { BASE_URL } from "./constants";
+import { BASE_URL, CONTEXT_WINDOW_SAFETY_MARGIN } from "./constants";
 import { OcGoMcpClient } from "./mcp";
 import { debugLog } from "./output-channel";
 import {
@@ -24,6 +24,7 @@ import {
   type Json,
 } from "./types";
 import {
+  applyReasoningContentWorkaround,
   convertMessages,
   convertMessagesToAnthropic,
   convertTools,
@@ -760,9 +761,9 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
       );
       const maxInputTokens = model.maxInputTokens;
 
-      if (inputTokenCount > maxInputTokens) {
+      if (inputTokenCount > effectiveMaxInputTokens) {
         throw new Error(
-          `Message exceeds token limit (${inputTokenCount} > ${maxInputTokens}). Try reducing the conversation history or switching to a model with a larger context window.`,
+          `Message exceeds token limit (${inputTokenCount} > ${effectiveMaxInputTokens}). Try reducing the conversation history or switching to a model with a larger context window.`,
         );
       }
 
@@ -771,6 +772,9 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         typeof maxTokensVal === "number" ? maxTokensVal : DEFAULT_MAX_TOKENS,
         model.maxOutputTokens,
       );
+
+      // Apply safety margin to maxInputTokens to prevent context overflow
+      const effectiveMaxInputTokens = Math.max(1, model.maxInputTokens - CONTEXT_WINDOW_SAFETY_MARGIN);
 
       // Resolve model info for apiFormat and fixedTemperature
       const modelInfo = this.getModelInfo(model.id);
@@ -812,7 +816,11 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         return;
       }
 
-      const apiMessages = convertMessages(effectiveMessages);
+      // Dynamically adjust max tool result chars based on model context window
+      const maxToolResultChars = this.calculateMaxToolResultChars(effectiveModelId);
+
+      let apiMessages = convertMessages(effectiveMessages);
+      apiMessages = applyReasoningContentWorkaround(apiMessages, effectiveModelId);
 
       const toolConfig = convertTools(options);
       const requestBody: import("./types").OcGoChatRequest = {

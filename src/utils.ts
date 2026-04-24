@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { REASONING_CONTENT_WORKAROUND_MODELS } from "./constants";
 import { debugLog } from "./output-channel";
 import {
   AnthropicContentBlock,
@@ -273,6 +274,7 @@ function buildToolDescription(
 
 export function convertMessages(
   messages: readonly vscode.LanguageModelChatMessage[],
+  options?: { maxToolResultChars?: number },
 ): OcGoChatMessage[] {
   const result: OcGoChatMessage[] = [];
 
@@ -335,10 +337,14 @@ export function convertMessages(
       msg.content as Array<vscode.LanguageModelInputPart | LegacyPart>,
     );
     for (const tr of toolResults) {
+      let content = tr.content || "";
+      if (options?.maxToolResultChars && content.length > options.maxToolResultChars) {
+        content = content.slice(0, options.maxToolResultChars) + "…";
+      }
       result.push({
         role: "tool",
         tool_call_id: tr.callId,
-        content: tr.content || "",
+        content,
       });
     }
 
@@ -351,20 +357,9 @@ export function convertMessages(
         const text = textParts.join("");
         if (text) contentParts.push({ type: "text", text });
         contentParts.push(...imageParts);
-        const msg: OcGoChatMessage = { role, content: contentParts };
-        if (role === "assistant") {
-          // Workaround: some models (e.g. Kimi K2.6) return incomplete responses
-          // when reasoning_content is absent. A single space prevents this without
-          // polluting the actual output.
-          msg.reasoning_content = " ";
-        }
         result.push(msg);
       } else {
         const msg: OcGoChatMessage = { role, content: textParts.join("") || "(empty message)" };
-        if (role === "assistant") {
-          // Workaround: see above.
-          msg.reasoning_content = " ";
-        }
         result.push(msg);
       }
     } else if (!isAssistantWithToolCalls && toolResults.length === 0 && !hasTextOrImage) {
@@ -372,6 +367,28 @@ export function convertMessages(
     }
   }
 
+  return result;
+}
+
+/**
+ * Apply reasoning_content workaround for models that need it (e.g. Kimi K2.5/2.6).
+ * These models may return incomplete responses when reasoning_content is absent.
+ * A single space prevents this without polluting the actual output.
+ */
+export function applyReasoningContentWorkaround(
+  messages: OcGoChatMessage[],
+  modelId: string,
+): OcGoChatMessage[] {
+  if (!REASONING_CONTENT_WORKAROUND_MODELS.has(modelId)) {
+    return messages;
+  }
+
+  return messages.map((msg) => {
+    if (msg.role === "assistant" && !msg.reasoning_content) {
+      return { ...msg, reasoning_content: " " };
+    }
+    return msg;
+  })
   return result;
 }
 
