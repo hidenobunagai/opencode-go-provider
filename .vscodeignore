@@ -11,4 +11,3 @@ jest.config.js
 tsconfig.json
 bunfig.toml
 out/**/*.map
-images/
