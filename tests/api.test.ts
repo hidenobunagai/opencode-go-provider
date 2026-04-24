@@ -100,17 +100,18 @@ describe("streamChatCompletion", () => {
     );
   });
 
-  it("throws rate limit error on 429", async () => {
+  it("retries on 429 and eventually throws after exhausting retries", async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,
       status: 429,
       statusText: "Too Many Requests",
-      headers: { get: (name: string) => (name === "retry-after" ? "60" : null) },
+      headers: { get: (name: string) => (name === "retry-after" ? "0" : null) },
       text: async () => "Rate limited",
     } as any);
 
     const gen = streamChatCompletion("key", { model: "kimi-k2.6", messages: [], stream: true });
-    await expect(gen.next()).rejects.toThrow("Rate limited. Retry after 60s.");
+    await expect(gen.next()).rejects.toThrow("HTTP 429");
+    expect(fetch).toHaveBeenCalledTimes(3);
   });
 
   it("retries on network failure and succeeds", async () => {
@@ -135,7 +136,58 @@ describe("streamChatCompletion", () => {
     expect(result).toBeNull();
     expect(fetch).toHaveBeenCalledTimes(3);
   });
+  it("retries on 429 with Retry-After then succeeds", async () => {
+    const mockModels = [{ id: "kimi-k2.6", name: "Kimi K2.6" }];
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        statusText: "Too Many Requests",
+        headers: { get: (name: string) => (name === "retry-after" ? "1" : null) },
+      } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: mockModels }),
+      } as any);
 
+    const result = await fetchModels("test-key");
+    expect(result).toEqual(mockModels);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries on 503 then succeeds", async () => {
+    const mockModels = [{ id: "kimi-k2.6", name: "Kimi K2.6" }];
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        statusText: "Service Unavailable",
+        headers: { get: () => null },
+      } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: mockModels }),
+      } as any);
+
+    const result = await fetchModels("test-key");
+    expect(result).toEqual(mockModels);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry on 401 and returns null immediately", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: "Unauthorized",
+      text: async () => "Invalid key",
+    } as any);
+
+    const result = await fetchModels("bad-key");
+    expect(result).toBeNull();
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
   it("handles partial lines across chunks", async () => {
     const chunk: OcGoStreamResponse = {
       id: "1",

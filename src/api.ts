@@ -1,12 +1,43 @@
 import { BASE_URL } from "./constants";
+import { debugLog } from "./output-channel";
 import { OcGoChatRequest, OcGoStreamResponse } from "./types";
+
+/**
+ * Determine whether an HTTP status code is safe to retry.
+ * Retries on 429 (rate limit), 502, 503, 504 (server errors).
+ * Never retries on 400, 401, 403, 404, 422 (client errors).
+ */
+function isRetryableHttpError(status: number): boolean {
+  return status === 429 || status === 502 || status === 503 || status === 504;
+}
+
+/**
+ * Read Retry-After header value (seconds) if present.
+ */
+function getRetryAfterMs(response: Response): number | undefined {
+  const raw = response.headers.get("retry-after");
+  if (!raw) return undefined;
+  const seconds = Number.parseInt(raw, 10);
+  if (Number.isFinite(seconds) && seconds > 0) {
+    return seconds * 1000;
+  }
+  return undefined;
+}
 
 async function fetchWithRetry(url: string, init: RequestInit, retries = 3): Promise<Response> {
   let lastError: Error | undefined;
   for (let i = 0; i < retries; i++) {
     try {
       const response = await fetch(url, init);
-      return response;
+      if (response.ok || !isRetryableHttpError(response.status)) {
+        return response;
+      }
+      lastError = new Error(`HTTP ${response.status} ${response.statusText}`);
+      if (i < retries - 1) {
+        const retryAfter = getRetryAfterMs(response);
+        const delay = retryAfter ?? Math.min(1000 * Math.pow(2, i), 8000);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       if (lastError.name === "AbortError") {
@@ -45,7 +76,7 @@ export async function fetchModels(
     if (error instanceof Error && error.name === "AbortError") {
       throw error;
     }
-    console.error("[OpenCode Go API] fetchModels failed:", error);
+    debugLog("fetchModels", error);
     return null;
   }
 }
