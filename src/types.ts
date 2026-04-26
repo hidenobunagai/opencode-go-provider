@@ -212,7 +212,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     contextWindow: 262144,
     maxOutput: 65536,
     supportsTools: true,
-    supportsVision: true,
+    supportsVision: false,
     apiFormat: "openai",
   },
   {
@@ -222,7 +222,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     contextWindow: 262144,
     maxOutput: 65536,
     supportsTools: true,
-    supportsVision: true,
+    supportsVision: false,
     apiFormat: "openai",
   },
 ];
