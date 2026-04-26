@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.1.12] - 2026-04-26
+
+### Added
+
+- Added `--json` output mode to the DeepSeek comparison helper so upstream identity checks can be saved directly as machine-readable logs.
+- Added a `bun run repro:compare:json` shortcut for the default DeepSeek vs Kimi comparison pair.
+
 ## [0.1.11] - 2026-04-26
 
 ### Added

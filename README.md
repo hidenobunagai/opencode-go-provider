@@ -67,6 +67,7 @@ Press `F5` in VS Code to launch the Extension Development Host.
 - `bun run package:vsix` – VSIX パッケージ作成
 - `bun run repro:deepseek -- "テストです。モデル名を教えてください。"` – DeepSeek の上流応答を拡張機能抜きで確認
 - `bun run repro:compare -- "テストです。モデル名を教えてください。"` – DeepSeek と比較対象モデルの応答を並べて確認
+- `bun run repro:compare:json -- "テストです。モデル名を教えてください。"` – 比較結果を JSON で出力
 
 ## Troubleshooting
 
@@ -92,6 +93,19 @@ bun run repro:compare -- "テストです。モデル名を教えてください
 
 ```bash
 bun run repro:deepseek -- --models deepseek-v4-flash,glm-5,qwen3.6-plus "テストです。モデル名を教えてください。"
+```
+
+JSON で保存したい場合は、`--json` を付けてリダイレクトしてください。
+
+```bash
+export OPENCODE_GO_API_KEY="your-api-key"
+bun run repro:compare:json -- "テストです。モデル名を教えてください。" > deepseek-compare.json
+```
+
+任意モデルの組み合わせでも同様です。
+
+```bash
+bun run repro:deepseek -- --json --models deepseek-v4-flash,glm-5,qwen3.6-plus "テストです。モデル名を教えてください。" > compare.json
 ```
 
 ## Marketplace Packaging

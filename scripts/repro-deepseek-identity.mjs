@@ -3,11 +3,16 @@ const BASE_URL = "https://opencode.ai/zen/go/v1";
 function parseArgs(argv) {
   let rawModels = process.env.OPENCODE_GO_MODELS ?? process.env.OPENCODE_GO_MODEL;
   const promptParts = [];
+  let json = false;
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--help" || arg === "-h") {
-      return { help: true, models: [], prompt: "" };
+      return { help: true, json: false, models: [], prompt: "" };
+    }
+    if (arg === "--json") {
+      json = true;
+      continue;
     }
     if ((arg === "--models" || arg === "--model") && argv[index + 1]) {
       rawModels = argv[index + 1];
@@ -27,7 +32,7 @@ function parseArgs(argv) {
   );
 
   const prompt = promptParts.join(" ").trim() || "テストです。モデル名を教えてください。";
-  return { help: false, models, prompt };
+  return { help: false, json, models, prompt };
 }
 
 async function fetchModelResponse(apiKey, model, prompt) {
@@ -108,21 +113,57 @@ async function fetchModelResponse(apiKey, model, prompt) {
 }
 
 async function main() {
-  const { help, models, prompt } = parseArgs(process.argv.slice(2));
+  const { help, json, models, prompt } = parseArgs(process.argv.slice(2));
   if (help) {
-    console.log("Usage: bun run repro:deepseek -- [--models deepseek-v4-flash,kimi-k2.6] [prompt]");
+    console.log(
+      "Usage: bun run repro:deepseek -- [--models deepseek-v4-flash,kimi-k2.6] [--json] [prompt]",
+    );
     console.log("Examples:");
     console.log('  bun run repro:deepseek -- "テストです。モデル名を教えてください。"');
     console.log(
       '  bun run repro:deepseek -- --models deepseek-v4-flash,kimi-k2.6 "テストです。モデル名を教えてください。"',
+    );
+    console.log(
+      '  bun run repro:deepseek -- --json --models deepseek-v4-flash,kimi-k2.6 "テストです。モデル名を教えてください。"',
     );
     return;
   }
 
   const apiKey = process.env.OPENCODE_GO_API_KEY;
   if (!apiKey) {
+    if (json) {
+      console.log(JSON.stringify({ ok: false, error: "Missing OPENCODE_GO_API_KEY" }, null, 2));
+      process.exitCode = 1;
+      return;
+    }
     console.error("Missing OPENCODE_GO_API_KEY");
     process.exitCode = 1;
+    return;
+  }
+
+  const results = [];
+
+  for (const model of models) {
+    const result = await fetchModelResponse(apiKey, model, prompt);
+    results.push({ model, ...result });
+    if (!result.ok) {
+      process.exitCode = 1;
+    }
+  }
+
+  if (json) {
+    console.log(
+      JSON.stringify(
+        {
+          ok: process.exitCode !== 1,
+          timestamp: new Date().toISOString(),
+          prompt,
+          models: results,
+        },
+        null,
+        2,
+      ),
+    );
     return;
   }
 
@@ -130,13 +171,9 @@ async function main() {
   console.log(`Prompt: ${prompt}`);
   console.log("---");
 
-  for (const model of models) {
-    const result = await fetchModelResponse(apiKey, model, prompt);
-    console.log(`\n=== ${model} ===`);
+  for (const result of results) {
+    console.log(`\n=== ${result.model} ===`);
     console.log(result.text);
-    if (!result.ok) {
-      process.exitCode = 1;
-    }
   }
 }
 

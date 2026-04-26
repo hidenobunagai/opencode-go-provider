@@ -3,7 +3,7 @@
   "publisher": "HidenobuNagai",
   "displayName": "OpenCode Go Provider",
   "description": "OpenCode Go Chat Provider for VS Code Copilot Chat",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -72,7 +72,8 @@
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
     "package:vsix": "bun run compile && vsce package --allow-missing-repository",
     "repro:deepseek": "bun scripts/repro-deepseek-identity.mjs",
-    "repro:compare": "bun scripts/repro-deepseek-identity.mjs --models deepseek-v4-flash,kimi-k2.6"
+    "repro:compare": "bun scripts/repro-deepseek-identity.mjs --models deepseek-v4-flash,kimi-k2.6",
+    "repro:compare:json": "bun scripts/repro-deepseek-identity.mjs --models deepseek-v4-flash,kimi-k2.6 --json"
   },
   "devDependencies": {
     "@types/jest": "^29.0.0",
