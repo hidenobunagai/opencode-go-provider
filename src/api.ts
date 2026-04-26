@@ -113,16 +113,21 @@ export async function* streamChatCompletion(
   signal?: AbortSignal,
   userAgent?: string,
 ): AsyncGenerator<OcGoStreamResponse, void, unknown> {
-  const response = await fetchWithRetry(`${BASE_URL}/chat/completions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      ...(userAgent ? { "User-Agent": userAgent } : {}),
+  const response = await fetchWithRetry(
+    `${BASE_URL}/chat/completions`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        ...(userAgent ? { "User-Agent": userAgent } : {}),
+      },
+      body: JSON.stringify(requestBody),
+      signal,
     },
-    body: JSON.stringify(requestBody),
-    signal,
-  });
+    // For chat completions, we might want to try slightly more times since they are high-value actions
+    5,
+  );
 
   if (!response.ok) {
     const text = await response.text();
