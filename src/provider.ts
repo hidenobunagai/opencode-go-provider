@@ -183,7 +183,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         return;
       }
 
-      const inputTokenCount = estimateMessagesTokens(messages as never);
+      const inputTokenCount = estimateMessagesTokens(messages as never, model.id);
       const maxInputTokens = model.maxInputTokens;
       const effectiveMaxInputTokens = Math.max(1, maxInputTokens - CONTEXT_WINDOW_SAFETY_MARGIN);
 

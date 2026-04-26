@@ -89,5 +89,8 @@
     "ts-jest": "^29.0.0",
     "typescript": "^5.9.0",
     "typescript-eslint": "^8.58.2"
+  },
+  "dependencies": {
+    "@dqbd/tiktoken": "^1.0.22"
   }
 }

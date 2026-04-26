@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
-import { REASONING_CONTENT_WORKAROUND_MODELS } from "./constants";
+import { encoding_for_model } from "@dqbd/tiktoken";
+import { MODEL_TOKENIZER_MAP, REASONING_CONTENT_WORKAROUND_MODELS } from "./constants";
 import { debugLog } from "./output-channel";
 import {
   AnthropicContentBlock,
@@ -424,21 +425,30 @@ export function convertTools(options: vscode.ProvideLanguageModelChatResponseOpt
   return { tools, tool_choice: "auto" };
 }
 
-export function estimateTokens(text: string): number {
-  // Conservative heuristic: ~2 chars per token for mixed CJK/Latin text.
-  // This intentionally overestimates English to avoid API context-window errors.
-  return Math.ceil(text.length / 2);
+export function estimateTokens(text: string, modelId?: string): number {
+  if (!text) return 0;
+  try {
+    const modelName = modelId ? MODEL_TOKENIZER_MAP[modelId] : undefined;
+    const enc = encoding_for_model((modelName || "gpt-4o") as never);
+    const tokens = enc.encode(text).length;
+    enc.free();
+    return tokens;
+  } catch {
+    // Fallback: ~2 chars per token (conservative overestimate)
+    return Math.ceil(text.length / 2);
+  }
 }
 
 export function estimateMessagesTokens(
   messages: readonly { content: (vscode.LanguageModelInputPart | LegacyPart)[] }[],
+  modelId?: string,
 ): number {
   let total = 0;
   for (const m of messages) {
     for (const part of m.content) {
       const tv = getTextPartValue(part) ?? getDataPartTextValue(part);
       if (tv !== undefined) {
-        total += estimateTokens(tv);
+        total += estimateTokens(tv, modelId);
       }
     }
   }

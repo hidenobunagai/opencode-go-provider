@@ -26,3 +26,21 @@ export const REASONING_CONTENT_WORKAROUND_MODELS = new Set([
   "deepseek-v4-pro",
   "deepseek-v4-flash",
 ]);
+
+/** Map model IDs to tiktoken encoder names */
+export const MODEL_TOKENIZER_MAP: Record<string, string> = {
+  "glm-5": "gpt-4o",
+  "glm-5.1": "gpt-4o",
+  "kimi-k2.5": "gpt-4o",
+  "kimi-k2.6": "gpt-4o",
+  "mimo-v2-pro": "gpt-4o",
+  "mimo-v2-omni": "gpt-4o",
+  "mimo-v2.5-pro": "gpt-4o",
+  "mimo-v2.5": "gpt-4o",
+  "minimax-m2.5": "claude-3-haiku-20240307",
+  "minimax-m2.7": "claude-3-haiku-20240307",
+  "qwen3.5-plus": "gpt-4o",
+  "qwen3.6-plus": "gpt-4o",
+  "deepseek-v4-pro": "gpt-4o",
+  "deepseek-v4-flash": "gpt-4o",
+};
