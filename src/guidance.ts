@@ -1,6 +1,6 @@
 // guidance.ts — system prompt sanitization, identity & tool-use grounding guidance
 import * as vscode from "vscode";
-import { OcGoModelInfo } from "./types";
+import { OcGoChatMessage, OcGoModelInfo } from "./types";
 import { ProvideLanguageModelChatResponseOptions } from "vscode";
 
 export function sanitizeSystemPromptForModel(
@@ -49,6 +49,58 @@ export function buildToolUseGroundingGuidance(
     "Do not treat planning or task-management tool output as evidence about workspace structure, file contents, or which file is latest.",
     "If you have not yet used a file or directory inspection tool in the current answer, do not say the workspace or latest file is already confirmed.",
   ].join(" ");
+}
+
+export function applyOpenAiSystemPromptGuidance(
+  apiMessages: OcGoChatMessage[],
+  modelId: string,
+  options: ProvideLanguageModelChatResponseOptions,
+  openCodeGoModelInfo?: readonly OcGoModelInfo[],
+): OcGoChatMessage[] {
+  const hasTools = (options.tools?.length ?? 0) > 0;
+  if (!hasTools && !modelId.startsWith("deepseek-")) {
+    return apiMessages;
+  }
+
+  const guidance = [
+    modelId.startsWith("deepseek-")
+      ? buildProviderIdentityGuidance(modelId, openCodeGoModelInfo ?? [])
+      : undefined,
+    hasTools ? buildToolUseGroundingGuidance(options) : undefined,
+  ]
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    .join("\n\n");
+
+  if (!guidance) {
+    return apiMessages;
+  }
+  const normalizedMessages = apiMessages.map((message) => {
+    if (message.role !== "system" || typeof message.content !== "string") {
+      return message;
+    }
+
+    return {
+      ...message,
+      content: sanitizeSystemPromptForModel(message.content, modelId) ?? "",
+    };
+  });
+
+  const firstSystemIndex = normalizedMessages.findIndex(
+    (message) => message.role === "system" && typeof message.content === "string",
+  );
+
+  if (firstSystemIndex >= 0) {
+    const currentContent = normalizedMessages[firstSystemIndex].content;
+    normalizedMessages[firstSystemIndex] = {
+      ...normalizedMessages[firstSystemIndex],
+      content: [currentContent, guidance]
+        .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+        .join("\n\n"),
+    };
+    return normalizedMessages;
+  }
+
+  return [{ role: "system", content: guidance }, ...normalizedMessages];
 }
 
 export function calculateMaxToolResultChars(
