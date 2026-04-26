@@ -1,5 +1,17 @@
 # Change Log
 
+## [0.1.13] - 2026-04-26
+
+### Changed
+
+- Improved DeepSeek V4 Pro / V4 Flash tool-use grounding so workspace and file summaries stay tied to actual tool outputs.
+- Routed DeepSeek tool-enabled chats through the OpenAI-compatible chat completions path with explicit automatic tool choice.
+
+### Fixed
+
+- Preserved DeepSeek reasoning-content placeholders for tool-call history to avoid thinking-mode request failures.
+- Reduced DeepSeek tool-use roleplay by reinforcing evidence-based guidance for latest-file and workspace claims.
+
 ## [0.1.12] - 2026-04-26
 
 ### Added
