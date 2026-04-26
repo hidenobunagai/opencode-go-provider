@@ -1,5 +1,15 @@
 # Change Log
 
+## [0.1.11] - 2026-04-26
+
+### Added
+
+- Added side-by-side model comparison support to the DeepSeek reproduction script so the same prompt can be sent to DeepSeek and reference models in one run.
+
+### Changed
+
+- Added a `bun run repro:compare` helper and expanded README troubleshooting guidance for upstream model identity checks.
+
 ## [0.1.10] - 2026-04-26
 
 ### Changed
