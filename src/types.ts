@@ -205,6 +205,26 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: true,
     apiFormat: "openai",
   },
+  {
+    id: "deepseek-v4-pro",
+    name: "DeepSeek V4 Pro",
+    displayName: "DeepSeek V4 Pro",
+    contextWindow: 262144,
+    maxOutput: 65536,
+    supportsTools: true,
+    supportsVision: true,
+    apiFormat: "openai",
+  },
+  {
+    id: "deepseek-v4-flash",
+    name: "DeepSeek V4 Flash",
+    displayName: "DeepSeek V4 Flash",
+    contextWindow: 262144,
+    maxOutput: 65536,
+    supportsTools: true,
+    supportsVision: true,
+    apiFormat: "openai",
+  },
 ];
 
 // ============================================================================
