@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import { encoding_for_model } from "@dqbd/tiktoken";
 import { MODEL_TOKENIZER_MAP, REASONING_CONTENT_WORKAROUND_MODELS } from "./constants";
 import { debugLog } from "./output-channel";
 import {
@@ -25,6 +24,32 @@ export interface LegacyPart {
   input?: unknown;
   content?: unknown[];
   [key: string]: unknown;
+}
+
+type Encoding = {
+  encode(text: string): { length: number } | number[] | Uint32Array;
+  free(): void;
+};
+
+type TiktokenModule = {
+  encoding_for_model(model: string): Encoding;
+};
+
+let cachedTiktokenModule: TiktokenModule | null | undefined;
+
+function getTiktokenModule(): TiktokenModule | null {
+  if (cachedTiktokenModule !== undefined) {
+    return cachedTiktokenModule;
+  }
+
+  try {
+    cachedTiktokenModule = require("@dqbd/tiktoken") as TiktokenModule;
+  } catch (error) {
+    cachedTiktokenModule = null;
+    debugLog("tiktoken", error);
+  }
+
+  return cachedTiktokenModule;
 }
 
 function asObjectRecord(value: unknown): Record<string, unknown> | undefined {
@@ -432,8 +457,12 @@ export function convertTools(options: vscode.ProvideLanguageModelChatResponseOpt
 export function estimateTokens(text: string, modelId?: string): number {
   if (!text) return 0;
   try {
+    const tiktoken = getTiktokenModule();
+    if (!tiktoken) {
+      throw new Error("@dqbd/tiktoken unavailable");
+    }
     const modelName = modelId ? MODEL_TOKENIZER_MAP[modelId] : undefined;
-    const enc = encoding_for_model((modelName || "gpt-4o") as never);
+    const enc = tiktoken.encoding_for_model(modelName || "gpt-4o");
     const tokens = enc.encode(text).length;
     enc.free();
     return tokens;
