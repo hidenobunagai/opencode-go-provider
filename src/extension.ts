@@ -1,55 +1,10 @@
 import * as vscode from "vscode";
-import { fetchModels } from "./api";
 import { EXTENSION_VERSION } from "./constants";
 import { debugLog, getOutputChannel } from "./output-channel";
 import { OcGoChatModelProvider } from "./provider";
 import { registerOcGoTools } from "./tools";
 
 let _provider: OcGoChatModelProvider | null = null;
-
-async function refreshModelsFromApi(
-  context: vscode.ExtensionContext,
-  ua: string,
-  options: { showMessages: boolean },
-): Promise<void> {
-  const apiKey = await context.secrets.get("opencode-go.apiKey");
-  if (!apiKey) {
-    if (options.showMessages) {
-      vscode.window.showWarningMessage("No OpenCode Go API key configured.");
-    }
-    return;
-  }
-
-  try {
-    const models = await fetchModels(apiKey, undefined, ua);
-    if (models && models.length > 0) {
-      await context.globalState.update("opencode-go.models", models);
-      _provider?.fireModelInfoChanged();
-      debugLog("refreshModels", `Refreshed ${models.length} models from OpenCode Go API.`);
-      if (options.showMessages) {
-        vscode.window.showInformationMessage(`Refreshed ${models.length} OpenCode Go models.`);
-      }
-      return;
-    }
-
-    debugLog("refreshModels", "Model refresh returned no models (endpoint may not be available).");
-    if (options.showMessages) {
-      vscode.window.showWarningMessage(
-        "OpenCode Go does not provide a models list endpoint. The built-in model list is used.",
-      );
-    }
-  } catch (error) {
-    debugLog(
-      "refreshModels",
-      `Model refresh failed: ${error instanceof Error ? error.message : String(error)}`,
-    );
-    if (options.showMessages) {
-      vscode.window.showWarningMessage(
-        "OpenCode Go does not provide a models list endpoint. The built-in model list is used.",
-      );
-    }
-  }
-}
 
 export function activate(context: vscode.ExtensionContext) {
   const ua = `opencode-go-provider/${EXTENSION_VERSION} VSCode/${vscode.version}`;
@@ -102,12 +57,6 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("opencode-go.refreshModels", async () => {
-      await refreshModelsFromApi(context, ua, { showMessages: true });
-    }),
-  );
-
-  context.subscriptions.push(
     vscode.commands.registerCommand("opencode-go.toggleDebugLogging", async () => {
       const current = context.globalState.get<boolean>("opencode-go.debug", false);
       const next = !current;
@@ -126,8 +75,6 @@ export function activate(context: vscode.ExtensionContext) {
       output.show(true);
     }),
   );
-
-  void refreshModelsFromApi(context, ua, { showMessages: false });
 }
 
 export function deactivate() {

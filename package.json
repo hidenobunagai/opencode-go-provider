@@ -3,7 +3,7 @@
   "publisher": "HidenobuNagai",
   "displayName": "OpenCode Go Provider",
   "description": "OpenCode Go Chat Provider for VS Code Copilot Chat",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -47,11 +47,6 @@
       {
         "command": "opencode-go.manage",
         "title": "Manage OpenCode Go API Key",
-        "category": "OpenCode Go"
-      },
-      {
-        "command": "opencode-go.refreshModels",
-        "title": "Refresh Models",
         "category": "OpenCode Go"
       },
       {

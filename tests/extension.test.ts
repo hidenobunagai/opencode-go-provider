@@ -1,6 +1,3 @@
-import { fetchModels } from "../src/api";
-import { OcGoChatModelProvider } from "../src/provider";
-
 const registeredCommands = new Map<string, (...args: unknown[]) => unknown>();
 const mockCreateOutputChannel = jest.fn(() => ({
   appendLine: jest.fn(),
@@ -17,10 +14,6 @@ const mockRegisterCommand = jest.fn(
   },
 );
 const mockRegisterLanguageModelChatProvider = jest.fn(() => ({ dispose: jest.fn() }));
-
-jest.mock("../src/api", () => ({
-  fetchModels: jest.fn(),
-}));
 
 jest.mock("../src/provider", () => ({
   OcGoChatModelProvider: jest.fn().mockImplementation(() => ({
@@ -49,56 +42,13 @@ jest.mock("vscode", () => ({
   },
 }));
 
-const flushAsyncWork = async (): Promise<void> => {
-  await Promise.resolve();
-  await Promise.resolve();
-};
-
 describe("activate", () => {
   beforeEach(() => {
     registeredCommands.clear();
     jest.clearAllMocks();
   });
 
-  it("refreshes cached models in the background on activation when an API key exists", async () => {
-    const models = [{ id: "kimi-k2.6", name: "Kimi K2.6" }];
-    (fetchModels as jest.Mock).mockResolvedValue(models);
-
-    const secrets = {
-      get: jest.fn(async (key: string) => (key === "opencode-go.apiKey" ? "test-key" : undefined)),
-      store: jest.fn(),
-      delete: jest.fn(),
-      onDidChange: jest.fn(() => ({ dispose: jest.fn() })),
-    };
-    const globalState = {
-      get: jest.fn((key: string, fallback?: unknown) =>
-        key === "opencode-go.debug" ? false : fallback,
-      ),
-      update: jest.fn(async () => undefined),
-    };
-    const context = {
-      secrets,
-      globalState,
-      subscriptions: [] as Array<{ dispose(): void }>,
-    };
-
-    const { activate } = await import("../src/extension");
-    activate(context as never);
-    await flushAsyncWork();
-
-    const providerInstance = (OcGoChatModelProvider as jest.Mock).mock.results[0]?.value;
-    const { version } = require("../package.json");
-    expect(fetchModels).toHaveBeenCalledWith(
-      "test-key",
-      undefined,
-      `opencode-go-provider/${version} VSCode/1.104.0`,
-    );
-    expect(globalState.update).toHaveBeenCalledWith("opencode-go.models", models);
-    expect(providerInstance.fireModelInfoChanged).toHaveBeenCalled();
-    expect(mockShowErrorMessage).not.toHaveBeenCalled();
-  });
-
-  it("does not attempt a background refresh on activation when no API key is configured", async () => {
+  it("registers the language model provider and commands", async () => {
     const secrets = {
       get: jest.fn(async () => undefined),
       store: jest.fn(),
@@ -119,9 +69,12 @@ describe("activate", () => {
 
     const { activate } = await import("../src/extension");
     activate(context as never);
-    await flushAsyncWork();
 
-    expect(fetchModels).not.toHaveBeenCalled();
-    expect(globalState.update).not.toHaveBeenCalledWith("opencode-go.models", expect.anything());
+    expect(mockRegisterLanguageModelChatProvider).toHaveBeenCalled();
+    expect(registeredCommands.has("opencode-go.manage")).toBe(true);
+    expect(registeredCommands.has("opencode-go.toggleDebugLogging")).toBe(true);
+    expect(registeredCommands.has("opencode-go.openDebugLog")).toBe(true);
+    expect(registeredCommands.has("opencode-go.refreshModels")).toBe(false);
+    expect(mockShowErrorMessage).not.toHaveBeenCalled();
   });
 });

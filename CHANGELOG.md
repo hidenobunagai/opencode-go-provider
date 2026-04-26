@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.8] - 2026-04-26
+
+### Removed
+
+- Removed the **Refresh Models** command (`opencode-go.refreshModels`). OpenCode Go does not provide a `/models` endpoint, so the command always failed. The built-in `FALLBACK_MODELS` list is now the sole source of model information.
+
 ## [0.1.7] - 2026-04-26
 
 ### Fixed
