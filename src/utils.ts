@@ -20,6 +20,10 @@ export interface LegacyPart {
   data?: Uint8Array | number[];
   buffer?: ArrayBuffer;
   value?: string;
+  callId?: string;
+  name?: string;
+  input?: unknown;
+  content?: unknown[];
   [key: string]: unknown;
 }
 

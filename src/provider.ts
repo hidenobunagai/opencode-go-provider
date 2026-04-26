@@ -54,7 +54,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
   private hasImageInput(messages: readonly LanguageModelChatMessage[]): boolean {
     for (const msg of messages) {
       for (const part of msg.content) {
-        const p = part as { mimeType?: unknown; data?: unknown };
+        const p = part as unknown as Record<string, unknown>;
         if (typeof p.mimeType === "string" && p.mimeType.startsWith("image/")) return true;
       }
     }
@@ -183,7 +183,10 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         return;
       }
 
-      const inputTokenCount = estimateMessagesTokens(messages as never, model.id);
+      const inputTokenCount = estimateMessagesTokens(
+        messages as never, // cast needed for VS Code API type compatibility
+        model.id,
+      );
       const maxInputTokens = model.maxInputTokens;
       const effectiveMaxInputTokens = Math.max(1, maxInputTokens - CONTEXT_WINDOW_SAFETY_MARGIN);
 
@@ -281,9 +284,9 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         total += Math.ceil(part.value.length / 2);
       } else if (
         typeof part === "object" && part !== null &&
-        "value" in part && typeof (part as any).value === "string"
+        "value" in part && typeof (part as Record<string, unknown>).value === "string"
       ) {
-        total += Math.ceil((part as any).value.length / 2);
+        total += Math.ceil((part as { value: string }).value.length / 2);
       } else {
         total += 2;
       }
