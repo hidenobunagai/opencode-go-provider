@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.5] - 2026-04-26
+
+### Fixed
+
+- Set `supportsVision: false` for DeepSeek V4 Pro and V4 Flash (these models do not accept `image_url` input).
+
 ## [0.1.4] - 2026-04-26
 
 ### Fixed
