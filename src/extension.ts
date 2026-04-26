@@ -44,7 +44,6 @@ export function activate(context: vscode.ExtensionContext) {
 
   const registration = vscode.lm.registerLanguageModelChatProvider("opencode-go", provider);
   context.subscriptions.push(registration);
-  context.subscriptions.push(registerOcGoTools(context.secrets));
   context.subscriptions.push(
     vscode.commands.registerCommand("opencode-go.manage", async () => {
       const existing = await context.secrets.get("opencode-go.apiKey");
@@ -90,6 +89,15 @@ export function activate(context: vscode.ExtensionContext) {
       output.show(true);
     }),
   );
+
+  try {
+    context.subscriptions.push(registerOcGoTools(context.secrets));
+  } catch (error) {
+    debugLog("registerOcGoTools", error);
+    vscode.window.showWarningMessage(
+      "OpenCode Go image analysis tool could not be registered. API key management and chat remain available.",
+    );
+  }
 }
 
 export function deactivate() {

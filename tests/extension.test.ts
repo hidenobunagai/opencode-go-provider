@@ -1,4 +1,6 @@
 const registeredCommands = new Map<string, (...args: unknown[]) => unknown>();
+import { registerOcGoTools } from "../src/tools";
+
 const mockCreateOutputChannel = jest.fn(() => ({
   appendLine: jest.fn(),
   show: jest.fn(),
@@ -76,5 +78,35 @@ describe("activate", () => {
     expect(registeredCommands.has("opencode-go.openDebugLog")).toBe(true);
     expect(registeredCommands.has("opencode-go.refreshModels")).toBe(false);
     expect(mockShowErrorMessage).not.toHaveBeenCalled();
+  });
+
+  it("still registers management commands when tool registration fails", async () => {
+    (registerOcGoTools as jest.Mock).mockImplementationOnce(() => {
+      throw new Error("tool registration failed");
+    });
+
+    const secrets = {
+      get: jest.fn(async () => undefined),
+      store: jest.fn(),
+      delete: jest.fn(),
+      onDidChange: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+    const globalState = {
+      get: jest.fn((key: string, fallback?: unknown) =>
+        key === "opencode-go.debug" ? false : fallback,
+      ),
+      update: jest.fn(async () => undefined),
+    };
+    const context = {
+      secrets,
+      globalState,
+      subscriptions: [] as Array<{ dispose(): void }>,
+    };
+
+    const { activate } = await import("../src/extension");
+
+    expect(() => activate(context as never)).not.toThrow();
+    expect(mockRegisterLanguageModelChatProvider).toHaveBeenCalled();
+    expect(registeredCommands.has("opencode-go.manage")).toBe(true);
   });
 });

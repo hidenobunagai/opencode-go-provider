@@ -43,6 +43,32 @@
         "managementCommand": "opencode-go.manage"
       }
     ],
+    "languageModelTools": [
+      {
+        "name": "opencode_go_analyze_image",
+        "toolReferenceName": "analyzeImage",
+        "displayName": "OpenCode Go Analyze Image",
+        "modelDescription": "Analyze an image with the OpenCode Go vision model and return a text description.",
+        "userDescription": "Analyze an image using OpenCode Go Vision.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "image_data": {
+              "type": "string",
+              "description": "Base64-encoded image data URL."
+            },
+            "prompt": {
+              "type": "string",
+              "description": "Instruction describing what to analyze in the image."
+            }
+          },
+          "required": [
+            "image_data",
+            "prompt"
+          ]
+        }
+      }
+    ],
     "commands": [
       {
         "command": "opencode-go.manage",
