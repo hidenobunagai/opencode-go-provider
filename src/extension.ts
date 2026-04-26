@@ -3,6 +3,7 @@ import { EXTENSION_VERSION } from "./constants";
 import { debugLog, getOutputChannel } from "./output-channel";
 import { OcGoChatModelProvider } from "./provider";
 import { registerOcGoTools } from "./tools";
+import { fetchModels } from "./api";
 
 let _provider: OcGoChatModelProvider | null = null;
 
@@ -18,6 +19,18 @@ export function activate(context: vscode.ExtensionContext) {
   );
   const provider = new OcGoChatModelProvider(context.secrets, ua, context.globalState);
   _provider = provider;
+
+  Promise.resolve(context.secrets.get("opencode-go.apiKey")).then((key) => {
+    if (!key) return;
+    return fetchModels(key, undefined, ua).then((models) => {
+      if (models && models.length > 0) {
+        context.globalState.update("opencode-go.models", models);
+        _provider?.fireModelInfoChanged();
+      }
+    });
+  }).catch(() => {
+    // Silent — keep using FALLBACK_MODELS
+  });
 
   context.subscriptions.push(
     context.secrets.onDidChange((e) => {
