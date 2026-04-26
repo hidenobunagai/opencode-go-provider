@@ -2,10 +2,7 @@
 import * as vscode from "vscode";
 import { debugLog } from "../output-channel";
 import { BASE_URL } from "../constants";
-import {
-  buildProviderIdentityGuidance,
-  sanitizeSystemPromptForModel,
-} from "../guidance";
+import { buildProviderIdentityGuidance, sanitizeSystemPromptForModel } from "../guidance";
 import { AnthropicMessage, AnthropicSSEEvent, OcGoModelInfo, type Json } from "../types";
 import { convertMessagesToAnthropic, convertTools, convertToolsToAnthropic } from "../utils";
 import { parseTextEmbeddedToolCalls, type ParsedTextToolCall } from "../tool-parser";
@@ -247,9 +244,8 @@ async function processAnthropicStreamingResponse(
             break;
 
           case "content_block_start": {
-            const cb = (
-              event as { content_block?: { type?: string; id?: string; name?: string } }
-            ).content_block;
+            const cb = (event as { content_block?: { type?: string; id?: string; name?: string } })
+              .content_block;
             if (cb?.type === "tool_use") {
               sawToolCall = true;
               const idx = (event as { index: number }).index;
@@ -287,7 +283,10 @@ async function processAnthropicStreamingResponse(
                 try {
                   input = JSON.parse(tc.inputJson) as Record<string, Json>;
                 } catch {
-                  debugLog("processAnthropicStreamingResponse", "Failed to parse tool call input JSON at block_stop");
+                  debugLog(
+                    "processAnthropicStreamingResponse",
+                    "Failed to parse tool call input JSON at block_stop",
+                  );
                 }
               }
               emitEmbeddedToolCall({ name: tc.name, args: input }, tc.id);
@@ -345,7 +344,10 @@ async function processAnthropicStreamingResponse(
                       try {
                         input = JSON.parse(tc.inputJson) as Record<string, Json>;
                       } catch {
-                        debugLog("processAnthropicStreamingResponse", "Failed to parse DeepSeek tool call input");
+                        debugLog(
+                          "processAnthropicStreamingResponse",
+                          "Failed to parse DeepSeek tool call input",
+                        );
                       }
                     }
                     emitEmbeddedToolCall({ name: tc.name, args: input }, tc.id);

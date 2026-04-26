@@ -158,7 +158,10 @@ export function parseTextEmbeddedToolCalls(text: string): ParsedTextToolCallResu
     );
 
     if (!nextStart) {
-      const partialStart = findTrailingTokenPrefixStartAny(remaining, [beginToken, ...xmlStartTokens]);
+      const partialStart = findTrailingTokenPrefixStartAny(remaining, [
+        beginToken,
+        ...xmlStartTokens,
+      ]);
       if (partialStart === -1) {
         appendText(remaining);
       } else {

@@ -1,5 +1,4 @@
 // guidance.ts — system prompt sanitization, identity & tool-use grounding guidance
-import * as vscode from "vscode";
 import { OcGoChatMessage, OcGoModelInfo } from "./types";
 import { ProvideLanguageModelChatResponseOptions } from "vscode";
 

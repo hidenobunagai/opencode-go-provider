@@ -73,8 +73,10 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         if (part instanceof vscode.LanguageModelTextPart) {
           textParts.push(part.value);
         } else if (
-          typeof part === "object" && part !== null &&
-          "value" in part && typeof (part as { value?: unknown }).value === "string"
+          typeof part === "object" &&
+          part !== null &&
+          "value" in part &&
+          typeof (part as { value?: unknown }).value === "string"
         ) {
           textParts.push((part as { value: string }).value);
         }
@@ -86,9 +88,12 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         if (typeof p.mimeType !== "string" || !p.mimeType.startsWith("image/")) continue;
         let data: Uint8Array | undefined;
         if (p.data instanceof Uint8Array && p.data.length > 0) data = p.data;
-        else if (p.bytes instanceof Uint8Array && (p.bytes as Uint8Array).length > 0) data = p.bytes as Uint8Array;
-        else if (Array.isArray(p.data) && p.data.length > 0) data = new Uint8Array(p.data as number[]);
-        else if (Array.isArray(p.bytes) && (p.bytes as unknown[]).length > 0) data = new Uint8Array(p.bytes as number[]);
+        else if (p.bytes instanceof Uint8Array && (p.bytes as Uint8Array).length > 0)
+          data = p.bytes as Uint8Array;
+        else if (Array.isArray(p.data) && p.data.length > 0)
+          data = new Uint8Array(p.data as number[]);
+        else if (Array.isArray(p.bytes) && (p.bytes as unknown[]).length > 0)
+          data = new Uint8Array(p.bytes as number[]);
         if (data) images.push({ mimeType: p.mimeType, data });
       }
 
@@ -132,7 +137,8 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     if (token.isCancellationRequested) return [];
 
     if (options.silent) {
-      const cached = this.globalState?.get<Array<{ id: string; name: string }>>("opencode-go.models");
+      const cached =
+        this.globalState?.get<Array<{ id: string; name: string }>>("opencode-go.models");
       const models = cached && cached.length > 0 ? cached : FALLBACK_MODELS;
       return this._mapToChatInformation(models);
     }
@@ -147,14 +153,24 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
   ): LanguageModelChatInformation[] {
     return models.map((model) => {
       const info = FALLBACK_MODELS.find((m) => m.id === model.id) ?? {
-        id: model.id, name: model.name, displayName: model.name,
-        contextWindow: 262144, maxOutput: 65536, supportsTools: true, supportsVision: false,
+        id: model.id,
+        name: model.name,
+        displayName: model.name,
+        contextWindow: 262144,
+        maxOutput: 65536,
+        supportsTools: true,
+        supportsVision: false,
       };
       return {
-        id: info.id, name: info.displayName, detail: "OpenCode Go",
-        tooltip: `OpenCode Go ${info.name}`, family: "opencode-go", version: "1.0.0",
+        id: info.id,
+        name: info.displayName,
+        detail: "OpenCode Go",
+        tooltip: `OpenCode Go ${info.name}`,
+        family: "opencode-go",
+        version: "1.0.0",
         maxInputTokens: Math.max(
-          1, info.contextWindow - Math.min(info.maxOutput, DEFAULT_MAX_OUTPUT_TOKENS),
+          1,
+          info.contextWindow - Math.min(info.maxOutput, DEFAULT_MAX_OUTPUT_TOKENS),
         ),
         maxOutputTokens: info.maxOutput,
         capabilities: { toolCalling: info.supportsTools ? 128 : false, imageInput: true },
@@ -208,7 +224,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         typeof modelInfo?.fixedTemperature === "number"
           ? modelInfo.fixedTemperature
           : typeof (options.modelOptions as Record<string, unknown>)?.temperature === "number"
-            ? (options.modelOptions as Record<string, unknown>).temperature as number
+            ? ((options.modelOptions as Record<string, unknown>).temperature as number)
             : 0.7;
 
       const hasImages = this.hasImageInput(messages);
@@ -283,8 +299,10 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
       if (part instanceof vscode.LanguageModelTextPart) {
         total += Math.ceil(part.value.length / 2);
       } else if (
-        typeof part === "object" && part !== null &&
-        "value" in part && typeof (part as Record<string, unknown>).value === "string"
+        typeof part === "object" &&
+        part !== null &&
+        "value" in part &&
+        typeof (part as Record<string, unknown>).value === "string"
       ) {
         total += Math.ceil((part as { value: string }).value.length / 2);
       } else {

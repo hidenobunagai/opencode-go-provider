@@ -196,7 +196,10 @@ export async function* streamChatCompletion(
     }
 
     if (malformedSseCount >= MALFORMED_SSE_WARN_THRESHOLD) {
-      debugLog("streamChatCompletion", `Received ${malformedSseCount} malformed SSE lines (threshold: ${MALFORMED_SSE_WARN_THRESHOLD})`);
+      debugLog(
+        "streamChatCompletion",
+        `Received ${malformedSseCount} malformed SSE lines (threshold: ${MALFORMED_SSE_WARN_THRESHOLD})`,
+      );
     }
   } finally {
     reader.releaseLock();

@@ -1,8 +1,7 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pkg = require("../package.json") as { version: string };
+import { version } from "../package.json";
 
 export const BASE_URL = "https://opencode.ai/zen/go/v1";
-export const EXTENSION_VERSION: string = pkg.version;
+export const EXTENSION_VERSION: string = version;
 
 /** Safety margin for context window calculations (in tokens) */
 export const CONTEXT_WINDOW_SAFETY_MARGIN = 4096;

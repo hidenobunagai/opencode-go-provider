@@ -14,10 +14,7 @@ import {
   isToolCallInput,
   repairToolArguments,
 } from "../tool-repair";
-import {
-  applyOpenAiSystemPromptGuidance,
-  calculateMaxToolResultChars,
-} from "../guidance";
+import { applyOpenAiSystemPromptGuidance, calculateMaxToolResultChars } from "../guidance";
 import { convertMessages, convertTools, applyReasoningContentWorkaround } from "../utils";
 import type { OcGoModelInfo } from "../types";
 
@@ -95,12 +92,7 @@ export async function processOpenAIStream(
   const emitTextToolCall = (toolCall: ParsedTextToolCall, toolId?: string): void => {
     sawToolCall = true;
     const schema = toolSchemas.get(toolCall.name);
-    const repairedArgs = repairToolArguments(
-      toolCall.name,
-      toolCall.args,
-      requestContext,
-      schema,
-    );
+    const repairedArgs = repairToolArguments(toolCall.name, toolCall.args, requestContext, schema);
     const canonicalKey = buildToolCallCanonicalKey(toolCall.name, repairedArgs);
     if (emittedTextToolCallKeys.has(canonicalKey)) return;
 
@@ -189,9 +181,7 @@ export async function processOpenAIStream(
                 continue;
               }
               flushPendingText();
-              progress.report(
-                new vscode.LanguageModelToolCallPart(buf.id, buf.name, args),
-              );
+              progress.report(new vscode.LanguageModelToolCallPart(buf.id, buf.name, args));
               emittedToolCall = true;
               emittedTextToolCallKeys.add(canonicalKey);
               completedToolCallIndices.add(idx);
@@ -210,7 +200,10 @@ export async function processOpenAIStream(
               toolCallBuffers.delete(idx);
             }
           } catch {
-            debugLog("processOpenAIStream", "Failed to parse tool call JSON, waiting for next chunk");
+            debugLog(
+              "processOpenAIStream",
+              "Failed to parse tool call JSON, waiting for next chunk",
+            );
           }
         }
       }
@@ -227,18 +220,11 @@ export async function processOpenAIStream(
           requestContext,
           schema,
         );
-        if (
-          buf.id &&
-          buf.name &&
-          isToolCallInput(args) &&
-          hasRequiredToolArguments(args, schema)
-        ) {
+        if (buf.id && buf.name && isToolCallInput(args) && hasRequiredToolArguments(args, schema)) {
           const canonicalKey = buildToolCallCanonicalKey(buf.name, args);
           if (emittedTextToolCallKeys.has(canonicalKey)) continue;
           flushPendingText();
-          progress.report(
-            new vscode.LanguageModelToolCallPart(buf.id, buf.name, args),
-          );
+          progress.report(new vscode.LanguageModelToolCallPart(buf.id, buf.name, args));
           emittedToolCall = true;
           emittedTextToolCallKeys.add(canonicalKey);
         } else if (buf.id && buf.name) {
@@ -257,10 +243,7 @@ export async function processOpenAIStream(
       }
     }
 
-    if (
-      pendingText &&
-      (!sawToolCall || emittedToolCall || pendingText.trim().length > 0)
-    ) {
+    if (pendingText && (!sawToolCall || emittedToolCall || pendingText.trim().length > 0)) {
       flushPendingText();
     }
 
@@ -271,10 +254,7 @@ export async function processOpenAIStream(
       }
     }
   } catch (err) {
-    if (
-      token.isCancellationRequested ||
-      (err instanceof Error && err.name === "AbortError")
-    ) {
+    if (token.isCancellationRequested || (err instanceof Error && err.name === "AbortError")) {
       throw new vscode.CancellationError();
     }
     throw err;

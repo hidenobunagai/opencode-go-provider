@@ -57,7 +57,12 @@ export function getCompletedToolCallKeys(
       ) {
         continue;
       }
-      const repairedArgs = repairToolArguments(tc.name, tc.input ?? {}, requestContext, toolSchemas.get(tc.name));
+      const repairedArgs = repairToolArguments(
+        tc.name,
+        tc.input ?? {},
+        requestContext,
+        toolSchemas.get(tc.name),
+      );
       keys.add(buildToolCallCanonicalKey(tc.name, repairedArgs));
     }
   }
@@ -69,9 +74,13 @@ export function getToolSchemaMap(
 ): Map<string, ToolSchema> {
   const map = new Map<string, ToolSchema>();
   for (const tool of options.tools ?? []) {
-    const inputSchema = tool.inputSchema as { required?: unknown; properties?: unknown } | undefined;
+    const inputSchema = tool.inputSchema as
+      | { required?: unknown; properties?: unknown }
+      | undefined;
     const required = Array.isArray(inputSchema?.required)
-      ? inputSchema.required.filter((value): value is string => typeof value === "string" && value.length > 0)
+      ? inputSchema.required.filter(
+          (value): value is string => typeof value === "string" && value.length > 0,
+        )
       : undefined;
     const enumValues: Record<string, string[]> = {};
     const properties =
@@ -101,11 +110,14 @@ export function hasRequiredToolArguments(args: unknown, schema: ToolSchema | und
   if (typeof args !== "object" || args === null || Array.isArray(args)) return false;
   const record = args as Record<string, unknown>;
   return required.every(
-    (key) => key in record && record[key] !== undefined && record[key] !== null && record[key] !== "",
+    (key) =>
+      key in record && record[key] !== undefined && record[key] !== null && record[key] !== "",
   );
 }
 
-export function buildInvalidToolCallFallback(skippedToolCalls: readonly { name: string; required: string[] }[]): string | undefined {
+export function buildInvalidToolCallFallback(
+  skippedToolCalls: readonly { name: string; required: string[] }[],
+): string | undefined {
   const skippedWithRequiredArgs = skippedToolCalls.find((tc) => tc.required.length > 0);
   if (!skippedWithRequiredArgs) return undefined;
   const requiredArgs = skippedWithRequiredArgs.required.map((a) => `\`${a}\``).join(", ");
@@ -126,7 +138,10 @@ export function extractChatRequestContext(
       const text =
         part instanceof vscode.LanguageModelTextPart
           ? part.value
-          : typeof part === "object" && part !== null && "value" in part && typeof (part as { value?: unknown }).value === "string"
+          : typeof part === "object" &&
+              part !== null &&
+              "value" in part &&
+              typeof (part as { value?: unknown }).value === "string"
             ? (part as { value: string }).value
             : undefined;
       if (!text) continue;
@@ -145,11 +160,22 @@ export function extractChatRequestContext(
           context.endLine = endLine;
         }
       }
-      if (context.filePath && context.cwd && context.startLine !== undefined && context.endLine !== undefined) break;
+      if (
+        context.filePath &&
+        context.cwd &&
+        context.startLine !== undefined &&
+        context.endLine !== undefined
+      )
+        break;
     }
   }
 
-  return context.filePath || context.cwd || context.startLine !== undefined || context.endLine !== undefined ? context : undefined;
+  return context.filePath ||
+    context.cwd ||
+    context.startLine !== undefined ||
+    context.endLine !== undefined
+    ? context
+    : undefined;
 }
 
 export function repairToolArguments(
@@ -173,13 +199,18 @@ export function repairToolArguments(
   const context = requestContext;
 
   if (needsBooleanField(repaired.isRegexp, "isRegexp")) repaired.isRegexp = false;
-  if (needsBooleanField(repaired.includeIgnoredFiles, "includeIgnoredFiles")) repaired.includeIgnoredFiles = false;
+  if (needsBooleanField(repaired.includeIgnoredFiles, "includeIgnoredFiles"))
+    repaired.includeIgnoredFiles = false;
 
   if (toolName === "grep_search" && needsStringField(repaired.query, "query")) {
-    repaired.query = context?.filePath ? context.filePath.split(/[/\\]/).pop() || "" : "TODO: MISSING QUERY";
+    repaired.query = context?.filePath
+      ? context.filePath.split(/[/\\]/).pop() || ""
+      : "TODO: MISSING QUERY";
   }
   if (toolName === "file_search" && needsStringField(repaired.query, "query")) {
-    repaired.query = context?.filePath ? context.filePath.split(/[/\\]/).pop() || "" : "TODO: MISSING QUERY";
+    repaired.query = context?.filePath
+      ? context.filePath.split(/[/\\]/).pop() || ""
+      : "TODO: MISSING QUERY";
   }
   if (toolName === "semantic_search" && needsStringField(repaired.query, "query")) {
     repaired.query = "TODO: MISSING QUERY";
@@ -194,8 +225,12 @@ export function repairToolArguments(
       vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     return {
       ...repaired,
-      ...(needsStringField(repaired.filePath, "filePath") && inferredFilePath ? { filePath: inferredFilePath } : {}),
-      ...(needsNumberField(repaired.startLine, "startLine") ? { startLine: context.startLine ?? 1 } : {}),
+      ...(needsStringField(repaired.filePath, "filePath") && inferredFilePath
+        ? { filePath: inferredFilePath }
+        : {}),
+      ...(needsNumberField(repaired.startLine, "startLine")
+        ? { startLine: context.startLine ?? 1 }
+        : {}),
       ...(needsNumberField(repaired.endLine, "endLine") ? { endLine: context.endLine ?? 200 } : {}),
     };
   }
