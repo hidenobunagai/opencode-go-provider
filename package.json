@@ -3,7 +3,7 @@
   "publisher": "HidenobuNagai",
   "displayName": "OpenCode Go Provider",
   "description": "OpenCode Go Chat Provider for VS Code Copilot Chat",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -21,7 +21,8 @@
     "kimi",
     "glm",
     "qwen",
-    "minimax"
+    "minimax",
+    "deepseek"
   ],
   "engines": {
     "vscode": "^1.104.0"

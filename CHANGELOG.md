@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.4] - 2026-04-26
+
+### Fixed
+
+- Added missing DeepSeek V4 Pro and DeepSeek V4 Flash models to the fallback model list.
+
 ## [0.1.2] - 2026-04-24
 
 ### Added
