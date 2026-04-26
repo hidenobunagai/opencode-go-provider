@@ -1,5 +1,20 @@
 # Change Log
 
+## [0.1.16] - 2026-04-26
+
+### Changed
+
+- Refactored monolithic provider.ts into focused modules: tool-parser, tool-repair, guidance, streaming/openai, streaming/anthropic.
+- Improved token estimation with model-aware tiktoken-based tokenizer (fallback to char-based heuristic).
+- Enabled background model discovery via fetchModels on extension activation.
+- Parallelized image analysis with Promise.all for multi-image messages.
+
+### Fixed
+
+- Added debugLog to previously silent error catch blocks across streaming modules.
+- Replaced `require()` with ES import for package.json, removed unused imports.
+- Tightened TypeScript types, eliminated `no-explicit-any` warnings in source files.
+
 ## [0.1.15] - 2026-04-26
 
 ### Fixed
