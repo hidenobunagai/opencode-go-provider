@@ -35,6 +35,7 @@ export async function processOpenAIStream(
   requestedMaxTokens: number,
   temperatureVal: number,
   openCodeGoModelInfo: readonly OcGoModelInfo[],
+  userAgent: string,
   progress: vscode.Progress<vscode.LanguageModelResponsePart>,
   token: vscode.CancellationToken,
   abortController: AbortController,
@@ -142,6 +143,7 @@ export async function processOpenAIStream(
       apiKey,
       requestBody,
       abortController.signal,
+      userAgent,
     )) {
       if (token.isCancellationRequested) throw new vscode.CancellationError();
 
