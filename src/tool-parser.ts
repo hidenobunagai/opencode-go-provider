@@ -1,6 +1,4 @@
 // tool-parser.ts — parse text-embedded and XML-style tool calls from model output
-import type { Json } from "./types";
-import { debugLog } from "./output-channel";
 
 interface ParsedTextToolCall {
   name: string;
