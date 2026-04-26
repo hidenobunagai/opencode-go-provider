@@ -39,6 +39,7 @@ export interface OcGoChatRequest {
   stop?: string | string[];
   tools?: OcGoTool[];
   tool_choice?: "auto" | "none" | "required" | { type: string; function: { name: string } };
+  reasoning_effort?: string;
 }
 
 export interface OcGoStreamChoice {
@@ -68,6 +69,9 @@ export interface OcGoStreamResponse {
 /** API format used by a model */
 export type OcGoApiFormat = "openai" | "anthropic";
 
+/** Reasoning effort level for models that support it (e.g. DeepSeek) */
+export type ReasoningEffort = "low" | "medium" | "high" | "max";
+
 export interface OcGoModelInfo {
   id: string;
   name: string;
@@ -80,6 +84,8 @@ export interface OcGoModelInfo {
   apiFormat?: OcGoApiFormat;
   /** If set, this exact temperature value is sent for every request */
   fixedTemperature?: number;
+  /** Reasoning effort level for thinking models (e.g. DeepSeek V4) */
+  reasoningEffort?: ReasoningEffort;
 }
 
 export const FALLBACK_MODELS: OcGoModelInfo[] = [
@@ -216,6 +222,39 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     apiFormat: "openai",
   },
   {
+    id: "deepseek-v4-pro:max",
+    name: "DeepSeek V4 Pro",
+    displayName: "DeepSeek V4 Pro (Max Thinking)",
+    contextWindow: 262144,
+    maxOutput: 65536,
+    supportsTools: true,
+    supportsVision: false,
+    apiFormat: "openai",
+    reasoningEffort: "max",
+  },
+  {
+    id: "deepseek-v4-pro:high",
+    name: "DeepSeek V4 Pro",
+    displayName: "DeepSeek V4 Pro (High Thinking)",
+    contextWindow: 262144,
+    maxOutput: 65536,
+    supportsTools: true,
+    supportsVision: false,
+    apiFormat: "openai",
+    reasoningEffort: "high",
+  },
+  {
+    id: "deepseek-v4-pro:low",
+    name: "DeepSeek V4 Pro",
+    displayName: "DeepSeek V4 Pro (Low Thinking)",
+    contextWindow: 262144,
+    maxOutput: 65536,
+    supportsTools: true,
+    supportsVision: false,
+    apiFormat: "openai",
+    reasoningEffort: "low",
+  },
+  {
     id: "deepseek-v4-flash",
     name: "DeepSeek V4 Flash",
     displayName: "DeepSeek V4 Flash",
@@ -224,6 +263,39 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsTools: true,
     supportsVision: false,
     apiFormat: "openai",
+  },
+  {
+    id: "deepseek-v4-flash:max",
+    name: "DeepSeek V4 Flash",
+    displayName: "DeepSeek V4 Flash (Max Thinking)",
+    contextWindow: 262144,
+    maxOutput: 65536,
+    supportsTools: true,
+    supportsVision: false,
+    apiFormat: "openai",
+    reasoningEffort: "max",
+  },
+  {
+    id: "deepseek-v4-flash:high",
+    name: "DeepSeek V4 Flash",
+    displayName: "DeepSeek V4 Flash (High Thinking)",
+    contextWindow: 262144,
+    maxOutput: 65536,
+    supportsTools: true,
+    supportsVision: false,
+    apiFormat: "openai",
+    reasoningEffort: "high",
+  },
+  {
+    id: "deepseek-v4-flash:low",
+    name: "DeepSeek V4 Flash",
+    displayName: "DeepSeek V4 Flash (Low Thinking)",
+    contextWindow: 262144,
+    maxOutput: 65536,
+    supportsTools: true,
+    supportsVision: false,
+    apiFormat: "openai",
+    reasoningEffort: "low",
   },
 ];
 

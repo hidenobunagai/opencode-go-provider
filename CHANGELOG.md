@@ -1,5 +1,13 @@
 # Change Log
 
+## [0.1.19] - 2026-04-27
+
+### Added
+
+- Added thinking mode variants for DeepSeek V4 Pro and DeepSeek V4 Flash: (Max Thinking), (High Thinking), (Low Thinking).
+- Thinking variants appear as separate entries in the model picker, similar to native Copilot Chat models.
+- Each variant sends the `reasoning_effort` parameter to the target model.
+
 ## [0.1.16] - 2026-04-26
 
 ### Changed

@@ -42,6 +42,11 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     return FALLBACK_MODELS.find((m) => m.id === modelId);
   }
 
+  private resolveApiModelId(modelId: string): string {
+    const colonIndex = modelId.indexOf(":");
+    return colonIndex > 0 ? modelId.slice(0, colonIndex) : modelId;
+  }
+
   private modelSupportsVision(modelId: string): boolean {
     return this.getModelInfo(modelId)?.supportsVision ?? false;
   }
@@ -220,6 +225,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
 
       const modelInfo = this.getModelInfo(model.id);
       const apiFormat = modelInfo?.apiFormat ?? "openai";
+      const reasoningEffort = modelInfo?.reasoningEffort;
       const temperatureVal =
         typeof modelInfo?.fixedTemperature === "number"
           ? modelInfo.fixedTemperature
@@ -229,12 +235,12 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
 
       const hasImages = this.hasImageInput(messages);
       let effectiveMessages = messages;
-      let effectiveModelId = model.id;
+      let effectiveModelId = this.resolveApiModelId(model.id);
 
       if (hasImages && !this.modelSupportsVision(model.id)) {
         const visionFallback = this.getVisionFallbackModelId();
         if (visionFallback && visionFallback !== model.id) {
-          effectiveModelId = visionFallback;
+          effectiveModelId = this.resolveApiModelId(visionFallback);
         } else {
           effectiveMessages = await this.processImagesForNonVisionModel(messages, token);
         }
@@ -261,6 +267,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         id: effectiveModelId,
         modelInfo,
         maxOutputTokens: model.maxOutputTokens,
+        reasoningEffort,
       };
 
       await processOpenAIStream(

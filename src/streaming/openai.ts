@@ -22,6 +22,7 @@ export interface OpenAIModelInfo {
   id: string;
   modelInfo?: OcGoModelInfo;
   maxOutputTokens: number;
+  reasoningEffort?: string;
 }
 
 export async function processOpenAIStream(
@@ -63,6 +64,7 @@ export async function processOpenAIStream(
   };
   if (toolConfig.tools) requestBody.tools = toolConfig.tools;
   if (toolConfig.tool_choice) requestBody.tool_choice = toolConfig.tool_choice;
+  if (model.reasoningEffort) requestBody.reasoning_effort = model.reasoningEffort;
 
   debugLog("Outgoing request messages", {
     messages: requestBody.messages,
