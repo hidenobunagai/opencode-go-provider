@@ -539,10 +539,14 @@ function repairToolArguments(
   }
 
   if (toolName === "read_file") {
+    const inferredFilePath =
+      context?.filePath ??
+      vscode.window.activeTextEditor?.document.uri.fsPath ??
+      vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     return {
       ...repaired,
-      ...(needsStringField(repaired.filePath, "filePath") && context.filePath
-        ? { filePath: context.filePath }
+      ...(needsStringField(repaired.filePath, "filePath") && inferredFilePath
+        ? { filePath: inferredFilePath }
         : {}),
       ...(needsNumberField(repaired.startLine, "startLine")
         ? { startLine: context.startLine ?? 1 }
@@ -635,7 +639,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     modelId: string,
     options: ProvideLanguageModelChatResponseOptions,
   ): string | undefined {
-    if (!modelId.startsWith("deepseek-") || (options.tools?.length ?? 0) === 0) {
+    if ((options.tools?.length ?? 0) === 0) {
       return undefined;
     }
 
@@ -645,6 +649,8 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
       "If tool use is needed, emit the tool call instead of narrating that you will do it.",
       "Base file summaries and workspace claims only on tool outputs you have actually received.",
       "If a file read returns too little information to answer the request, call the appropriate tool again instead of guessing.",
+      "For read_file, always provide filePath and the required line range fields from the available editor context before calling the tool.",
+      "If you do not know the file path or line range, ask for clarification instead of emitting an empty read_file call.",
       "Do not say you checked modification times, recency, or ordering unless a tool output explicitly provided that metadata.",
       "If you infer which file is latest from sortable filenames or listing order, say that explicitly instead of describing it as verified metadata.",
       "Only describe workspace structure that was actually returned by a directory listing or file content you received.",
@@ -658,16 +664,21 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     modelId: string,
     options: ProvideLanguageModelChatResponseOptions,
   ): OcGoChatMessage[] {
-    if (!modelId.startsWith("deepseek-")) {
+    const hasTools = (options.tools?.length ?? 0) > 0;
+    if (!hasTools && !modelId.startsWith("deepseek-")) {
       return apiMessages;
     }
 
     const guidance = [
-      this.buildProviderIdentityGuidance(modelId),
-      this.buildToolUseGroundingGuidance(modelId, options),
+      modelId.startsWith("deepseek-") ? this.buildProviderIdentityGuidance(modelId) : undefined,
+      hasTools ? this.buildToolUseGroundingGuidance(modelId, options) : undefined,
     ]
       .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
       .join("\n\n");
+
+    if (!guidance) {
+      return apiMessages;
+    }
     const normalizedMessages = apiMessages.map((message) => {
       if (message.role !== "system" || typeof message.content !== "string") {
         return message;
@@ -1162,8 +1173,6 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     if (token.isCancellationRequested) {
       return [];
     }
-
-    // When silent, avoid prompting or network calls; return cached/fallback models immediately.
     if (options.silent) {
       const cached =
         this.globalState?.get<Array<{ id: string; name: string }>>("opencode-go.models");

@@ -36,6 +36,9 @@ jest.mock("vscode", () => ({
     })),
     showInputBox: jest.fn(),
   },
+  workspace: {
+    workspaceFolders: undefined,
+  },
   LanguageModelError: {
     NoPermissions: (msg: string) => new Error(msg),
     NotFound: (msg: string) => new Error(msg),
@@ -543,6 +546,75 @@ describe("OcGoChatModelProvider", () => {
     );
     expect(systemMessages[0].content).toContain(
       "If you have not yet used a file or directory inspection tool in the current answer, do not say the workspace or latest file is already confirmed.",
+    );
+  });
+
+  it("adds tool grounding guidance for non-DeepSeek models too", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const mockStream = async function* () {
+      yield { choices: [{ delta: { content: "done" } }] };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "kimi-k2.6", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [
+        {
+          role: vscode.LanguageModelChatMessageRole.User,
+          content: [
+            new vscode.LanguageModelTextPart(
+              "まずワークスペース一覧を見てから最新ファイルを読んで要約して",
+            ),
+          ],
+        },
+      ] as any,
+      {
+        modelOptions: {},
+        tools: [
+          {
+            name: "list_dir",
+            description: "List a directory",
+            inputSchema: {
+              type: "object",
+              properties: { path: { type: "string" } },
+              required: ["path"],
+            },
+          },
+          {
+            name: "read_file",
+            description: "Read a file",
+            inputSchema: {
+              type: "object",
+              properties: {
+                filePath: { type: "string" },
+                startLine: { type: "number" },
+                endLine: { type: "number" },
+              },
+              required: ["filePath", "startLine", "endLine"],
+            },
+          },
+        ],
+      } as any,
+      progress,
+      token as any,
+    );
+
+    const requestBody = (streamChatCompletion as jest.Mock).mock.calls.at(-1)?.[1];
+    const systemMessages = requestBody.messages.filter((message: any) => message.role === "system");
+
+    expect(systemMessages).toHaveLength(1);
+    expect(systemMessages[0].content).toContain(
+      "For read_file, always provide filePath and the required line range fields from the available editor context before calling the tool.",
+    );
+    expect(systemMessages[0].content).toContain(
+      "If you do not know the file path or line range, ask for clarification instead of emitting an empty read_file call.",
     );
   });
 
