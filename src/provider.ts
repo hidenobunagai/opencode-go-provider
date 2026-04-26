@@ -17,7 +17,7 @@ import { OcGoMcpClient } from "./mcp";
 import { handleAnthropicRequest } from "./streaming/anthropic";
 import { processOpenAIStream, type OpenAIModelInfo } from "./streaming/openai";
 import { FALLBACK_MODELS, OcGoModelInfo } from "./types";
-import { estimateMessagesTokens } from "./utils";
+import { estimateMessagesTokens, estimateTokens } from "./utils";
 
 export class OcGoChatModelProvider implements LanguageModelChatProvider {
   private readonly _onDidChangeLanguageModelChatInformation = new EventEmitter<void>();
@@ -142,8 +142,9 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     if (token.isCancellationRequested) return [];
 
     if (options.silent) {
-      const cached =
-        this.globalState?.get<Array<{ id: string; name: string }>>("opencode-go.models");
+      const cached = this.globalState?.get<Array<{ id: string; name: string }>>(
+        "opencode-go.models",
+      );
       const models = cached && cached.length > 0 ? cached : FALLBACK_MODELS;
       return this._mapToChatInformation(models);
     }
@@ -299,19 +300,19 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     _token: CancellationToken,
   ): Promise<number> {
     if (typeof text === "string") {
-      return Promise.resolve(Math.ceil(text.length / 2));
+      return Promise.resolve(estimateTokens(text));
     }
     let total = 0;
     for (const part of text.content) {
       if (part instanceof vscode.LanguageModelTextPart) {
-        total += Math.ceil(part.value.length / 2);
+        total += estimateTokens(part.value);
       } else if (
         typeof part === "object" &&
         part !== null &&
         "value" in part &&
         typeof (part as Record<string, unknown>).value === "string"
       ) {
-        total += Math.ceil((part as { value: string }).value.length / 2);
+        total += estimateTokens((part as { value: string }).value);
       } else {
         total += 2;
       }

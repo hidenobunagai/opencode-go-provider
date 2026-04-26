@@ -391,11 +391,12 @@ export function convertMessages(
         const newMsg: OcGoChatMessage = { role, content: contentParts };
         result.push(newMsg);
       } else {
-        const newMsg: OcGoChatMessage = { role, content: textParts.join("") || "(empty message)" };
+        // Send empty string instead of "(empty message)" to avoid confusing the model
+        const newMsg: OcGoChatMessage = { role, content: textParts.join("") };
         result.push(newMsg);
       }
     } else if (!isAssistantWithToolCalls && toolResults.length === 0 && !hasTextOrImage) {
-      result.push({ role, content: "(empty message)" });
+      result.push({ role, content: "" });
     }
   }
 
@@ -695,7 +696,7 @@ export function convertMessagesToAnthropic(
     } else {
       result.push({
         role,
-        content: "(empty message)",
+        content: "",
         reasoning_content: reasoningContentPlaceholder,
       });
     }

@@ -84,8 +84,21 @@ export async function processOpenAIStream(
   let pendingText = "";
   let sawToolCall = false;
   let emittedToolCall = false;
+  /** Accumulated reasoning/thinking content from models that emit it (e.g. DeepSeek V4) */
+  let reasoningContent = "";
+  /** Whether we have already flushed the accumulated reasoning content to the progress stream */
+  let reasoningFlushed = false;
 
   const flushPendingText = (): void => {
+    // When a thinking model finishes reasoning, flush accumulated reasoning_content first
+    // so it appears in the debug log and gives the user visibility into the model's thinking
+    if (!reasoningFlushed && reasoningContent) {
+      reasoningFlushed = true;
+      debugLog("processOpenAIStream", {
+        reasoning_length: reasoningContent.length,
+        reasoning_preview: reasoningContent.slice(0, 300),
+      });
+    }
     if (!pendingText) return;
     progress.report(new vscode.LanguageModelTextPart(pendingText));
     pendingText = "";
@@ -145,6 +158,10 @@ export async function processOpenAIStream(
 
       if (choice?.delta?.content) {
         handleTextDelta(choice.delta.content);
+      }
+
+      if (choice?.delta?.reasoning_content) {
+        reasoningContent += choice.delta.reasoning_content;
       }
 
       if (choice?.delta?.tool_calls) {

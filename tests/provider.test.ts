@@ -6,6 +6,7 @@ import { OcGoChatModelProvider } from "../src/provider";
 jest.mock("../src/api", () => ({
   fetchModels: jest.fn(),
   streamChatCompletion: jest.fn(),
+  fetchWithRetry: jest.fn(),
 }));
 
 jest.mock("vscode", () => ({
@@ -310,13 +311,15 @@ describe("OcGoChatModelProvider", () => {
       },
     });
 
-    global.fetch = jest.fn().mockResolvedValue({
+    const mockResponse = {
       ok: true,
       status: 200,
       statusText: "OK",
       headers: new Headers({ "content-type": "text/event-stream; charset=utf-8" }),
       body: stream,
-    });
+    };
+
+    (require("../src/api").fetchWithRetry as jest.Mock).mockResolvedValue(mockResponse);
 
     const progress = { report: jest.fn() };
     const token = {

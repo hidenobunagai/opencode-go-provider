@@ -44,7 +44,7 @@ describe("convertMessages", () => {
   it("handles empty messages", () => {
     const messages = [{ role: vscode.LanguageModelChatMessageRole.User, content: [] }];
     const result = convertMessages(messages as any);
-    expect(result).toEqual<OcGoChatMessage[]>([{ role: "user", content: "(empty message)" }]);
+    expect(result).toEqual<OcGoChatMessage[]>([{ role: "user", content: "" }]);
   });
 
   it("converts image parts to base64", () => {

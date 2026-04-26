@@ -42,7 +42,11 @@ function calculateRetryDelay(attempt: number, retryAfter?: number): number {
   return Math.round(Math.random() * cappedDelay);
 }
 
-async function fetchWithRetry(url: string, init: RequestInit, retries = 3): Promise<Response> {
+export async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  retries = 3,
+): Promise<Response> {
   let lastError: Error | undefined;
   for (let i = 0; i < retries; i++) {
     try {

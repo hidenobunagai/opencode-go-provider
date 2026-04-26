@@ -1,14 +1,13 @@
 // streaming/anthropic.ts — Anthropic-format SSE streaming for /messages endpoint
 import * as vscode from "vscode";
-import { debugLog } from "../output-channel";
+import { fetchWithRetry } from "../api";
 import { BASE_URL } from "../constants";
 import { buildProviderIdentityGuidance, sanitizeSystemPromptForModel } from "../guidance";
-import { AnthropicMessage, AnthropicSSEEvent, OcGoModelInfo, type Json } from "../types";
-import { convertMessagesToAnthropic, convertTools, convertToolsToAnthropic } from "../utils";
+import { debugLog } from "../output-channel";
 import { parseTextEmbeddedToolCalls, type ParsedTextToolCall } from "../tool-parser";
 import {
-  buildToolCallCanonicalKey,
   buildInvalidToolCallFallback,
+  buildToolCallCanonicalKey,
   extractChatRequestContext,
   getCompletedToolCallKeys,
   getToolSchemaMap,
@@ -16,6 +15,8 @@ import {
   isToolCallInput,
   repairToolArguments,
 } from "../tool-repair";
+import { AnthropicMessage, AnthropicSSEEvent, OcGoModelInfo, type Json } from "../types";
+import { convertMessagesToAnthropic, convertTools, convertToolsToAnthropic } from "../utils";
 
 export interface AnthropicRequestParams {
   modelId: string;
@@ -116,17 +117,21 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
     tool_choice: requestBody.tool_choice,
   });
 
-  const response = await fetch(`${BASE_URL}/messages`, {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "Content-Type": "application/json",
-      "User-Agent": userAgent,
+  const response = await fetchWithRetry(
+    `${BASE_URL}/messages`,
+    {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+        "User-Agent": userAgent,
+      },
+      signal: abortController.signal,
+      body: JSON.stringify(requestBody),
     },
-    signal: abortController.signal,
-    body: JSON.stringify(requestBody),
-  });
+    5,
+  );
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -152,7 +157,11 @@ async function processAnthropicStreamingResponse(
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  // Tool call state for native Anthropic content_block events
   const activeToolCalls = new Map<number, { id: string; name: string; inputJson: string }>();
+  // Tool call state for OpenAI-format events (e.g. DeepSeek routed via /messages endpoint)
+  // Kept separate to avoid index collisions with native Anthropic content_block indices
+  const activeOpenAiToolCalls = new Map<number, { id: string; name: string; inputJson: string }>();
   const toolSchemas = getToolSchemaMap(options);
   const requestContext = extractChatRequestContext(messages);
   const skippedToolCalls: SkippedToolCall[] = [];
@@ -161,6 +170,8 @@ async function processAnthropicStreamingResponse(
   let pendingText = "";
   let sawToolCall = false;
   let emittedToolCall = false;
+  /** Accumulated reasoning/thinking content for models that emit it (e.g. MiniMax with extended thinking) */
+  let reasoningContent = "";
 
   const flushPendingText = (): void => {
     if (!pendingText) return;
@@ -253,13 +264,14 @@ async function processAnthropicStreamingResponse(
               const toolName = cb.name ?? "unknown_tool";
               activeToolCalls.set(idx, { id: toolId, name: toolName, inputJson: "" });
             }
+            // thinking content blocks are accumulated silently via thinking_delta events
             break;
           }
 
           case "content_block_delta": {
             const deltaEvt = event as {
               index: number;
-              delta?: { type?: string; text?: string; partial_json?: string };
+              delta?: { type?: string; text?: string; partial_json?: string; thinking?: string };
             };
             if (deltaEvt.delta?.type === "text_delta") {
               const text = deltaEvt.delta.text ?? "";
@@ -270,6 +282,11 @@ async function processAnthropicStreamingResponse(
               const partialJson = deltaEvt.delta.partial_json ?? "";
               const tc = activeToolCalls.get(deltaEvt.index);
               if (tc) tc.inputJson += partialJson;
+            } else if (deltaEvt.delta?.type === "thinking_delta") {
+              const thinking = deltaEvt.delta.thinking ?? "";
+              if (thinking) {
+                reasoningContent += thinking;
+              }
             }
             break;
           }
@@ -325,9 +342,9 @@ async function processAnthropicStreamingResponse(
                   sawToolCall = true;
                   for (const tc of delta.tool_calls) {
                     const idx = tc.index ?? 0;
-                    const existing = activeToolCalls.get(idx);
+                    const existing = activeOpenAiToolCalls.get(idx);
                     if (tc.id && tc.function?.name) {
-                      activeToolCalls.set(idx, {
+                      activeOpenAiToolCalls.set(idx, {
                         id: tc.id,
                         name: tc.function.name,
                         inputJson: tc.function.arguments ?? "",
@@ -338,7 +355,7 @@ async function processAnthropicStreamingResponse(
                   }
                 }
                 if (choice.finish_reason === "tool_calls") {
-                  for (const [, tc] of activeToolCalls) {
+                  for (const [, tc] of activeOpenAiToolCalls) {
                     let input: Record<string, Json> | unknown = {};
                     if (tc.inputJson.trim()) {
                       try {
@@ -352,7 +369,7 @@ async function processAnthropicStreamingResponse(
                     }
                     emitEmbeddedToolCall({ name: tc.name, args: input }, tc.id);
                   }
-                  activeToolCalls.clear();
+                  activeOpenAiToolCalls.clear();
                 }
               }
             }
@@ -375,6 +392,13 @@ async function processAnthropicStreamingResponse(
       if (fallbackText) {
         progress.report(new vscode.LanguageModelTextPart(fallbackText));
       }
+    }
+
+    if (reasoningContent) {
+      debugLog("processAnthropicStreamingResponse", {
+        reasoning_length: reasoningContent.length,
+        reasoning_preview: reasoningContent.slice(0, 200),
+      });
     }
   } finally {
     reader.releaseLock();
