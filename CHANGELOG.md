@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.1.15] - 2026-04-26
+
+### Fixed
+
+- Improved tool grounding for non-DeepSeek models so workspace inspections are less likely to fail on missing `read_file` arguments.
+- Added stronger `read_file` argument repair and editor-context fallback handling to reduce empty tool-call crashes.
+
 ## [0.1.14] - 2026-04-26
 
 ### Fixed

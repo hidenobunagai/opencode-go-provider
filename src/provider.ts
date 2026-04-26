@@ -1174,8 +1174,9 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
       return [];
     }
     if (options.silent) {
-      const cached =
-        this.globalState?.get<Array<{ id: string; name: string }>>("opencode-go.models");
+      const cached = this.globalState?.get<Array<{ id: string; name: string }>>(
+        "opencode-go.models",
+      );
       const models = cached && cached.length > 0 ? cached : FALLBACK_MODELS;
       return this._mapToChatInformation(models);
     }
