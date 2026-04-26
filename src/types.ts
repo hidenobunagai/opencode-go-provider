@@ -213,7 +213,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: false,
-    apiFormat: "anthropic",
+    apiFormat: "openai",
   },
   {
     id: "deepseek-v4-flash",
@@ -223,7 +223,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: false,
-    apiFormat: "anthropic",
+    apiFormat: "openai",
   },
 ];
 
@@ -243,6 +243,7 @@ export type AnthropicContentBlock =
 export interface AnthropicMessage {
   role: "user" | "assistant";
   content: string | AnthropicContentBlock[];
+  reasoning_content?: string;
 }
 
 /** Anthropic tool definition */

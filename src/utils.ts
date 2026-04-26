@@ -410,15 +410,17 @@ export function convertTools(options: vscode.ProvideLanguageModelChatResponseOpt
     },
   }));
 
-  if (
-    options.toolMode ===
-    (vscode as unknown as { LanguageModelChatToolMode?: { Required?: number } })
-      .LanguageModelChatToolMode?.Required
-  ) {
+  const requiredToolMode = (
+    vscode as unknown as {
+      LanguageModelChatToolMode?: { Required?: number };
+    }
+  ).LanguageModelChatToolMode?.Required;
+
+  if (requiredToolMode !== undefined && options.toolMode === requiredToolMode) {
     return { tools, tool_choice: "required" };
   }
 
-  return { tools };
+  return { tools, tool_choice: "auto" };
 }
 
 export function estimateTokens(text: string): number {
@@ -504,6 +506,9 @@ function mergeConsecutiveAnthropicMessages(messages: AnthropicMessage[]): Anthro
           ? [{ type: "text" as const, text: curr.content }]
           : curr.content;
       prev.content = [...prevContent, ...currContent];
+      if (!prev.reasoning_content && curr.reasoning_content) {
+        prev.reasoning_content = curr.reasoning_content;
+      }
     } else {
       result.push(curr);
     }
@@ -528,7 +533,7 @@ function mergeConsecutiveAnthropicMessages(messages: AnthropicMessage[]): Anthro
  */
 export function convertMessagesToAnthropic(
   messages: readonly vscode.LanguageModelChatMessage[],
-  options?: { maxToolResultChars?: number },
+  options?: { maxToolResultChars?: number; reasoningContentPlaceholderForToolUse?: string },
 ): { system?: string; messages: AnthropicMessage[] } {
   const systemParts: string[] = [];
   const result: AnthropicMessage[] = [];
@@ -608,6 +613,11 @@ export function convertMessagesToAnthropic(
       }
     }
 
+    const reasoningContentPlaceholder =
+      isAssistant && toolCalls.length > 0
+        ? options?.reasoningContentPlaceholderForToolUse
+        : undefined;
+
     // Tool results → user messages with tool_result blocks
     if (isUser && toolResults.length > 0) {
       for (const tr of toolResults) {
@@ -630,12 +640,20 @@ export function convertMessagesToAnthropic(
         contentBlocks[0].type === "text" &&
         imageBlocks.length === 0
       ) {
-        result.push({ role, content: textContent });
+        result.push({ role, content: textContent, reasoning_content: reasoningContentPlaceholder });
       } else {
-        result.push({ role, content: contentBlocks });
+        result.push({
+          role,
+          content: contentBlocks,
+          reasoning_content: reasoningContentPlaceholder,
+        });
       }
     } else {
-      result.push({ role, content: "(empty message)" });
+      result.push({
+        role,
+        content: "(empty message)",
+        reasoning_content: reasoningContentPlaceholder,
+      });
     }
   }
 
@@ -652,9 +670,14 @@ export function convertToolsToAnthropic(options: vscode.ProvideLanguageModelChat
   tools?: AnthropicTool[];
   tool_choice?: "auto" | "any" | { type: "tool"; name: string };
 } {
+  const requiredToolMode = (
+    vscode as unknown as {
+      LanguageModelChatToolMode?: { Required?: number };
+    }
+  ).LanguageModelChatToolMode?.Required;
   const toolsInput = options.tools ?? [];
   if (toolsInput.length === 0) {
-    if (options.toolMode === vscode.LanguageModelChatToolMode.Required) {
+    if (requiredToolMode !== undefined && options.toolMode === requiredToolMode) {
       throw new Error("LanguageModelChatToolMode.Required requires at least one tool.");
     }
     return {};
@@ -668,7 +691,7 @@ export function convertToolsToAnthropic(options: vscode.ProvideLanguageModelChat
   }));
 
   let tool_choice: "auto" | "any" | { type: "tool"; name: string } = "auto";
-  if (options.toolMode === vscode.LanguageModelChatToolMode.Required) {
+  if (requiredToolMode !== undefined && options.toolMode === requiredToolMode) {
     if (tools.length !== 1) {
       throw new Error(
         "LanguageModelChatToolMode.Required is not supported with more than one tool.",

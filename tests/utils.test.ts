@@ -101,6 +101,7 @@ describe("convertTools", () => {
     expect(result.tools).toHaveLength(1);
     expect(result.tools?.[0].type).toBe("function");
     expect(result.tools?.[0].function.name).toBe("test_tool");
+    expect(result.tool_choice).toBe("auto");
   });
 
   it("augments tool descriptions with required parameter guidance", () => {
@@ -314,6 +315,13 @@ describe("applyReasoningContentWorkaround", () => {
     const { applyReasoningContentWorkaround } = require("../src/utils");
     const messages: OcGoChatMessage[] = [{ role: "assistant", content: "Hello" }];
     const result = applyReasoningContentWorkaround(messages, "kimi-k2.6");
+    expect(result[0].reasoning_content).toBe(" ");
+  });
+
+  it("adds reasoning_content for DeepSeek V4 Pro", () => {
+    const { applyReasoningContentWorkaround } = require("../src/utils");
+    const messages: OcGoChatMessage[] = [{ role: "assistant", content: "Hello" }];
+    const result = applyReasoningContentWorkaround(messages, "deepseek-v4-pro");
     expect(result[0].reasoning_content).toBe(" ");
   });
 

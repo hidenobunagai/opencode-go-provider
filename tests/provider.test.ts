@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { fetchModels, streamChatCompletion } from "../src/api";
+import * as outputChannel from "../src/output-channel";
 import { OcGoChatModelProvider } from "../src/provider";
 
 jest.mock("../src/api", () => ({
@@ -321,7 +322,7 @@ describe("OcGoChatModelProvider", () => {
     };
 
     await provider.provideLanguageModelChatResponse(
-      { id: "deepseek-v4-flash", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      { id: "minimax-m2.7", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
       [{ role: 1, content: [{ value: "Hi" }] }] as any,
       { modelOptions: {} } as any,
       progress,
@@ -334,6 +335,253 @@ describe("OcGoChatModelProvider", () => {
       .join("");
 
     expect(emittedText).toBe("Hello world");
+  });
+
+  it("parses DeepSeek XML-style tool calls from OpenAI text deltas", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const mockStream = async function* () {
+      yield {
+        choices: [
+          {
+            delta: {
+              content:
+                'I\'ll start by understanding the provider\'s capabilities.\n\n<tool_calls>\n<tool_call name="Skill">\n<tool_parameter name="skill">using-super',
+            },
+          },
+        ],
+      };
+      yield {
+        choices: [
+          {
+            delta: {
+              content: "powers</tool_parameter>\n</tool_call>\n</tool_calls>",
+            },
+          },
+        ],
+      };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "deepseek-v4-flash", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "Hi" }] }] as any,
+      {
+        modelOptions: {},
+        tools: [
+          {
+            name: "Skill",
+            description: "Load a skill",
+            inputSchema: {
+              type: "object",
+              properties: { skill: { type: "string" } },
+              required: ["skill"],
+            },
+          },
+        ],
+      } as any,
+      progress,
+      token as any,
+    );
+
+    const emittedText = progress.report.mock.calls
+      .map((call: any[]) => call[0]?.value)
+      .filter((value: unknown): value is string => typeof value === "string")
+      .join("");
+    const toolCallReports = progress.report.mock.calls.filter((c: any) => c[0]?.callId);
+
+    expect(emittedText).toBe("I'll start by understanding the provider's capabilities.\n\n");
+    expect(toolCallReports).toHaveLength(1);
+    expect(toolCallReports[0][0].name).toBe("Skill");
+    expect(toolCallReports[0][0].input).toEqual({ skill: "using-superpowers" });
+  });
+
+  it("anchors DeepSeek OpenAI system prompts with provider identity guidance", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const mockStream = async function* () {
+      yield { choices: [{ delta: { content: "done" } }] };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "deepseek-v4-flash", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [
+        {
+          role: (vscode as any).LanguageModelChatMessageRole.System,
+          content: [
+            new vscode.LanguageModelTextPart("You are Claude Code running inside Anthropic tools."),
+          ],
+        },
+        {
+          role: vscode.LanguageModelChatMessageRole.User,
+          content: [new vscode.LanguageModelTextPart("Who are you?")],
+        },
+      ] as any,
+      { modelOptions: {} } as any,
+      progress,
+      token as any,
+    );
+
+    const requestBody = (streamChatCompletion as jest.Mock).mock.calls.at(-1)?.[1];
+    const systemMessages = requestBody.messages.filter((message: any) => message.role === "system");
+
+    expect(systemMessages).toHaveLength(1);
+    expect(systemMessages[0].content).not.toContain(
+      "You are Claude Code running inside Anthropic tools.",
+    );
+    expect(systemMessages[0].content).toContain(
+      "You are GitHub Copilot running through the OpenCode Go provider.",
+    );
+    expect(systemMessages[0].content).toContain("DeepSeek V4 Flash");
+    expect(systemMessages[0].content).toContain(
+      "Answer identity or model questions as GitHub Copilot using the selected OpenCode Go model.",
+    );
+    expect(systemMessages[0].content).not.toContain("Claude");
+    expect(systemMessages[0].content).not.toContain("Anthropic tools");
+  });
+
+  it("adds DeepSeek-specific grounding guidance when tools are available", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const mockStream = async function* () {
+      yield { choices: [{ delta: { content: "done" } }] };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "deepseek-v4-pro", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [
+        {
+          role: vscode.LanguageModelChatMessageRole.User,
+          content: [
+            new vscode.LanguageModelTextPart(
+              "まずワークスペース一覧を見てから最新ファイルを読んで要約して",
+            ),
+          ],
+        },
+      ] as any,
+      {
+        modelOptions: {},
+        tools: [
+          {
+            name: "list_dir",
+            description: "List a directory",
+            inputSchema: {
+              type: "object",
+              properties: { path: { type: "string" } },
+              required: ["path"],
+            },
+          },
+          {
+            name: "read_file",
+            description: "Read a file",
+            inputSchema: {
+              type: "object",
+              properties: {
+                filePath: { type: "string" },
+                startLine: { type: "number" },
+                endLine: { type: "number" },
+              },
+              required: ["filePath", "startLine", "endLine"],
+            },
+          },
+        ],
+      } as any,
+      progress,
+      token as any,
+    );
+
+    const requestBody = (streamChatCompletion as jest.Mock).mock.calls.at(-1)?.[1];
+    const systemMessages = requestBody.messages.filter((message: any) => message.role === "system");
+
+    expect(systemMessages).toHaveLength(1);
+    expect(systemMessages[0].content).toContain(
+      "When the user asks about the workspace, files, or current state, use the relevant tools before answering.",
+    );
+    expect(systemMessages[0].content).toContain(
+      "Do not claim to have listed, read, inspected, or verified anything unless you actually used the corresponding tool.",
+    );
+    expect(systemMessages[0].content).toContain(
+      "If tool use is needed, emit the tool call instead of narrating that you will do it.",
+    );
+    expect(systemMessages[0].content).toContain(
+      "Base file summaries and workspace claims only on tool outputs you have actually received.",
+    );
+    expect(systemMessages[0].content).toContain(
+      "If a file read returns too little information to answer the request, call the appropriate tool again instead of guessing.",
+    );
+    expect(systemMessages[0].content).toContain(
+      "Do not say you checked modification times, recency, or ordering unless a tool output explicitly provided that metadata.",
+    );
+    expect(systemMessages[0].content).toContain(
+      "If you infer which file is latest from sortable filenames or listing order, say that explicitly instead of describing it as verified metadata.",
+    );
+    expect(systemMessages[0].content).toContain(
+      "Only describe workspace structure that was actually returned by a directory listing or file content you received.",
+    );
+    expect(systemMessages[0].content).toContain(
+      "Do not treat planning or task-management tool output as evidence about workspace structure, file contents, or which file is latest.",
+    );
+    expect(systemMessages[0].content).toContain(
+      "If you have not yet used a file or directory inspection tool in the current answer, do not say the workspace or latest file is already confirmed.",
+    );
+  });
+
+  it("logs outgoing OpenAI requests for DeepSeek models", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const debugSpy = jest.spyOn(outputChannel, "debugLog").mockImplementation(() => undefined);
+    const mockStream = async function* () {
+      yield { choices: [{ delta: { content: "done" } }] };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "deepseek-v4-flash", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: vscode.LanguageModelChatMessageRole.User, content: [{ value: "Hi" }] }] as any,
+      {
+        modelOptions: {},
+        tools: [{ name: "get_weather", description: "Get weather", inputSchema: {} }],
+      } as any,
+      progress,
+      token as any,
+    );
+
+    expect(debugSpy).toHaveBeenCalledWith(
+      "Outgoing request messages",
+      expect.objectContaining({
+        messages: expect.any(Array),
+        tools: expect.any(Array),
+        tool_choice: "auto",
+      }),
+    );
+
+    debugSpy.mockRestore();
   });
 
   it("emits text that appears before a tool call in the same response", async () => {
@@ -464,6 +712,50 @@ describe("OcGoChatModelProvider", () => {
 
     const requestBody = (streamChatCompletion as jest.Mock).mock.calls.at(-1)?.[1];
     expect(requestBody.tool_choice).toBe("required");
+  });
+
+  it("routes DeepSeek tool calls through chat completions with explicit auto tool choice", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const mockStream = async function* () {
+      yield { choices: [{ delta: { content: "done" } }] };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+    global.fetch = jest.fn();
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "deepseek-v4-pro", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "Hi" }] }] as any,
+      {
+        modelOptions: {},
+        tools: [{ name: "get_weather", description: "Get weather", inputSchema: {} }],
+      } as any,
+      progress,
+      token as any,
+    );
+
+    expect(streamChatCompletion).toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
+
+    const requestBody = (streamChatCompletion as jest.Mock).mock.calls.at(-1)?.[1];
+    expect(requestBody).toEqual(
+      expect.objectContaining({
+        model: "deepseek-v4-pro",
+        tool_choice: "auto",
+        tools: expect.arrayContaining([
+          expect.objectContaining({
+            type: "function",
+            function: expect.objectContaining({ name: "get_weather" }),
+          }),
+        ]),
+      }),
+    );
   });
 
   it("assembles tool call arguments split across chunks", async () => {
@@ -1645,6 +1937,77 @@ describe("OcGoChatModelProvider", () => {
           role: "assistant",
           reasoning_content: " ",
           tool_calls: expect.any(Array),
+        }),
+      ]),
+    );
+  });
+
+  it("sends reasoning_content for DeepSeek OpenAI assistant tool call history", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const mockStream = async function* () {
+      yield { choices: [{ delta: { content: "done" } }] };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "deepseek-v4-pro", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [
+        {
+          role: 2,
+          content: [
+            new (vscode as any).LanguageModelTextPart("Let me check"),
+            new (vscode as any).LanguageModelToolCallPart("call_1", "read_file", {
+              filePath: "/tmp/example.ts",
+              startLine: 1,
+              endLine: 2,
+            }),
+          ],
+        },
+        {
+          role: 1,
+          content: [
+            new (vscode as any).LanguageModelToolResultPart("call_1", [
+              new (vscode as any).LanguageModelTextPart("const x = 1;"),
+            ]),
+          ],
+        },
+      ] as any,
+      {
+        modelOptions: {},
+        tools: [
+          {
+            name: "read_file",
+            description: "Read a file from disk",
+            inputSchema: {
+              type: "object",
+              properties: {
+                filePath: { type: "string" },
+                startLine: { type: "number" },
+                endLine: { type: "number" },
+              },
+              required: ["filePath", "startLine", "endLine"],
+            },
+          },
+        ],
+      } as any,
+      progress,
+      token as any,
+    );
+
+    const requestBody = (streamChatCompletion as jest.Mock).mock.calls.at(-1)?.[1];
+
+    expect(requestBody.messages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          role: "assistant",
+          reasoning_content: " ",
         }),
       ]),
     );
