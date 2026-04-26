@@ -18,7 +18,6 @@ import { OcGoMcpClient } from "./mcp";
 import { debugLog } from "./output-channel";
 import {
   AnthropicMessage,
-  AnthropicRequestBody,
   AnthropicSSEEvent,
   FALLBACK_MODELS,
   OcGoModelInfo,
@@ -660,6 +659,8 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
             continue;
           }
 
+          debugLog("processAnthropicStreamingResponse", `SSE event type: ${event.type}`);
+
           switch (event.type) {
             case "message_start":
               break;
@@ -714,6 +715,64 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
             case "message_delta":
             case "message_stop":
               break;
+
+            default: {
+              // DeepSeek may return OpenAI-format chunks on the /messages endpoint.
+              // Try to interpret unknown event types as OpenAI streaming deltas.
+              const openAiEvt = event as unknown as {
+                object?: string;
+                choices?: Array<{
+                  delta?: {
+                    role?: string;
+                    content?: string | null;
+                    tool_calls?: Array<{
+                      id?: string;
+                      function?: { name?: string; arguments?: string };
+                      index?: number;
+                    }> | null;
+                  };
+                  finish_reason?: string | null;
+                }>;
+              };
+              if (openAiEvt.object === "chat.completion.chunk" && openAiEvt.choices) {
+                for (const choice of openAiEvt.choices) {
+                  const delta = choice.delta;
+                  if (delta?.content) {
+                    progress.report(new vscode.LanguageModelTextPart(delta.content));
+                  }
+                  if (delta?.tool_calls) {
+                    for (const tc of delta.tool_calls) {
+                      const idx = tc.index ?? 0;
+                      const existing = activeToolCalls.get(idx);
+                      if (tc.id && tc.function?.name) {
+                        activeToolCalls.set(idx, {
+                          id: tc.id,
+                          name: tc.function.name,
+                          inputJson: tc.function.arguments ?? "",
+                        });
+                      } else if (existing && tc.function?.arguments) {
+                        existing.inputJson += tc.function.arguments;
+                      }
+                    }
+                  }
+                  if (choice.finish_reason === "tool_calls") {
+                    for (const [idx, tc] of activeToolCalls) {
+                      let input: Record<string, Json> = {};
+                      if (tc.inputJson.trim()) {
+                        try {
+                          input = JSON.parse(tc.inputJson) as Record<string, Json>;
+                        } catch {
+                          // keep empty input
+                        }
+                      }
+                      progress.report(new vscode.LanguageModelToolCallPart(tc.id, tc.name, input));
+                    }
+                    activeToolCalls.clear();
+                  }
+                }
+              }
+              break;
+            }
           }
         }
       }
@@ -732,8 +791,9 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
 
     // When silent, avoid prompting or network calls; return cached/fallback models immediately.
     if (options.silent) {
-      const cached =
-        this.globalState?.get<Array<{ id: string; name: string }>>("opencode-go.models");
+      const cached = this.globalState?.get<Array<{ id: string; name: string }>>(
+        "opencode-go.models",
+      );
       const models = cached && cached.length > 0 ? cached : FALLBACK_MODELS;
       return this._mapToChatInformation(models);
     }
