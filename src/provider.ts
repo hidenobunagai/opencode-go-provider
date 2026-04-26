@@ -17,6 +17,7 @@ import { BASE_URL, CONTEXT_WINDOW_SAFETY_MARGIN } from "./constants";
 import { OcGoMcpClient } from "./mcp";
 import { debugLog } from "./output-channel";
 import {
+  AnthropicMessage,
   AnthropicRequestBody,
   AnthropicSSEEvent,
   FALLBACK_MODELS,
@@ -544,7 +545,23 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     token: CancellationToken,
     abortController: AbortController,
   ): Promise<void> {
-    const toolConfig = convertToolsToAnthropic(options);
+    // DeepSeek models expect OpenAI-format tool definitions even on /messages endpoint
+    const isDeepSeek = modelId.startsWith("deepseek-");
+    let toolConfig: { tools?: unknown[]; tool_choice?: unknown };
+    if (isDeepSeek) {
+      const openAiConfig = convertTools(options);
+      toolConfig = {
+        tools: openAiConfig.tools,
+        tool_choice: openAiConfig.tool_choice,
+      };
+    } else {
+      const anthropicConfig = convertToolsToAnthropic(options);
+      toolConfig = {
+        tools: anthropicConfig.tools,
+        tool_choice: anthropicConfig.tool_choice,
+      };
+    }
+
     const { messages: apiMessages, system } = convertMessagesToAnthropic(messages, {
       maxToolResultChars: 20000,
     });
@@ -553,7 +570,16 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
       throw new Error("No messages to send to Anthropic API");
     }
 
-    const requestBody: AnthropicRequestBody = {
+    const requestBody: {
+      model: string;
+      messages: AnthropicMessage[];
+      system?: string | Array<{ type: "text"; text: string }>;
+      max_tokens: number;
+      stream: boolean;
+      temperature?: number;
+      tools?: unknown[];
+      tool_choice?: unknown;
+    } = {
       model: modelId,
       messages: apiMessages,
       max_tokens: Math.max(1, requestedMaxTokens),

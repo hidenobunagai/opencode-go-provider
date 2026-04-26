@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.7] - 2026-04-26
+
+### Fixed
+
+- DeepSeek V4 Pro / V4 Flash: use OpenAI-format tool definitions (`convertTools`) instead of Anthropic format (`convertToolsToAnthropic`) when calling the `/messages` endpoint. The DeepSeek proxy expects `tools[].function.name` rather than `tools[].name`.
+
 ## [0.1.6] - 2026-04-26
 
 ### Fixed
