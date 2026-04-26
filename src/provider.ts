@@ -596,7 +596,10 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
       }
     }
 
-    debugLog("handleAnthropicRequest", `Request body: ${JSON.stringify(requestBody).slice(0, 500)}`);
+    debugLog(
+      "handleAnthropicRequest",
+      `Request body: ${JSON.stringify(requestBody).slice(0, 500)}`,
+    );
 
     const response = await fetch(`${BASE_URL}/messages`, {
       method: "POST",
@@ -610,8 +613,14 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
       body: JSON.stringify(requestBody),
     });
 
-    debugLog("handleAnthropicRequest", `Response status: ${response.status} ${response.statusText}`);
-    debugLog("handleAnthropicRequest", `Response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`);
+    debugLog(
+      "handleAnthropicRequest",
+      `Response status: ${response.status} ${response.statusText}`,
+    );
+    debugLog(
+      "handleAnthropicRequest",
+      `Response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`,
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -647,28 +656,27 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        debugLog("processAnthropicStreamingResponse", `Raw buffer chunk: ${buffer.slice(0, 300)}`);
         const lines = buffer.split("\n");
         buffer = lines.pop() ?? "";
 
         for (const line of lines) {
           const trimmed = line.trim();
-          if (!trimmed) continue;
-          debugLog("processAnthropicStreamingResponse", `SSE line: ${trimmed.slice(0, 300)}`);
-          if (!trimmed.startsWith("data:")) continue;
+          if (!trimmed || trimmed === "{}" || trimmed.startsWith("event:")) continue;
 
-          const jsonStr = trimmed.slice(5).trim();
-          if (!jsonStr || jsonStr === "[DONE]") continue;
+          const jsonStr = trimmed.startsWith("data:") ? trimmed.slice(5).trim() : trimmed;
+          if (!jsonStr || jsonStr === "{}" || jsonStr === "[DONE]") continue;
+          if (!jsonStr.startsWith("{")) continue;
 
           let event: AnthropicSSEEvent;
           try {
             event = JSON.parse(jsonStr) as AnthropicSSEEvent;
           } catch {
-            debugLog("processAnthropicStreamingResponse", `Failed to parse JSON: ${jsonStr.slice(0, 200)}`);
+            debugLog(
+              "processAnthropicStreamingResponse",
+              `Failed to parse JSON: ${jsonStr.slice(0, 200)}`,
+            );
             continue;
           }
-
-          debugLog("processAnthropicStreamingResponse", `SSE event type: ${(event as { type?: string }).type ?? "(no type)"}, raw: ${jsonStr.slice(0, 300)}`);
 
           switch (event.type) {
             case "message_start":

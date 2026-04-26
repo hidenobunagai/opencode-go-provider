@@ -279,6 +279,63 @@ describe("OcGoChatModelProvider", () => {
     expect(toolCallReports[0][0].input).toEqual({ city: "Tokyo" });
   });
 
+  it("streams Anthropic text deltas from raw JSON lines", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode("{}\n"));
+        controller.enqueue(
+          encoder.encode(
+            '{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n',
+          ),
+        );
+        controller.enqueue(
+          encoder.encode(
+            '{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":" world"}}\n',
+          ),
+        );
+        controller.enqueue(
+          encoder.encode(
+            '{"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"input_tokens":1,"output_tokens":2}}\n',
+          ),
+        );
+        controller.enqueue(encoder.encode("data: [DONE]\n"));
+        controller.close();
+      },
+    });
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      headers: new Headers({ "content-type": "text/event-stream; charset=utf-8" }),
+      body: stream,
+    });
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "deepseek-v4-flash", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "Hi" }] }] as any,
+      { modelOptions: {} } as any,
+      progress,
+      token as any,
+    );
+
+    const emittedText = progress.report.mock.calls
+      .map((call: any[]) => call[0]?.value)
+      .filter((value: unknown): value is string => typeof value === "string")
+      .join("");
+
+    expect(emittedText).toBe("Hello world");
+  });
+
   it("emits text that appears before a tool call in the same response", async () => {
     (secrets.get as jest.Mock).mockResolvedValue("test-key");
 
