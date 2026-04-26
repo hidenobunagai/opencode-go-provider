@@ -31,8 +31,9 @@ function getRetryAfterMs(response: Response): number | undefined {
 function calculateRetryDelay(attempt: number, retryAfter?: number): number {
   if (retryAfter !== undefined && retryAfter > 0) {
     // Add jitter to server-provided retry-after (±25%)
+    // Do not cap server-provided retry-after with MAX_RETRY_DELAY_MS
     const jitter = retryAfter * 0.25 * (Math.random() * 2 - 1);
-    return Math.min(Math.max(Math.round(retryAfter + jitter), 0), MAX_RETRY_DELAY_MS);
+    return Math.max(Math.round(retryAfter + jitter), 0);
   }
 
   const exponentialDelay = BASE_RETRY_DELAY_MS * Math.pow(2, attempt);
