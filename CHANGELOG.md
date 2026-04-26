@@ -1,5 +1,13 @@
 # Change Log
 
+## [0.1.14] - 2026-04-26
+
+### Fixed
+
+- Improved Kimi / API handling of `HTTP 429 Too Many Requests` by honoring server-provided `Retry-After` headers regardless of absolute length, and increasing chat completion retry limits.
+- Automatically repair `grep_search` and `file_search` arguments (`query`, `isRegexp` etc.) before dispatch to VS Code Copilot agent handlers, preventing random crashes when the model hallucinates missing required tool inputs.
+- Converted residual `console.warn` usage to `debugLog` to avoid console spam in production paths.
+
 ## [0.1.13] - 2026-04-26
 
 ### Changed
