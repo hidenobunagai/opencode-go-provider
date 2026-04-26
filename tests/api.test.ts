@@ -101,6 +101,9 @@ describe("streamChatCompletion", () => {
   });
 
   it("retries on 429 and eventually throws after exhausting retries", async () => {
+    const originalSetTimeout = global.setTimeout;
+    global.setTimeout = ((cb: () => void) => cb()) as any;
+
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,
       status: 429,
@@ -109,9 +112,13 @@ describe("streamChatCompletion", () => {
       text: async () => "Rate limited",
     } as any);
 
-    const gen = streamChatCompletion("key", { model: "kimi-k2.6", messages: [], stream: true });
-    await expect(gen.next()).rejects.toThrow("HTTP 429");
-    expect(fetch).toHaveBeenCalledTimes(3);
+    try {
+      const gen = streamChatCompletion("key", { model: "kimi-k2.6", messages: [], stream: true });
+      await expect(gen.next()).rejects.toThrow("HTTP 429");
+      expect(fetch).toHaveBeenCalledTimes(5);
+    } finally {
+      global.setTimeout = originalSetTimeout;
+    }
   });
 
   it("retries on network failure and succeeds", async () => {
