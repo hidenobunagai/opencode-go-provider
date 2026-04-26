@@ -237,7 +237,7 @@ async function processAnthropicStreamingResponse(
         } catch {
           debugLog(
             "processAnthropicStreamingResponse",
-            `Failed to parse JSON: ${jsonStr.slice(0, 200)}`,
+            `Failed to parse event JSON: ${jsonStr.slice(0, 200)}`,
           );
           continue;
         }
@@ -287,7 +287,7 @@ async function processAnthropicStreamingResponse(
                 try {
                   input = JSON.parse(tc.inputJson) as Record<string, Json>;
                 } catch {
-                  // keep empty input
+                  debugLog("processAnthropicStreamingResponse", "Failed to parse tool call input JSON at block_stop");
                 }
               }
               emitEmbeddedToolCall({ name: tc.name, args: input }, tc.id);
@@ -345,7 +345,7 @@ async function processAnthropicStreamingResponse(
                       try {
                         input = JSON.parse(tc.inputJson) as Record<string, Json>;
                       } catch {
-                        // keep empty input
+                        debugLog("processAnthropicStreamingResponse", "Failed to parse DeepSeek tool call input");
                       }
                     }
                     emitEmbeddedToolCall({ name: tc.name, args: input }, tc.id);

@@ -210,7 +210,7 @@ export async function processOpenAIStream(
               toolCallBuffers.delete(idx);
             }
           } catch {
-            // JSON incomplete — wait for next chunk
+            debugLog("processOpenAIStream", "Failed to parse tool call JSON, waiting for next chunk");
           }
         }
       }
@@ -253,7 +253,7 @@ export async function processOpenAIStream(
           });
         }
       } catch {
-        // Ignore incomplete JSON at stream end
+        debugLog("processOpenAIStream", "Failed to parse incomplete JSON at stream end");
       }
     }
 

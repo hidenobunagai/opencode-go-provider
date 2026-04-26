@@ -150,6 +150,8 @@ export async function* streamChatCompletion(
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let malformedSseCount = 0;
+  const MALFORMED_SSE_WARN_THRESHOLD = 10;
 
   try {
     while (true) {
@@ -169,7 +171,8 @@ export async function* streamChatCompletion(
           const parsed = JSON.parse(data) as OcGoStreamResponse;
           yield parsed;
         } catch {
-          // Ignore malformed lines
+          malformedSseCount++;
+          debugLog("streamChatCompletion", `Malformed SSE line: ${data.slice(0, 200)}`);
         }
       }
     }
@@ -187,8 +190,13 @@ export async function* streamChatCompletion(
         const parsed = JSON.parse(data) as OcGoStreamResponse;
         yield parsed;
       } catch {
-        // Ignore malformed lines
+        malformedSseCount++;
+        debugLog("streamChatCompletion", `Malformed SSE line: ${data.slice(0, 200)}`);
       }
+    }
+
+    if (malformedSseCount >= MALFORMED_SSE_WARN_THRESHOLD) {
+      debugLog("streamChatCompletion", `Received ${malformedSseCount} malformed SSE lines (threshold: ${MALFORMED_SSE_WARN_THRESHOLD})`);
     }
   } finally {
     reader.releaseLock();
