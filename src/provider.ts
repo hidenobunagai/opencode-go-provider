@@ -596,11 +596,6 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
       }
     }
 
-    debugLog(
-      "handleAnthropicRequest",
-      `Request body: ${JSON.stringify(requestBody).slice(0, 500)}`,
-    );
-
     const response = await fetch(`${BASE_URL}/messages`, {
       method: "POST",
       headers: {
@@ -612,15 +607,6 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
       signal: abortController.signal,
       body: JSON.stringify(requestBody),
     });
-
-    debugLog(
-      "handleAnthropicRequest",
-      `Response status: ${response.status} ${response.statusText}`,
-    );
-    debugLog(
-      "handleAnthropicRequest",
-      `Response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`,
-    );
 
     if (!response.ok) {
       const errorText = await response.text();

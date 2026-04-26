@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.9] - 2026-04-26
+
+### Fixed
+
+- DeepSeek V4 Pro / V4 Flash: accept raw JSON event lines on the `/messages` streaming endpoint in addition to standard `data:` SSE lines. This fixes cases where the model produced a valid response but VS Code showed "Sorry, no response was returned".
+
 ## [0.1.8] - 2026-04-26
 
 ### Removed
