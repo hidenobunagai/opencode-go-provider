@@ -32,9 +32,11 @@ async function refreshModelsFromApi(
       return;
     }
 
-    debugLog("refreshModels", "Model refresh returned no models.");
+    debugLog("refreshModels", "Model refresh returned no models (endpoint may not be available).");
     if (options.showMessages) {
-      vscode.window.showWarningMessage("Failed to refresh models from OpenCode Go API.");
+      vscode.window.showWarningMessage(
+        "OpenCode Go does not provide a models list endpoint. The built-in model list is used.",
+      );
     }
   } catch (error) {
     debugLog(
@@ -42,8 +44,8 @@ async function refreshModelsFromApi(
       `Model refresh failed: ${error instanceof Error ? error.message : String(error)}`,
     );
     if (options.showMessages) {
-      vscode.window.showErrorMessage(
-        `Failed to refresh models: ${error instanceof Error ? error.message : String(error)}`,
+      vscode.window.showWarningMessage(
+        "OpenCode Go does not provide a models list endpoint. The built-in model list is used.",
       );
     }
   }

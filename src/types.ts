@@ -213,7 +213,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: false,
-    apiFormat: "openai",
+    apiFormat: "anthropic",
   },
   {
     id: "deepseek-v4-flash",
@@ -223,7 +223,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: false,
-    apiFormat: "openai",
+    apiFormat: "anthropic",
   },
 ];
 

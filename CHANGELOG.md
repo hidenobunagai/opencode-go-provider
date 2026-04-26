@@ -1,16 +1,18 @@
 # Change Log
 
+## [0.1.6] - 2026-04-26
+
+### Fixed
+
+- Changed DeepSeek V4 Pro and V4 Flash to use Anthropic Messages API (`/zen/go/v1/messages`) instead of OpenAI format, matching the official OpenCode Go API documentation.
+- Improved Refresh Models error message to clarify that OpenCode Go does not provide a models list endpoint.
+
 ## [0.1.5] - 2026-04-26
 
 ### Fixed
 
 - Set `supportsVision: false` for DeepSeek V4 Pro and V4 Flash (these models do not accept `image_url` input).
 
-## [0.1.4] - 2026-04-26
-
-### Fixed
-
-- Added missing DeepSeek V4 Pro and DeepSeek V4 Flash models to the fallback model list.
 
 ## [0.1.2] - 2026-04-24
 
