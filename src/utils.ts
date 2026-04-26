@@ -307,7 +307,8 @@ export function convertMessages(
         });
         continue;
       }
-      console.warn("[OpenCode Go Provider] Unrecognized message part:", part);
+      // Log unrecognized message parts using debugLog instead of console.warn
+      debugLog("convertLanguageModelMessage", `Unrecognized message part: ${JSON.stringify(part)}`);
     }
 
     // Handle tool calls
