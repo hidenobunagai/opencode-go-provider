@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.1.10] - 2026-04-26
+
+### Changed
+
+- Removed verbose DeepSeek investigation logs from the Anthropic `/messages` path after the streaming fix was validated.
+- Added a `bun run repro:deepseek` helper script and README troubleshooting steps to verify directly whether OpenCode Go routes `deepseek-v4-flash` to an unexpected upstream model.
+
 ## [0.1.9] - 2026-04-26
 
 ### Fixed
