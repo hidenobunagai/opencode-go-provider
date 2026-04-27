@@ -224,7 +224,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
   {
     id: "deepseek-v4-pro:max",
     name: "DeepSeek V4 Pro",
-    displayName: "DeepSeek V4 Pro (Max Thinking)",
+    displayName: "DeepSeek V4 Pro (Max)",
     contextWindow: 262144,
     maxOutput: 65536,
     supportsTools: true,
@@ -235,7 +235,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
   {
     id: "deepseek-v4-pro:high",
     name: "DeepSeek V4 Pro",
-    displayName: "DeepSeek V4 Pro (High Thinking)",
+    displayName: "DeepSeek V4 Pro (High)",
     contextWindow: 262144,
     maxOutput: 65536,
     supportsTools: true,
@@ -246,7 +246,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
   {
     id: "deepseek-v4-pro:low",
     name: "DeepSeek V4 Pro",
-    displayName: "DeepSeek V4 Pro (Low Thinking)",
+    displayName: "DeepSeek V4 Pro (Low)",
     contextWindow: 262144,
     maxOutput: 65536,
     supportsTools: true,
@@ -267,7 +267,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
   {
     id: "deepseek-v4-flash:max",
     name: "DeepSeek V4 Flash",
-    displayName: "DeepSeek V4 Flash (Max Thinking)",
+    displayName: "DeepSeek V4 Flash (Max)",
     contextWindow: 262144,
     maxOutput: 65536,
     supportsTools: true,
@@ -278,7 +278,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
   {
     id: "deepseek-v4-flash:high",
     name: "DeepSeek V4 Flash",
-    displayName: "DeepSeek V4 Flash (High Thinking)",
+    displayName: "DeepSeek V4 Flash (High)",
     contextWindow: 262144,
     maxOutput: 65536,
     supportsTools: true,
@@ -289,7 +289,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
   {
     id: "deepseek-v4-flash:low",
     name: "DeepSeek V4 Flash",
-    displayName: "DeepSeek V4 Flash (Low Thinking)",
+    displayName: "DeepSeek V4 Flash (Low)",
     contextWindow: 262144,
     maxOutput: 65536,
     supportsTools: true,
