@@ -242,6 +242,24 @@ export function repairToolArguments(
     };
   }
 
+  // run_in_terminal: required args are command, explanation, goal, mode, timeout.
+  // command is the only truly required arg; the rest have safe defaults.
+  if (toolName === "run_in_terminal") {
+    if (needsStringField(repaired.command, "command")) {
+      // Without a command, the tool call is fundamentally invalid — skip repair
+      return repaired;
+    }
+    return {
+      ...repaired,
+      ...(needsStringField(repaired.explanation, "explanation")
+        ? { explanation: "Run command in terminal" }
+        : {}),
+      ...(needsStringField(repaired.goal, "goal") ? { goal: "Execute command" } : {}),
+      ...(needsStringField(repaired.mode, "mode") ? { mode: "sync" } : {}),
+      ...(needsNumberField(repaired.timeout, "timeout") ? { timeout: 30000 } : {}),
+    };
+  }
+
   return repaired;
 }
 

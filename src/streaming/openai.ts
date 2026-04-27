@@ -1,12 +1,12 @@
 // streaming/openai.ts — OpenAI-format SSE streaming + tool call assembly
 import * as vscode from "vscode";
-import { OcGoChatRequest } from "../types";
 import { streamChatCompletion } from "../api";
+import { applyOpenAiSystemPromptGuidance, calculateMaxToolResultChars } from "../guidance";
 import { debugLog } from "../output-channel";
 import { parseTextEmbeddedToolCalls, type ParsedTextToolCall } from "../tool-parser";
 import {
-  buildToolCallCanonicalKey,
   buildInvalidToolCallFallback,
+  buildToolCallCanonicalKey,
   extractChatRequestContext,
   getCompletedToolCallKeys,
   getToolSchemaMap,
@@ -14,9 +14,9 @@ import {
   isToolCallInput,
   repairToolArguments,
 } from "../tool-repair";
-import { applyOpenAiSystemPromptGuidance, calculateMaxToolResultChars } from "../guidance";
-import { convertMessages, convertTools, applyReasoningContentWorkaround } from "../utils";
 import type { OcGoModelInfo } from "../types";
+import { OcGoChatRequest } from "../types";
+import { applyReasoningContentWorkaround, convertMessages, convertTools } from "../utils";
 
 export interface OpenAIModelInfo {
   id: string;
