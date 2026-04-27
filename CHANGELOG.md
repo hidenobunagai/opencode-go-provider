@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.23] - 2026-04-27
+
+### Added
+
+- Added Medium thinking variant for DeepSeek V4 Pro and DeepSeek V4 Flash, matching the full set available in OpenCode Go CLI (Default, Low, Medium, High, Max).
+
 ## [0.1.19] - 2026-04-27
 
 ### Added
