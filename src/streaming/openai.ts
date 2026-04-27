@@ -25,6 +25,13 @@ export interface OpenAIModelInfo {
   reasoningEffort?: string;
 }
 
+function normalizeReasoningEffort(reasoningEffort: string | undefined): string | undefined {
+  if (reasoningEffort === "max") {
+    return "xhigh";
+  }
+  return reasoningEffort;
+}
+
 export async function processOpenAIStream(
   model: OpenAIModelInfo,
   apiMessages: readonly vscode.LanguageModelChatMessage[],
@@ -64,7 +71,8 @@ export async function processOpenAIStream(
   };
   if (toolConfig.tools) requestBody.tools = toolConfig.tools;
   if (toolConfig.tool_choice) requestBody.tool_choice = toolConfig.tool_choice;
-  if (model.reasoningEffort) requestBody.reasoning_effort = model.reasoningEffort;
+  const reasoningEffort = normalizeReasoningEffort(model.reasoningEffort);
+  if (reasoningEffort) requestBody.reasoning_effort = reasoningEffort;
 
   debugLog("Outgoing request messages", {
     messages: requestBody.messages,

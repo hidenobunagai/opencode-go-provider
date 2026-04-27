@@ -70,7 +70,7 @@ export interface OcGoStreamResponse {
 export type OcGoApiFormat = "openai" | "anthropic";
 
 /** Reasoning effort level for models that support it (e.g. DeepSeek) */
-export type ReasoningEffort = "low" | "medium" | "high" | "max";
+export type ReasoningEffort = "xhigh" | "high" | "medium" | "low" | "minimal" | "none";
 
 export interface OcGoModelInfo {
   id: string;
@@ -230,7 +230,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsTools: true,
     supportsVision: false,
     apiFormat: "openai",
-    reasoningEffort: "max",
+    reasoningEffort: "xhigh",
   },
   {
     id: "deepseek-v4-pro:high",
@@ -273,7 +273,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsTools: true,
     supportsVision: false,
     apiFormat: "openai",
-    reasoningEffort: "max",
+    reasoningEffort: "xhigh",
   },
   {
     id: "deepseek-v4-flash:high",

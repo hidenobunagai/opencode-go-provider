@@ -833,6 +833,37 @@ describe("OcGoChatModelProvider", () => {
     );
   });
 
+  it("maps DeepSeek max thinking variants to xhigh reasoning_effort", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const mockStream = async function* () {
+      yield { choices: [{ delta: { content: "done" } }] };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "deepseek-v4-pro:max", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "Hi" }] }] as any,
+      { modelOptions: {} } as any,
+      progress,
+      token as any,
+    );
+
+    const requestBody = (streamChatCompletion as jest.Mock).mock.calls.at(-1)?.[1];
+    expect(requestBody).toEqual(
+      expect.objectContaining({
+        model: "deepseek-v4-pro",
+        reasoning_effort: "xhigh",
+      }),
+    );
+  });
+
   it("assembles tool call arguments split across chunks", async () => {
     (secrets.get as jest.Mock).mockResolvedValue("test-key");
 
