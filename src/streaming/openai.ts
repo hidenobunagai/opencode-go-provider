@@ -9,6 +9,7 @@ import {
   buildToolCallCanonicalKey,
   extractChatRequestContext,
   getCompletedToolCallKeys,
+  getMissingRequiredToolArguments,
   getToolSchemaMap,
   hasRequiredToolArguments,
   isToolCallInput,
@@ -82,7 +83,7 @@ export async function processOpenAIStream(
 
   const toolCallBuffers = new Map<number, { id?: string; name?: string; args: string }>();
   const completedToolCallIndices = new Set<number>();
-  const skippedToolCalls: { name: string; required: string[] }[] = [];
+  const skippedToolCalls: { name: string; required: string[]; missing: string[] }[] = [];
   const emittedTextToolCallKeys = getCompletedToolCallKeys(
     apiMessages,
     requestContext,
@@ -134,6 +135,7 @@ export async function processOpenAIStream(
       skippedToolCalls.push({
         name: toolCall.name,
         required: schema?.required ?? [],
+        missing: getMissingRequiredToolArguments(repairedArgs, schema),
       });
       debugLog("Skipped invalid text tool call", toolCall);
     }
@@ -217,6 +219,7 @@ export async function processOpenAIStream(
               skippedToolCalls.push({
                 name: buf.name,
                 required: schema?.required ?? [],
+                missing: getMissingRequiredToolArguments(args, schema),
               });
               debugLog("Skipped invalid tool call", {
                 id: buf.id,
@@ -258,6 +261,7 @@ export async function processOpenAIStream(
           skippedToolCalls.push({
             name: buf.name,
             required: schema?.required ?? [],
+            missing: getMissingRequiredToolArguments(args, schema),
           });
           debugLog("Skipped invalid tool call at stream end", {
             id: buf.id,

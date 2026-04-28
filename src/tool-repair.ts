@@ -105,23 +105,38 @@ export function getToolSchemaMap(
 }
 
 export function hasRequiredToolArguments(args: unknown, schema: ToolSchema | undefined): boolean {
+  return getMissingRequiredToolArguments(args, schema).length === 0;
+}
+
+export function getMissingRequiredToolArguments(
+  args: unknown,
+  schema: ToolSchema | undefined,
+): string[] {
   const required = schema?.required ?? [];
-  if (required.length === 0) return true;
-  if (typeof args !== "object" || args === null || Array.isArray(args)) return false;
+  if (required.length === 0) return [];
+  if (typeof args !== "object" || args === null || Array.isArray(args)) return [...required];
   const record = args as Record<string, unknown>;
-  return required.every(
+  return required.filter(
     (key) =>
-      key in record && record[key] !== undefined && record[key] !== null && record[key] !== "",
+      !(key in record && record[key] !== undefined && record[key] !== null && record[key] !== ""),
   );
 }
 
 export function buildInvalidToolCallFallback(
-  skippedToolCalls: readonly { name: string; required: string[] }[],
+  skippedToolCalls: readonly { name: string; required: string[]; missing: string[] }[],
 ): string | undefined {
-  const skippedWithRequiredArgs = skippedToolCalls.find((tc) => tc.required.length > 0);
+  const skippedWithRequiredArgs = skippedToolCalls.find(
+    (tc) => tc.missing.length > 0 || tc.required.length > 0,
+  );
   if (!skippedWithRequiredArgs) return undefined;
-  const requiredArgs = skippedWithRequiredArgs.required.map((a) => `\`${a}\``).join(", ");
-  return `The model tried to call \`${skippedWithRequiredArgs.name}\` without the required argument(s) ${requiredArgs}. Please retry the request and provide those arguments explicitly.`;
+  const missingArgs = (
+    skippedWithRequiredArgs.missing.length > 0
+      ? skippedWithRequiredArgs.missing
+      : skippedWithRequiredArgs.required
+  )
+    .map((a) => `\`${a}\``)
+    .join(", ");
+  return `The model tried to call \`${skippedWithRequiredArgs.name}\` without the required argument(s) ${missingArgs}. Please retry the request and provide those arguments explicitly.`;
 }
 
 export function extractChatRequestContext(
@@ -201,20 +216,6 @@ export function repairToolArguments(
   if (needsBooleanField(repaired.isRegexp, "isRegexp")) repaired.isRegexp = false;
   if (needsBooleanField(repaired.includeIgnoredFiles, "includeIgnoredFiles"))
     repaired.includeIgnoredFiles = false;
-
-  if (toolName === "grep_search" && needsStringField(repaired.query, "query")) {
-    repaired.query = context?.filePath
-      ? context.filePath.split(/[/\\]/).pop() || ""
-      : "TODO: MISSING QUERY";
-  }
-  if (toolName === "file_search" && needsStringField(repaired.query, "query")) {
-    repaired.query = context?.filePath
-      ? context.filePath.split(/[/\\]/).pop() || ""
-      : "TODO: MISSING QUERY";
-  }
-  if (toolName === "semantic_search" && needsStringField(repaired.query, "query")) {
-    repaired.query = "TODO: MISSING QUERY";
-  }
 
   if (!context) return repaired;
 

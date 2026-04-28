@@ -10,6 +10,7 @@ import {
   buildToolCallCanonicalKey,
   extractChatRequestContext,
   getCompletedToolCallKeys,
+  getMissingRequiredToolArguments,
   getToolSchemaMap,
   hasRequiredToolArguments,
   isToolCallInput,
@@ -35,6 +36,7 @@ export interface AnthropicRequestParams {
 interface SkippedToolCall {
   name: string;
   required: string[];
+  missing: string[];
 }
 
 export async function handleAnthropicRequest(params: AnthropicRequestParams): Promise<void> {
@@ -203,6 +205,7 @@ async function processAnthropicStreamingResponse(
     skippedToolCalls.push({
       name: toolCall.name,
       required: schema?.required ?? [],
+      missing: getMissingRequiredToolArguments(repairedArgs, schema),
     });
     debugLog("Skipped invalid Anthropic embedded tool call", toolCall);
   };
