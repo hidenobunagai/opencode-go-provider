@@ -119,7 +119,7 @@ export async function processOpenAIStream(
 
   const emitTextToolCall = (toolCall: ParsedTextToolCall, toolId?: string): void => {
     sawToolCall = true;
-    const schema = toolSchemas.get(toolCall.name);
+    const schema = toolSchemas.get(toolCall.name.toLowerCase());
     const repairedArgs = repairToolArguments(toolCall.name, toolCall.args, requestContext, schema);
     const canonicalKey = buildToolCallCanonicalKey(toolCall.name, repairedArgs);
     if (emittedTextToolCallKeys.has(canonicalKey)) return;
@@ -194,7 +194,7 @@ export async function processOpenAIStream(
           if (buf.args.trim().length === 0) continue;
 
           try {
-            const schema = toolSchemas.get(buf.name ?? "");
+            const schema = toolSchemas.get((buf.name ?? "").toLowerCase());
             const args = repairToolArguments(
               buf.name ?? "",
               buf.args ? JSON.parse(buf.args) : {},
@@ -247,7 +247,7 @@ export async function processOpenAIStream(
     for (const [idx, buf] of Array.from(toolCallBuffers.entries())) {
       if (completedToolCallIndices.has(idx)) continue;
       try {
-        const schema = toolSchemas.get(buf.name ?? "");
+        const schema = toolSchemas.get((buf.name ?? "").toLowerCase());
         const args = repairToolArguments(
           buf.name ?? "",
           buf.args ? JSON.parse(buf.args) : {},

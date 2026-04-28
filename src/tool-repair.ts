@@ -4,6 +4,7 @@ import * as vscode from "vscode";
 interface ToolSchema {
   required?: string[];
   enumValues?: Record<string, string[]>;
+  propertyTypes?: Record<string, string>;
 }
 
 interface ChatRequestContext {
@@ -14,7 +15,11 @@ interface ChatRequestContext {
 }
 
 export function buildToolCallCanonicalKey(name: string, args: unknown): string {
-  return `${name}:${JSON.stringify(args)}`;
+  const normalizedArgs =
+    typeof args === "object" && args !== null && !Array.isArray(args)
+      ? JSON.stringify(args, Object.keys(args as Record<string, unknown>).sort())
+      : JSON.stringify(args);
+  return `${name.toLowerCase()}:${normalizedArgs}`;
 }
 
 export function getCompletedToolCallKeys(
@@ -61,7 +66,7 @@ export function getCompletedToolCallKeys(
         tc.name,
         tc.input ?? {},
         requestContext,
-        toolSchemas.get(tc.name),
+        toolSchemas.get(tc.name.toLowerCase()),
       );
       keys.add(buildToolCallCanonicalKey(tc.name, repairedArgs));
     }
@@ -83,6 +88,7 @@ export function getToolSchemaMap(
         )
       : undefined;
     const enumValues: Record<string, string[]> = {};
+    const propertyTypes: Record<string, string> = {};
     const properties =
       typeof inputSchema?.properties === "object" && inputSchema.properties !== null
         ? (inputSchema.properties as Record<string, unknown>)
@@ -90,7 +96,7 @@ export function getToolSchemaMap(
     for (const [name, value] of Object.entries(properties)) {
       const propSchema =
         typeof value === "object" && value !== null && !Array.isArray(value)
-          ? (value as { enum?: unknown })
+          ? (value as { enum?: unknown; type?: unknown })
           : undefined;
       if (Array.isArray(propSchema?.enum)) {
         const allowed = propSchema.enum.filter((item): item is string => typeof item === "string");
@@ -98,8 +104,12 @@ export function getToolSchemaMap(
           enumValues[name] = allowed;
         }
       }
+      if (typeof propSchema?.type === "string") {
+        propertyTypes[name] = propSchema.type;
+      }
     }
-    map.set(tool.name, { required, enumValues });
+    const key = tool.name.toLowerCase();
+    map.set(key, { required, enumValues, propertyTypes });
   }
   return map;
 }
@@ -203,6 +213,7 @@ export function repairToolArguments(
 
   const record = args as Record<string, unknown>;
   const required = new Set(schema?.required ?? []);
+  const propertyTypes = schema?.propertyTypes ?? {};
   const needsStringField = (value: unknown, field: string): boolean =>
     required.has(field) && (typeof value !== "string" || value.trim().length === 0);
   const needsNumberField = (value: unknown, field: string): boolean =>
@@ -210,44 +221,34 @@ export function repairToolArguments(
   const needsBooleanField = (value: unknown, field: string): boolean =>
     required.has(field) && typeof value !== "boolean";
 
-  const repaired = { ...record };
-  const context = requestContext;
+  const coerceValue = (value: unknown, field: string): unknown => {
+    if (typeof value !== "string") return value;
+    const expectedType = propertyTypes[field];
+    if (!expectedType) return value;
+    if (expectedType === "number" || expectedType === "integer") {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+    if (expectedType === "boolean") {
+      if (value === "true") return true;
+      if (value === "false") return false;
+    }
+    return value;
+  };
+
+  const repaired: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(record)) {
+    repaired[key] = coerceValue(value, key);
+  }
 
   if (needsBooleanField(repaired.isRegexp, "isRegexp")) repaired.isRegexp = false;
   if (needsBooleanField(repaired.includeIgnoredFiles, "includeIgnoredFiles"))
     repaired.includeIgnoredFiles = false;
 
-  if (!context) return repaired;
-
-  if (toolName === "read_file") {
-    const inferredFilePath =
-      context?.filePath ??
-      vscode.window.activeTextEditor?.document.uri.fsPath ??
-      vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-    return {
-      ...repaired,
-      ...(needsStringField(repaired.filePath, "filePath") && inferredFilePath
-        ? { filePath: inferredFilePath }
-        : {}),
-      ...(needsNumberField(repaired.startLine, "startLine")
-        ? { startLine: context.startLine ?? 1 }
-        : {}),
-      ...(needsNumberField(repaired.endLine, "endLine") ? { endLine: context.endLine ?? 200 } : {}),
-    };
-  }
-
-  if (toolName === "list_dir") {
-    return {
-      ...repaired,
-      ...(needsStringField(repaired.path, "path") && context.cwd ? { path: context.cwd } : {}),
-    };
-  }
-
-  // run_in_terminal: required args are command, explanation, goal, mode, timeout.
+  // run_in_terminal: default value repairs do not need request context.
   // command is the only truly required arg; the rest have safe defaults.
-  if (toolName === "run_in_terminal") {
+  if (toolName.toLowerCase() === "run_in_terminal") {
     if (needsStringField(repaired.command, "command")) {
-      // Without a command, the tool call is fundamentally invalid — skip repair
       return repaired;
     }
     return {
@@ -258,6 +259,36 @@ export function repairToolArguments(
       ...(needsStringField(repaired.goal, "goal") ? { goal: "Execute command" } : {}),
       ...(needsStringField(repaired.mode, "mode") ? { mode: "sync" } : {}),
       ...(needsNumberField(repaired.timeout, "timeout") ? { timeout: 30000 } : {}),
+    };
+  }
+
+  if (!requestContext) return repaired;
+
+  if (toolName.toLowerCase() === "read_file") {
+    const inferredFilePath =
+      requestContext?.filePath ??
+      vscode.window.activeTextEditor?.document.uri.fsPath ??
+      vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    return {
+      ...repaired,
+      ...(needsStringField(repaired.filePath, "filePath") && inferredFilePath
+        ? { filePath: inferredFilePath }
+        : {}),
+      ...(needsNumberField(repaired.startLine, "startLine")
+        ? { startLine: requestContext.startLine ?? 1 }
+        : {}),
+      ...(needsNumberField(repaired.endLine, "endLine")
+        ? { endLine: requestContext.endLine ?? 200 }
+        : {}),
+    };
+  }
+
+  if (toolName.toLowerCase() === "list_dir") {
+    return {
+      ...repaired,
+      ...(needsStringField(repaired.path, "path") && requestContext.cwd
+        ? { path: requestContext.cwd }
+        : {}),
     };
   }
 

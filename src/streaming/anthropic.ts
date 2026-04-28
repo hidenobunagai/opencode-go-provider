@@ -184,7 +184,7 @@ async function processAnthropicStreamingResponse(
 
   const emitEmbeddedToolCall = (toolCall: ParsedTextToolCall, toolId?: string): void => {
     sawToolCall = true;
-    const schema = toolSchemas.get(toolCall.name);
+    const schema = toolSchemas.get(toolCall.name.toLowerCase());
     const repairedArgs = repairToolArguments(toolCall.name, toolCall.args, requestContext, schema);
     const canonicalKey = buildToolCallCanonicalKey(toolCall.name, repairedArgs);
     if (emittedTextToolCallKeys.has(canonicalKey)) return;
