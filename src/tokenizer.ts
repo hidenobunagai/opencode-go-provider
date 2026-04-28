@@ -33,17 +33,10 @@ function getTiktokenModule(): TiktokenModule | null {
 export function preloadTiktoken(): void {
   if (preloadStarted) return;
   preloadStarted = true;
-  const schedule = () => {
-    try {
-      getTiktokenModule();
-    } catch {
-      // Module may be unavailable during test teardown; fallback will handle it at runtime
-    }
-  };
-  if (typeof setImmediate !== "undefined") {
-    setImmediate(schedule);
-  } else {
-    setTimeout(schedule, 0);
+  try {
+    getTiktokenModule();
+  } catch {
+    // Module may be unavailable; fallback tokenizer used at runtime
   }
 }
 
