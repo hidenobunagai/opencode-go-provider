@@ -5,6 +5,8 @@
 ### Changed
 
 - Removed startup-time `/models` discovery and now use the bundled `FALLBACK_MODELS` list as the single source of truth for selectable models.
+- Pinned `@types/vscode` to the supported VS Code API baseline and pinned the CI Bun runtime.
+- Added VSIX packaging to CI so marketplace packaging regressions are caught before release.
 
 ## [0.1.23] - 2026-04-27
 
