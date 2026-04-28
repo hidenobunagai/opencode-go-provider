@@ -1,10 +1,13 @@
 # Change Log
 
-## [Unreleased]
+## [0.1.24] - 2026-04-28
 
 ### Changed
 
 - Removed startup-time `/models` discovery and now use the bundled `FALLBACK_MODELS` list as the single source of truth for selectable models.
+- Unified vision/image analysis requests with the shared chat completion request path, including retries, user-agent propagation, and explicit empty-response errors.
+- Stopped fabricating placeholder tool search queries when required arguments are missing; invalid tool calls now surface the missing arguments instead.
+- Split the previous monolithic `utils.ts` responsibilities into focused conversion and tokenizer modules.
 - Pinned `@types/vscode` to the supported VS Code API baseline and pinned the CI Bun runtime.
 - Added VSIX packaging to CI so marketplace packaging regressions are caught before release.
 
