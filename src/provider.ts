@@ -225,11 +225,28 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         supportsTools: true,
         supportsVision: false,
       };
+
+      const tooltipParts: string[] = [`OpenCode Go — ${info.name}`];
+      if (info.reasoningEffort) {
+        tooltipParts.push(`Reasoning: ${info.reasoningEffort}`);
+      }
+      if (info.supportsVision) {
+        tooltipParts.push("Vision: supported");
+      }
+      if (info.contextWindow >= 1000000) {
+        tooltipParts.push("Context: 1M tokens");
+      } else {
+        tooltipParts.push(`Context: ${Math.round(info.contextWindow / 1000)}K tokens`);
+      }
+      if (info.apiFormat === "anthropic") {
+        tooltipParts.push("API: Anthropic format");
+      }
+
       return {
         id: info.id,
         name: info.displayName,
         detail: "OpenCode Go",
-        tooltip: `OpenCode Go ${info.name}`,
+        tooltip: tooltipParts.join(" · "),
         family: "opencode-go",
         version: "1.0.0",
         maxInputTokens: Math.max(
@@ -299,6 +316,12 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         const visionFallback = this.getVisionFallbackModelId();
         if (visionFallback && visionFallback !== model.id) {
           effectiveModelId = this.resolveApiModelId(visionFallback);
+          const fallbackInfo = this._modelMap.get(visionFallback);
+          progress.report(
+            new vscode.LanguageModelTextPart(
+              `Switching to ${fallbackInfo?.displayName ?? visionFallback} for image analysis (${modelInfo?.displayName ?? model.id} does not support vision).\n\n`,
+            ),
+          );
         } else {
           effectiveMessages = await this.processImagesForNonVisionModel(messages, token, apiKey);
         }

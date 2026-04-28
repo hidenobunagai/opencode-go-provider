@@ -209,8 +209,18 @@ async function processAnthropicStreamingResponse(
   let emittedToolCall = false;
   /** Accumulated reasoning/thinking content for models that emit it (e.g. MiniMax with extended thinking) */
   let reasoningContent = "";
+  /** Whether we have already flushed the accumulated reasoning content to the progress stream */
+  let reasoningFlushed = false;
 
   const flushPendingText = (): void => {
+    if (!reasoningFlushed && reasoningContent) {
+      reasoningFlushed = true;
+      progress.report(
+        new vscode.LanguageModelTextPart(
+          `[Reasoning]\n${reasoningContent.slice(0, 2000)}${reasoningContent.length > 2000 ? "\n...(truncated)" : ""}\n`,
+        ),
+      );
+    }
     if (!pendingText) return;
     progress.report(new vscode.LanguageModelTextPart(pendingText));
     pendingText = "";
@@ -433,6 +443,14 @@ async function processAnthropicStreamingResponse(
     }
 
     if (reasoningContent) {
+      if (!reasoningFlushed) {
+        reasoningFlushed = true;
+        progress.report(
+          new vscode.LanguageModelTextPart(
+            `[Reasoning]\n${reasoningContent.slice(0, 2000)}${reasoningContent.length > 2000 ? "\n...(truncated)" : ""}\n`,
+          ),
+        );
+      }
       debugLog("processAnthropicStreamingResponse", {
         reasoning_length: reasoningContent.length,
         reasoning_preview: reasoningContent.slice(0, 200),

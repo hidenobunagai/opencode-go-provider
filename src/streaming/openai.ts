@@ -103,10 +103,13 @@ export async function processOpenAIStream(
   let reasoningFlushed = false;
 
   const flushPendingText = (): void => {
-    // When a thinking model finishes reasoning, flush accumulated reasoning_content first
-    // so it appears in the debug log and gives the user visibility into the model's thinking
     if (!reasoningFlushed && reasoningContent) {
       reasoningFlushed = true;
+      progress.report(
+        new vscode.LanguageModelTextPart(
+          `[Reasoning]\n${reasoningContent.slice(0, 2000)}${reasoningContent.length > 2000 ? "\n...(truncated)" : ""}\n`,
+        ),
+      );
       debugLog("processOpenAIStream", {
         reasoning_length: reasoningContent.length,
         reasoning_preview: reasoningContent.slice(0, 300),
