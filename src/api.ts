@@ -1,6 +1,6 @@
 import { BASE_RETRY_DELAY_MS, BASE_URL, MAX_RETRY_DELAY_MS } from "./constants";
 import { debugLog } from "./output-channel";
-import { OcGoChatRequest, OcGoStreamResponse } from "./types";
+import { OcGoChatCompletionResponse, OcGoChatRequest, OcGoStreamResponse } from "./types";
 
 /**
  * Determine whether an HTTP status code is safe to retry.
@@ -82,40 +82,69 @@ export async function fetchWithRetry(
   throw lastError ?? new Error("Network request failed after retries");
 }
 
+function buildChatCompletionHeaders(apiKey: string, userAgent?: string): Record<string, string> {
+  return {
+    Authorization: `Bearer ${apiKey}`,
+    "Content-Type": "application/json",
+    ...(userAgent ? { "User-Agent": userAgent } : {}),
+  };
+}
+
+async function createChatCompletionResponse(
+  apiKey: string,
+  requestBody: OcGoChatRequest,
+  signal?: AbortSignal,
+  userAgent?: string,
+): Promise<Response> {
+  return fetchWithRetry(
+    `${BASE_URL}/chat/completions`,
+    {
+      method: "POST",
+      headers: buildChatCompletionHeaders(apiKey, userAgent),
+      body: JSON.stringify(requestBody),
+      signal,
+    },
+    5,
+  );
+}
+
+async function throwChatCompletionError(response: Response): Promise<never> {
+  const text = await response.text();
+  let message = `OpenCode Go API error: ${response.status} ${response.statusText}`;
+  if (response.status === 401 || response.status === 403) {
+    message = `Authentication failed. Your API key may be invalid or expired.\n${message}`;
+  } else if (response.status === 429) {
+    const retryAfter = response.headers.get("retry-after");
+    message = `Rate limited. ${retryAfter ? `Retry after ${retryAfter}s. ` : ""}\n${message}`;
+  } else if (response.status >= 500 && response.status < 600) {
+    message = `Server error. The OpenCode Go service may be experiencing issues.\n${message}`;
+  }
+  throw new Error(`${message}\n${text}`);
+}
+
+export async function requestChatCompletion(
+  apiKey: string,
+  requestBody: OcGoChatRequest,
+  signal?: AbortSignal,
+  userAgent?: string,
+): Promise<OcGoChatCompletionResponse> {
+  const response = await createChatCompletionResponse(apiKey, requestBody, signal, userAgent);
+  if (!response.ok) {
+    await throwChatCompletionError(response);
+  }
+  return (await response.json()) as OcGoChatCompletionResponse;
+}
+
 export async function* streamChatCompletion(
   apiKey: string,
   requestBody: OcGoChatRequest,
   signal?: AbortSignal,
   userAgent?: string,
 ): AsyncGenerator<OcGoStreamResponse, void, unknown> {
-  const response = await fetchWithRetry(
-    `${BASE_URL}/chat/completions`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        ...(userAgent ? { "User-Agent": userAgent } : {}),
-      },
-      body: JSON.stringify(requestBody),
-      signal,
-    },
-    // For chat completions, we might want to try slightly more times since they are high-value actions
-    5,
-  );
+  const response = await createChatCompletionResponse(apiKey, requestBody, signal, userAgent);
 
   if (!response.ok) {
-    const text = await response.text();
-    let message = `OpenCode Go API error: ${response.status} ${response.statusText}`;
-    if (response.status === 401 || response.status === 403) {
-      message = `Authentication failed. Your API key may be invalid or expired.\n${message}`;
-    } else if (response.status === 429) {
-      const retryAfter = response.headers.get("retry-after");
-      message = `Rate limited. ${retryAfter ? `Retry after ${retryAfter}s. ` : ""}\n${message}`;
-    } else if (response.status >= 500 && response.status < 600) {
-      message = `Server error. The OpenCode Go service may be experiencing issues.\n${message}`;
-    }
-    throw new Error(`${message}\n${text}`);
+    await throwChatCompletionError(response);
   }
 
   if (!response.body) {

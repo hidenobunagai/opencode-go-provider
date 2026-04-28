@@ -1,12 +1,15 @@
 import * as vscode from "vscode";
-import { BASE_URL } from "./constants";
+import { requestChatCompletion } from "./api";
 
 /**
  * OpenCode Go MCP Client for making HTTP-based MCP tool calls.
  * Used internally to provide image analysis capabilities for non-vision models.
  */
 export class OcGoMcpClient {
-  constructor(private readonly secrets: vscode.SecretStorage) {}
+  constructor(
+    private readonly secrets: vscode.SecretStorage,
+    private readonly userAgent?: string,
+  ) {}
 
   /** Read the API key fresh from SecretStorage on every call to handle key rotation. */
   private async getApiKey(): Promise<string> {
@@ -21,19 +24,15 @@ export class OcGoMcpClient {
    * @param prompt    What to analyze in the image
    * @returns         Image analysis result text
    */
-  async analyzeImage(imageData: string, prompt: string): Promise<string> {
+  async analyzeImage(imageData: string, prompt: string, signal?: AbortSignal): Promise<string> {
     const apiKey = await this.getApiKey();
     if (!apiKey) {
       throw new Error("OpenCode Go API key not found");
     }
 
-    const response = await fetch(`${BASE_URL}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
+    const data = await requestChatCompletion(
+      apiKey,
+      {
         model: "mimo-v2-omni",
         messages: [
           {
@@ -45,18 +44,15 @@ export class OcGoMcpClient {
           },
         ],
         max_tokens: 2000,
-      }),
-    });
+      },
+      signal,
+      this.userAgent,
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Vision API error: ${response.status} ${errorText}`);
+    const content = data.choices?.[0]?.message?.content?.trim();
+    if (!content) {
+      throw new Error("Vision API returned no message content");
     }
-
-    const data = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
-
-    return data.choices?.[0]?.message?.content ?? "Failed to analyze image";
+    return content;
   }
 }

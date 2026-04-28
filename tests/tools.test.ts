@@ -24,10 +24,14 @@ jest.mock("../src/mcp", () => ({
 describe("OcGoAnalyzeImageTool", () => {
   let tool: OcGoAnalyzeImageTool;
   let secrets: { get: jest.Mock };
+  const token = {
+    isCancellationRequested: false,
+    onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+  };
 
   beforeEach(() => {
     secrets = { get: jest.fn() };
-    tool = new OcGoAnalyzeImageTool(secrets as any);
+    tool = new OcGoAnalyzeImageTool(secrets as any, "test-ua");
   });
 
   it("has correct metadata", () => {
@@ -41,7 +45,7 @@ describe("OcGoAnalyzeImageTool", () => {
       {
         input: { image_data: "data:image/png;base64,abc", prompt: "What is this?" },
       } as any,
-      { isCancellationRequested: false } as any,
+      token as any,
     );
     expect((result.content[0] as any).value).toBe("Analyzed result");
   });
@@ -51,12 +55,12 @@ describe("OcGoAnalyzeImageTool", () => {
     OcGoMcpClient.mockImplementationOnce(() => ({
       analyzeImage: jest.fn().mockRejectedValue(new Error("API down")),
     }));
-    const failingTool = new OcGoAnalyzeImageTool(secrets as any);
+    const failingTool = new OcGoAnalyzeImageTool(secrets as any, "test-ua");
     const result = await failingTool.invoke(
       {
         input: { image_data: "data:image/png;base64,abc", prompt: "What?" },
       } as any,
-      { isCancellationRequested: false } as any,
+      token as any,
     );
     expect((result.content[0] as any).value).toContain("Failed to analyze image");
     expect((result.content[0] as any).value).toContain("API down");
@@ -65,7 +69,7 @@ describe("OcGoAnalyzeImageTool", () => {
   it("prepareInvocation returns invocation message", async () => {
     const prepared = await tool.prepareInvocation!(
       { input: { image_data: "", prompt: "" } } as any,
-      { isCancellationRequested: false } as any,
+      token as any,
     );
     expect(prepared).toEqual({ invocationMessage: "Analyzing image with OpenCode Go Vision..." });
   });
@@ -74,7 +78,7 @@ describe("OcGoAnalyzeImageTool", () => {
 describe("registerOcGoTools", () => {
   it("returns a disposable", () => {
     const secrets = { get: jest.fn() } as any;
-    const disposable = registerOcGoTools(secrets);
+    const disposable = registerOcGoTools(secrets, "test-ua");
     expect(disposable).toBeDefined();
     expect(typeof disposable.dispose).toBe("function");
   });

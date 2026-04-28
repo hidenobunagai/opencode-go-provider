@@ -76,7 +76,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   try {
-    context.subscriptions.push(registerOcGoTools(context.secrets));
+    context.subscriptions.push(registerOcGoTools(context.secrets, ua));
   } catch (error) {
     debugLog("registerOcGoTools", error);
     vscode.window.showWarningMessage(

@@ -10,7 +10,7 @@ describe("OcGoMcpClient", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     secrets = { get: jest.fn() };
-    client = new OcGoMcpClient(secrets as any);
+    client = new OcGoMcpClient(secrets as any, "test-ua");
   });
 
   it("analyzes an image successfully", async () => {
@@ -28,7 +28,10 @@ describe("OcGoMcpClient", () => {
       expect.stringContaining("/chat/completions"),
       expect.objectContaining({
         method: "POST",
-        headers: expect.objectContaining({ Authorization: "Bearer test-key" }),
+        headers: expect.objectContaining({
+          Authorization: "Bearer test-key",
+          "User-Agent": "test-ua",
+        }),
         body: expect.stringContaining("mimo-v2-omni"),
       }),
     );
@@ -46,22 +49,25 @@ describe("OcGoMcpClient", () => {
     mockFetch.mockResolvedValue({
       ok: false,
       status: 500,
+      statusText: "Internal Server Error",
+      headers: { get: () => null },
       text: async () => "Internal error",
     });
 
     await expect(client.analyzeImage("data:image/png;base64,abc", "What?")).rejects.toThrow(
-      "Vision API error: 500 Internal error",
+      "OpenCode Go API error: 500 Internal Server Error",
     );
   });
 
-  it("returns fallback text when response has no content", async () => {
+  it("throws when response has no content", async () => {
     secrets.get.mockResolvedValue("test-key");
     mockFetch.mockResolvedValue({
       ok: true,
       json: async () => ({ choices: [] }),
     });
 
-    const result = await client.analyzeImage("data:image/png;base64,abc", "What?");
-    expect(result).toBe("Failed to analyze image");
+    await expect(client.analyzeImage("data:image/png;base64,abc", "What?")).rejects.toThrow(
+      "Vision API returned no message content",
+    );
   });
 });

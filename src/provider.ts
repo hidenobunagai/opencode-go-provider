@@ -30,7 +30,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     private readonly secrets: vscode.SecretStorage,
     private readonly userAgent: string,
   ) {
-    this._mcpClient = new OcGoMcpClient(secrets);
+    this._mcpClient = new OcGoMcpClient(secrets, userAgent);
   }
 
   fireModelInfoChanged(): void {
@@ -107,6 +107,8 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
       }
 
       const userPrompt = textParts.join(" ");
+      const abortController = new AbortController();
+      const cancellationSubscription = token.onCancellationRequested(() => abortController.abort());
 
       const descriptions = await Promise.all(
         images.map(async (img) => {
@@ -114,9 +116,9 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
           const base64Data = Buffer.from(img.data).toString("base64");
           const imageDataUrl = `data:${img.mimeType};base64,${base64Data}`;
           const analysisPrompt = userPrompt || "Describe this image in detail.";
-          return this._mcpClient.analyzeImage(imageDataUrl, analysisPrompt);
+          return this._mcpClient.analyzeImage(imageDataUrl, analysisPrompt, abortController.signal);
         }),
-      );
+      ).finally(() => cancellationSubscription.dispose());
 
       const newContent: vscode.LanguageModelTextPart[] = textParts.map(
         (t) => new vscode.LanguageModelTextPart(t),

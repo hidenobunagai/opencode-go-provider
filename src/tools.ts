@@ -37,23 +37,30 @@ export class OcGoAnalyzeImageTool implements vscode.LanguageModelTool<{
 
   private readonly _mcpClient: OcGoMcpClient;
 
-  constructor(secrets: vscode.SecretStorage) {
-    this._mcpClient = new OcGoMcpClient(secrets);
+  constructor(secrets: vscode.SecretStorage, userAgent?: string) {
+    this._mcpClient = new OcGoMcpClient(secrets, userAgent);
   }
 
   async invoke(
     options: vscode.LanguageModelToolInvocationOptions<{ image_data: string; prompt: string }>,
-    _token: vscode.CancellationToken,
+    token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
     const { image_data, prompt } = options.input;
+    const abortController = new AbortController();
+    const cancellationSubscription = token.onCancellationRequested(() => abortController.abort());
     try {
-      const result = await this._mcpClient.analyzeImage(image_data, prompt);
+      const result = await this._mcpClient.analyzeImage(image_data, prompt, abortController.signal);
       return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(result)]);
     } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new vscode.CancellationError();
+      }
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       return new vscode.LanguageModelToolResult([
         new vscode.LanguageModelTextPart(`Failed to analyze image: ${errorMessage}`),
       ]);
+    } finally {
+      cancellationSubscription.dispose();
     }
   }
 
@@ -73,7 +80,10 @@ export class OcGoAnalyzeImageTool implements vscode.LanguageModelTool<{
  * @param secrets VS Code secret storage for API key access
  * @returns Disposable for the tool registrations
  */
-export function registerOcGoTools(secrets: vscode.SecretStorage): vscode.Disposable {
-  const analyzeImageTool = new OcGoAnalyzeImageTool(secrets);
+export function registerOcGoTools(
+  secrets: vscode.SecretStorage,
+  userAgent?: string,
+): vscode.Disposable {
+  const analyzeImageTool = new OcGoAnalyzeImageTool(secrets, userAgent);
   return vscode.Disposable.from(vscode.lm.registerTool(OcGoAnalyzeImageTool.id, analyzeImageTool));
 }

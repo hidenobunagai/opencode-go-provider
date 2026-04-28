@@ -66,6 +66,15 @@ export interface OcGoStreamResponse {
   };
 }
 
+export interface OcGoChatCompletionResponse {
+  choices?: Array<{ message?: { content?: string } }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
+}
+
 /** API format used by a model */
 export type OcGoApiFormat = "openai" | "anthropic";
 
