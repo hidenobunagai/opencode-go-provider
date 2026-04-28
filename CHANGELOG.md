@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.26] - 2026-04-28
+
+### Fixed
+
+- Reasoning/thinking content no longer displayed in user-facing chat output. It remains available via debug logging only.
+
 ## [0.1.25] - 2026-04-28
 
 ### Performance

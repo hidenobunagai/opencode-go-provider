@@ -215,11 +215,6 @@ async function processAnthropicStreamingResponse(
   const flushPendingText = (): void => {
     if (!reasoningFlushed && reasoningContent) {
       reasoningFlushed = true;
-      progress.report(
-        new vscode.LanguageModelTextPart(
-          `[Reasoning]\n${reasoningContent.slice(0, 2000)}${reasoningContent.length > 2000 ? "\n...(truncated)" : ""}\n`,
-        ),
-      );
     }
     if (!pendingText) return;
     progress.report(new vscode.LanguageModelTextPart(pendingText));
@@ -443,14 +438,7 @@ async function processAnthropicStreamingResponse(
     }
 
     if (reasoningContent) {
-      if (!reasoningFlushed) {
-        reasoningFlushed = true;
-        progress.report(
-          new vscode.LanguageModelTextPart(
-            `[Reasoning]\n${reasoningContent.slice(0, 2000)}${reasoningContent.length > 2000 ? "\n...(truncated)" : ""}\n`,
-          ),
-        );
-      }
+      reasoningFlushed = true;
       debugLog("processAnthropicStreamingResponse", {
         reasoning_length: reasoningContent.length,
         reasoning_preview: reasoningContent.slice(0, 200),
