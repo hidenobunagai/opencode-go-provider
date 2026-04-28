@@ -40,7 +40,20 @@
       {
         "vendor": "opencode-go",
         "displayName": "OpenCode Go",
-        "managementCommand": "opencode-go.manage"
+        "configuration": {
+          "type": "object",
+          "properties": {
+            "apiKey": {
+              "type": "string",
+              "secret": true,
+              "description": "API key for OpenCode Go",
+              "title": "API Key"
+            }
+          },
+          "required": [
+            "apiKey"
+          ]
+        }
       }
     ],
     "languageModelTools": [

@@ -81,6 +81,53 @@ describe("OcGoChatModelProvider", () => {
     expect(infos[0].name).toBeDefined();
   });
 
+  it("syncs a configured API key from provider configuration", async () => {
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatInformation(
+      { silent: true, configuration: { apiKey: " configured-api-key " } } as any,
+      token as any,
+    );
+
+    expect(secrets.store).toHaveBeenCalledWith("opencode-go.apiKey", "configured-api-key");
+  });
+
+  it("clears the compatibility secret when configured API key is removed", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("stale-api-key");
+
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatInformation(
+      { silent: true, configuration: { apiKey: "   " } } as any,
+      token as any,
+    );
+
+    expect(secrets.delete).toHaveBeenCalledWith("opencode-go.apiKey");
+  });
+
+  it("preserves the compatibility secret when configuration omits apiKey", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("stored-api-key");
+
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatInformation(
+      { silent: true, configuration: {} } as any,
+      token as any,
+    );
+
+    expect(secrets.delete).not.toHaveBeenCalled();
+    expect(secrets.store).not.toHaveBeenCalled();
+  });
+
   it("provideLanguageModelChatInformation returns empty array on cancellation", async () => {
     const token = {
       isCancellationRequested: true,
@@ -184,6 +231,73 @@ describe("OcGoChatModelProvider", () => {
     );
     expect(progress.report).toHaveBeenCalledWith(
       expect.objectContaining({ value: "Hello from OpenCode Go" }),
+    );
+  });
+
+  it("uses a configured API key from model configuration without prompting", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue(undefined);
+
+    const mockStream = async function* () {
+      yield { choices: [{ delta: { content: "Hello from configuration" } }] };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "kimi-k2.6", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "Hi" }] }] as any,
+      { modelOptions: {}, modelConfiguration: { apiKey: "configured-api-key" } } as any,
+      progress,
+      token as any,
+    );
+
+    expect((vscode as any).window.showInputBox).not.toHaveBeenCalled();
+    expect(secrets.store).toHaveBeenCalledWith("opencode-go.apiKey", "configured-api-key");
+    expect(streamChatCompletion).toHaveBeenCalledWith(
+      "configured-api-key",
+      expect.objectContaining({ model: "kimi-k2.6", stream: true }),
+      expect.any(AbortSignal),
+      "test-ua",
+    );
+  });
+
+  it("falls back to provider configuration when model configuration has no API key", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue(undefined);
+
+    const mockStream = async function* () {
+      yield { choices: [{ delta: { content: "Hello from provider configuration" } }] };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "kimi-k2.6", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "Hi" }] }] as any,
+      {
+        modelOptions: {},
+        configuration: { apiKey: "provider-api-key" },
+        modelConfiguration: {},
+      } as any,
+      progress,
+      token as any,
+    );
+
+    expect((vscode as any).window.showInputBox).not.toHaveBeenCalled();
+    expect(streamChatCompletion).toHaveBeenCalledWith(
+      "provider-api-key",
+      expect.objectContaining({ model: "kimi-k2.6", stream: true }),
+      expect.any(AbortSignal),
+      "test-ua",
     );
   });
 

@@ -11,9 +11,13 @@ export class OcGoMcpClient {
     private readonly userAgent?: string,
   ) {}
 
-  /** Read the API key fresh from SecretStorage on every call to handle key rotation. */
-  private async getApiKey(): Promise<string> {
-    return (await this.secrets.get("opencode-go.apiKey")) ?? "";
+  /** Read the API key fresh from SecretStorage unless a request-scoped key is provided. */
+  private async getApiKey(apiKeyOverride?: string): Promise<string> {
+    const normalizedApiKey = apiKeyOverride?.trim();
+    if (normalizedApiKey) {
+      return normalizedApiKey;
+    }
+    return (await this.secrets.get("opencode-go.apiKey"))?.trim() ?? "";
   }
 
   /**
@@ -24,8 +28,13 @@ export class OcGoMcpClient {
    * @param prompt    What to analyze in the image
    * @returns         Image analysis result text
    */
-  async analyzeImage(imageData: string, prompt: string, signal?: AbortSignal): Promise<string> {
-    const apiKey = await this.getApiKey();
+  async analyzeImage(
+    imageData: string,
+    prompt: string,
+    signal?: AbortSignal,
+    apiKeyOverride?: string,
+  ): Promise<string> {
+    const apiKey = await this.getApiKey(apiKeyOverride);
     if (!apiKey) {
       throw new Error("OpenCode Go API key not found");
     }

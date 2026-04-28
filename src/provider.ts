@@ -37,6 +37,61 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     this._onDidChangeLanguageModelChatInformation.fire();
   }
 
+  private getConfiguredApiKeyState(configuration: unknown): {
+    hasApiKeyProperty: boolean;
+    apiKey?: string;
+  } {
+    if (!configuration || typeof configuration !== "object") {
+      return { hasApiKeyProperty: false };
+    }
+
+    const configurationRecord = configuration as { apiKey?: unknown };
+    if (!("apiKey" in configurationRecord)) {
+      return { hasApiKeyProperty: false };
+    }
+
+    const apiKey = configurationRecord.apiKey;
+    if (typeof apiKey !== "string") {
+      return { hasApiKeyProperty: true };
+    }
+
+    const normalizedApiKey = apiKey.trim();
+    return {
+      hasApiKeyProperty: true,
+      apiKey: normalizedApiKey || undefined,
+    };
+  }
+
+  private async syncConfiguredApiKey(options: unknown): Promise<string | undefined> {
+    if (!options || typeof options !== "object") {
+      return undefined;
+    }
+
+    const optionsRecord = options as { configuration?: unknown; modelConfiguration?: unknown };
+    const modelConfigurationState = this.getConfiguredApiKeyState(optionsRecord.modelConfiguration);
+    const providerConfigurationState = this.getConfiguredApiKeyState(optionsRecord.configuration);
+    const hasExplicitApiKeyProperty =
+      modelConfigurationState.hasApiKeyProperty || providerConfigurationState.hasApiKeyProperty;
+    if (!hasExplicitApiKeyProperty) {
+      return undefined;
+    }
+
+    const configuredApiKey = modelConfigurationState.apiKey ?? providerConfigurationState.apiKey;
+    const storedApiKey = await this.secrets.get("opencode-go.apiKey");
+    if (!configuredApiKey) {
+      if (storedApiKey !== undefined) {
+        await this.secrets.delete("opencode-go.apiKey");
+      }
+      return undefined;
+    }
+
+    if (storedApiKey !== configuredApiKey) {
+      await this.secrets.store("opencode-go.apiKey", configuredApiKey);
+    }
+
+    return configuredApiKey;
+  }
+
   private getModelInfo(modelId: string): OcGoModelInfo | undefined {
     return FALLBACK_MODELS.find((m) => m.id === modelId);
   }
@@ -68,6 +123,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
   private async processImagesForNonVisionModel(
     messages: readonly LanguageModelChatMessage[],
     token: CancellationToken,
+    apiKey: string,
   ): Promise<LanguageModelChatMessage[]> {
     const processedMessages: LanguageModelChatMessage[] = [];
 
@@ -116,7 +172,12 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
           const base64Data = Buffer.from(img.data).toString("base64");
           const imageDataUrl = `data:${img.mimeType};base64,${base64Data}`;
           const analysisPrompt = userPrompt || "Describe this image in detail.";
-          return this._mcpClient.analyzeImage(imageDataUrl, analysisPrompt, abortController.signal);
+          return this._mcpClient.analyzeImage(
+            imageDataUrl,
+            analysisPrompt,
+            abortController.signal,
+            apiKey,
+          );
         }),
       ).finally(() => cancellationSubscription.dispose());
 
@@ -141,6 +202,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     token: CancellationToken,
   ): Promise<LanguageModelChatInformation[]> {
     if (token.isCancellationRequested) return [];
+    await this.syncConfiguredApiKey(options);
     return this._mapToChatInformation(FALLBACK_MODELS);
   }
 
@@ -185,11 +247,11 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     const cancellationSubscription = token.onCancellationRequested(() => abortController.abort());
 
     try {
-      const apiKey = await this.ensureApiKey(false);
+      const apiKey = await this.ensureApiKey(options, false);
       if (!apiKey) {
         progress.report(
           new vscode.LanguageModelTextPart(
-            'OpenCode Go API key is not configured. Run "OpenCode Go: Manage OpenCode Go API Key" from the Command Palette, or retry this request and enter the key when prompted.',
+            'OpenCode Go API key is not configured. Add or configure OpenCode Go from the chat model picker, run "OpenCode Go: Manage OpenCode Go API Key" from the Command Palette, or retry this request and enter the key when prompted.',
           ),
         );
         return;
@@ -233,7 +295,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         if (visionFallback && visionFallback !== model.id) {
           effectiveModelId = this.resolveApiModelId(visionFallback);
         } else {
-          effectiveMessages = await this.processImagesForNonVisionModel(messages, token);
+          effectiveMessages = await this.processImagesForNonVisionModel(messages, token, apiKey);
         }
       }
 
@@ -310,8 +372,13 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     return Promise.resolve(total);
   }
 
-  private async ensureApiKey(silent: boolean): Promise<string | undefined> {
-    let apiKey = await this.secrets.get("opencode-go.apiKey");
+  private async ensureApiKey(options: unknown, silent: boolean): Promise<string | undefined> {
+    const configuredApiKey = await this.syncConfiguredApiKey(options);
+    if (configuredApiKey) {
+      return configuredApiKey;
+    }
+
+    let apiKey = (await this.secrets.get("opencode-go.apiKey"))?.trim();
     if (!apiKey && !silent) {
       const entered = await vscode.window.showInputBox({
         title: "OpenCode Go API Key",

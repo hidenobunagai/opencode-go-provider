@@ -23,10 +23,11 @@ VS Code extension to use OpenCode Go models in Copilot Chat with your own OpenCo
 
 ## Setup
 
-1. Open the Command Palette (`Cmd/Ctrl + Shift + P`).
-2. Run `OpenCode Go: Manage OpenCode Go API Key`.
-3. Enter your OpenCode Go API key, or leave blank and press Enter to clear an existing key.
-4. Select **OpenCode Go** in Copilot Chat and choose a model.
+1. Open Copilot Chat (`Cmd/Ctrl + Alt + I`) and open the model picker.
+2. Choose **Manage Models** and add or configure **OpenCode Go**.
+3. Enter your OpenCode Go API key when prompted.
+4. If needed, you can still run `OpenCode Go: Manage OpenCode Go API Key` from the Command Palette.
+5. Select **OpenCode Go** in Copilot Chat and choose a model.
 
 ## Supported Models
 
@@ -118,5 +119,5 @@ The command above produces a `.vsix` that can be uploaded in the VS Code Marketp
 
 ## Privacy
 
-- Your API key is stored securely in VS Code's built-in SecretStorage.
+- Your API key is stored securely in VS Code and synced with the extension's SecretStorage compatibility path when needed.
 - Chat requests are sent to `https://opencode.ai/zen/go/v1`.

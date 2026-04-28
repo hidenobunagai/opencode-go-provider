@@ -37,6 +37,58 @@ describe("OcGoMcpClient", () => {
     );
   });
 
+  it("uses a request-scoped API key override when provided", async () => {
+    secrets.get.mockResolvedValue("stored-key");
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: "A cat sitting on a mat" } }],
+      }),
+    });
+
+    const result = await client.analyzeImage(
+      "data:image/png;base64,abc",
+      "What is this?",
+      undefined,
+      "request-key",
+    );
+
+    expect(result).toBe("A cat sitting on a mat");
+    expect(secrets.get).not.toHaveBeenCalled();
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/chat/completions"),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: "Bearer request-key",
+          "User-Agent": "test-ua",
+        }),
+      }),
+    );
+  });
+
+  it("trims the stored API key fallback for image analysis", async () => {
+    secrets.get.mockResolvedValue(" trimmed-key ");
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: "A cat sitting on a mat" } }],
+      }),
+    });
+
+    const result = await client.analyzeImage("data:image/png;base64,abc", "What is this?");
+
+    expect(result).toBe("A cat sitting on a mat");
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/chat/completions"),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: "Bearer trimmed-key",
+          "User-Agent": "test-ua",
+        }),
+      }),
+    );
+  });
+
   it("throws when no API key is configured", async () => {
     secrets.get.mockResolvedValue(undefined);
     await expect(client.analyzeImage("data:image/png;base64,abc", "What?")).rejects.toThrow(
