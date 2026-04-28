@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.28] - 2026-04-28
+
+### Fixed
+
+- When a model produces only internal reasoning/thinking content without visible text, the extension now emits a diagnostic message explaining the situation instead of silently returning nothing. This primarily affects reasoning models (DeepSeek V4, Kimi K2) whose token budget may be exhausted during the thinking phase.
+
 ## [0.1.27] - 2026-04-28
 
 ### Performance

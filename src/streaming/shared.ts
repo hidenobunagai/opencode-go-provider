@@ -40,6 +40,7 @@ export class StreamState {
   pendingTextEmbeddedContent = "";
   sawToolCall = false;
   emittedToolCall = false;
+  hasEmittedOutput = false;
   reasoningContent = "";
   reasoningFlushed = false;
   skippedToolCalls: SkippedToolCall[] = [];
@@ -64,6 +65,7 @@ export class StreamState {
     }
     if (!this.pendingText) return;
     this.progress.report(new vscode.LanguageModelTextPart(this.pendingText));
+    this.hasEmittedOutput = true;
     this.pendingText = "";
   }
 
@@ -103,6 +105,7 @@ export class StreamState {
         ),
       );
       this.emittedToolCall = true;
+      this.hasEmittedOutput = true;
       this.emittedCanonicalKeys.add(canonicalKey);
     } else {
       this.skippedToolCalls.push({
@@ -139,6 +142,7 @@ export class StreamState {
     this.flushPendingText("StreamState");
     this.progress.report(new vscode.LanguageModelToolCallPart(id, name, repairedArgs));
     this.emittedToolCall = true;
+    this.hasEmittedOutput = true;
     return true;
   }
 
@@ -158,6 +162,7 @@ export class StreamState {
       const fallbackText = buildInvalidToolCallFallback(this.skippedToolCalls);
       if (fallbackText) {
         this.progress.report(new vscode.LanguageModelTextPart(fallbackText));
+        this.hasEmittedOutput = true;
       }
     }
 
@@ -167,6 +172,18 @@ export class StreamState {
         reasoning_length: this.reasoningContent.length,
         reasoning_preview: this.reasoningContent.slice(0, 300),
       });
+    }
+
+    if (!this.hasEmittedOutput) {
+      const reasonings =
+        this.reasoningContent.trim().length > 0
+          ? ` The model produced ${this.reasoningContent.length} characters of internal reasoning but no visible output.`
+          : " The API returned no content.";
+      this.progress.report(
+        new vscode.LanguageModelTextPart(
+          `The model did not return any text content.${reasonings} This may indicate the model's token budget was exhausted during reasoning, or the request was interrupted. Try reducing the conversation length, simplifying the prompt, or switching to a model with a larger context window.`,
+        ),
+      );
     }
   }
 }
