@@ -1,5 +1,37 @@
 # Change Log
 
+## [0.1.25] - 2026-04-28
+
+### Performance
+
+- Token estimation now reuses a single tiktoken encoding across all messages instead of creating/destroying per message part.
+- tiktoken WASM module preloaded during extension activation to eliminate first-request load delay.
+- Model lookup changed from O(n) array scan to O(1) Map.
+
+### Quality
+
+- Automatic type coercion for tool arguments: string `"5"` → number `5`, string `"true"` → boolean `true` when schema specifies type.
+- Tool name normalization (case-insensitive matching) so `Read_File`/`read_file`/`ReadFile` all match.
+- Dedup canonical keys now sort object keys before JSON.stringify, preventing order-dependent false duplicates.
+- `run_in_terminal` default value repairs no longer require request context.
+
+### Reliability
+
+- Added 120-second request timeout via `AbortSignal` to prevent indefinite hangs.
+- Retry-After header now supports HTTP-date format in addition to integer seconds.
+- Improved error messages: 401/403 errors now include the `opencode-go.manage` command name, 400 token limit errors have specific guidance.
+- Error messages parse structured JSON error bodies for cleaner details.
+- Timeout-error handling added alongside cancellation handling in provider catch block.
+
+### Feature Parity
+
+- Users are notified when a non-vision model auto-switches to a vision fallback model for image analysis.
+- Reasoning/thinking content from models (DeepSeek V4, MiniMax) is now displayed to users with a `[Reasoning]` prefix (truncated at 2000 characters).
+
+### UX
+
+- Model picker tooltips now display reasoning effort, vision support, context window size, and API format.
+
 ## [0.1.24] - 2026-04-28
 
 ### Changed
