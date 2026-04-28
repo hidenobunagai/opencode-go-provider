@@ -342,7 +342,13 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         abortController,
       );
     } catch (err) {
-      if (token.isCancellationRequested || (err instanceof Error && err.name === "AbortError")) {
+      if (token.isCancellationRequested) {
+        throw new vscode.CancellationError();
+      }
+      if (err instanceof vscode.CancellationError) {
+        throw err;
+      }
+      if (err instanceof Error && (err.name === "AbortError" || err.name === "TimeoutError")) {
         throw new vscode.CancellationError();
       }
       throw err;

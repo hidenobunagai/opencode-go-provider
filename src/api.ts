@@ -1,4 +1,4 @@
-import { BASE_RETRY_DELAY_MS, BASE_URL, MAX_RETRY_DELAY_MS } from "./constants";
+import { BASE_RETRY_DELAY_MS, BASE_URL, MAX_RETRY_DELAY_MS, REQUEST_TIMEOUT_MS } from "./constants";
 import { debugLog } from "./output-channel";
 import { OcGoChatCompletionResponse, OcGoChatRequest, OcGoStreamResponse } from "./types";
 
@@ -12,15 +12,24 @@ function isRetryableHttpError(status: number): boolean {
 }
 
 /**
- * Read Retry-After header value (seconds) if present.
+ * Read Retry-After header value in milliseconds.
+ * Supports both seconds (integer) and HTTP-date formats.
  */
 function getRetryAfterMs(response: Response): number | undefined {
   const raw = response.headers.get("retry-after");
   if (!raw) return undefined;
+
   const seconds = Number.parseInt(raw, 10);
   if (Number.isFinite(seconds) && seconds > 0) {
     return seconds * 1000;
   }
+
+  const httpDate = Date.parse(raw);
+  if (Number.isFinite(httpDate)) {
+    const delay = httpDate - Date.now();
+    return delay > 0 ? delay : undefined;
+  }
+
   return undefined;
 }
 
@@ -96,30 +105,84 @@ async function createChatCompletionResponse(
   signal?: AbortSignal,
   userAgent?: string,
 ): Promise<Response> {
-  return fetchWithRetry(
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => timeoutController.abort(), REQUEST_TIMEOUT_MS);
+  const combinedSignal = signal
+    ? AbortSignal.any([signal, timeoutController.signal])
+    : timeoutController.signal;
+
+  const response = await fetchWithRetry(
     `${BASE_URL}/chat/completions`,
     {
       method: "POST",
       headers: buildChatCompletionHeaders(apiKey, userAgent),
       body: JSON.stringify(requestBody),
-      signal,
+      signal: combinedSignal,
     },
     5,
-  );
+  ).finally(() => clearTimeout(timeoutId));
+
+  return response;
 }
 
 async function throwChatCompletionError(response: Response): Promise<never> {
-  const text = await response.text();
-  let message = `OpenCode Go API error: ${response.status} ${response.statusText}`;
-  if (response.status === 401 || response.status === 403) {
-    message = `Authentication failed. Your API key may be invalid or expired.\n${message}`;
-  } else if (response.status === 429) {
-    const retryAfter = response.headers.get("retry-after");
-    message = `Rate limited. ${retryAfter ? `Retry after ${retryAfter}s. ` : ""}\n${message}`;
-  } else if (response.status >= 500 && response.status < 600) {
-    message = `Server error. The OpenCode Go service may be experiencing issues.\n${message}`;
+  const rawBody = await response.text();
+  let detail = "";
+
+  // Parse response body for structured error info
+  try {
+    const body = JSON.parse(rawBody) as {
+      error?: { message?: string; code?: string; type?: string };
+    };
+    if (body.error?.message) {
+      detail = body.error.message;
+    }
+  } catch {
+    // Non-JSON body — use first 500 chars of raw text
+    if (rawBody.trim().length > 0) {
+      detail = rawBody.trim().slice(0, 500);
+    }
   }
-  throw new Error(`${message}\n${text}`);
+
+  if (response.status === 401 || response.status === 403) {
+    const guide =
+      'Run "OpenCode Go: Manage OpenCode Go API Key" from the Command Palette to update your API key.';
+    throw new Error(
+      `OpenCode Go API authentication failed (${response.status}). Your API key may be invalid or expired.\n${guide}\n${detail}`,
+    );
+  }
+
+  if (response.status === 429) {
+    const retryAfter = response.headers.get("retry-after");
+    const retryInfo = retryAfter ? `Retry after ${retryAfter}. ` : "";
+    throw new Error(
+      `OpenCode Go rate limit reached (429). ${retryInfo}The request will be retried automatically.\n${detail}`,
+    );
+  }
+
+  if (response.status === 400) {
+    if (
+      detail.toLowerCase().includes("token") &&
+      (detail.toLowerCase().includes("limit") || detail.toLowerCase().includes("exceed"))
+    ) {
+      throw new Error(
+        `OpenCode Go token limit exceeded. Try reducing conversation history, splitting the request, or switching to a model with a larger context window.\n${detail}`,
+      );
+    }
+    throw new Error(
+      `OpenCode Go API error (400): The request was invalid.\n${detail || rawBody.trim().slice(0, 500)}`,
+    );
+  }
+
+  if (response.status >= 500 && response.status < 600) {
+    throw new Error(
+      `OpenCode Go server error (${response.status}). The service may be experiencing issues.\n${detail}`,
+    );
+  }
+
+  throw new Error(
+    `OpenCode Go API error (${response.status} ${response.statusText})\n${detail || rawBody.trim().slice(0, 500)}`,
+  );
 }
 
 export async function requestChatCompletion(

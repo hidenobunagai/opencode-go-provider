@@ -107,7 +107,7 @@ describe("OcGoMcpClient", () => {
     });
 
     await expect(client.analyzeImage("data:image/png;base64,abc", "What?")).rejects.toThrow(
-      "OpenCode Go API error: 500 Internal Server Error",
+      "OpenCode Go server error (500)",
     );
   });
 

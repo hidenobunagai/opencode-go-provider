@@ -90,7 +90,7 @@ describe("streamChatCompletion", () => {
     } as any);
 
     const gen = streamChatCompletion("key", { model: "kimi-k2.6", messages: [], stream: true });
-    await expect(gen.next()).rejects.toThrow("OpenCode Go API error: 500 Internal Server Error");
+    await expect(gen.next()).rejects.toThrow("OpenCode Go server error (500)");
   });
 
   it("throws authentication error on 401", async () => {
@@ -102,9 +102,7 @@ describe("streamChatCompletion", () => {
     } as any);
 
     const gen = streamChatCompletion("key", { model: "kimi-k2.6", messages: [], stream: true });
-    await expect(gen.next()).rejects.toThrow(
-      "Authentication failed. Your API key may be invalid or expired.",
-    );
+    await expect(gen.next()).rejects.toThrow("OpenCode Go API authentication failed (401)");
   });
 
   it("retries on 429 and eventually throws after exhausting retries", async () => {
@@ -267,5 +265,47 @@ describe("streamChatCompletion", () => {
     }
 
     expect(results).toHaveLength(0);
+  });
+
+  it("detects token limit errors in 400 responses", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      statusText: "Bad Request",
+      text: async () =>
+        JSON.stringify({
+          error: {
+            message: "Token limit exceeded. Max tokens: 65536",
+            type: "token_limit_exceeded",
+          },
+        }),
+    } as any);
+
+    const gen = streamChatCompletion("key", { model: "kimi-k2.6", messages: [], stream: true });
+    await expect(gen.next()).rejects.toThrow("token limit exceeded");
+  });
+
+  it("parses structured JSON error bodies for detail", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      statusText: "Bad Request",
+      text: async () => JSON.stringify({ error: { message: "Model not found: unknown-model" } }),
+    } as any);
+
+    const gen = streamChatCompletion("key", { model: "kimi-k2.6", messages: [], stream: true });
+    await expect(gen.next()).rejects.toThrow("Model not found");
+  });
+
+  it("includes 401 guidance with manage command", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: "Unauthorized",
+      text: async () => "Unauthorized",
+    } as any);
+
+    const gen = streamChatCompletion("key", { model: "kimi-k2.6", messages: [], stream: true });
+    await expect(gen.next()).rejects.toThrow("Manage OpenCode Go API Key");
   });
 });

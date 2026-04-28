@@ -1,7 +1,7 @@
 // streaming/anthropic.ts — Anthropic-format SSE streaming for /messages endpoint
 import * as vscode from "vscode";
 import { fetchWithRetry } from "../api";
-import { BASE_URL } from "../constants";
+import { BASE_URL, REQUEST_TIMEOUT_MS } from "../constants";
 import { buildProviderIdentityGuidance, sanitizeSystemPromptForModel } from "../guidance";
 import { debugLog } from "../output-channel";
 import { parseTextEmbeddedToolCalls, type ParsedTextToolCall } from "../tool-parser";
@@ -120,6 +120,10 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
     tool_choice: requestBody.tool_choice,
   });
 
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => timeoutController.abort(), REQUEST_TIMEOUT_MS);
+  const combinedSignal = AbortSignal.any([abortController.signal, timeoutController.signal]);
+
   const response = await fetchWithRetry(
     `${BASE_URL}/messages`,
     {
@@ -130,16 +134,46 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
         "Content-Type": "application/json",
         "User-Agent": userAgent,
       },
-      signal: abortController.signal,
+      signal: combinedSignal,
       body: JSON.stringify(requestBody),
     },
     5,
-  );
+  ).finally(() => clearTimeout(timeoutId));
 
   if (!response.ok) {
-    const errorText = await response.text();
+    const rawBody = await response.text();
+    let detail = "";
+    try {
+      const body = JSON.parse(rawBody) as {
+        error?: { message?: string; type?: string };
+      };
+      if (body.error?.message) {
+        detail = body.error.message;
+      }
+    } catch {
+      if (rawBody.trim().length > 0) {
+        detail = rawBody.trim().slice(0, 500);
+      }
+    }
+
+    if (response.status === 401 || response.status === 403) {
+      const guide =
+        'Run "OpenCode Go: Manage OpenCode Go API Key" from the Command Palette to update your API key.';
+      throw new Error(
+        `OpenCode Go API authentication failed (${response.status}). Your API key may be invalid or expired.\n${guide}\n${detail}`,
+      );
+    }
+
+    if (response.status === 429) {
+      const retryAfter = response.headers.get("retry-after");
+      const retryInfo = retryAfter ? `Retry after ${retryAfter}. ` : "";
+      throw new Error(
+        `OpenCode Go rate limit reached (429). ${retryInfo}The request will be retried automatically.\n${detail}`,
+      );
+    }
+
     throw new Error(
-      `OpenCode Go Anthropic API error: ${response.status} ${response.statusText}\n${errorText}`,
+      `OpenCode Go Anthropic API error (${response.status} ${response.statusText})\n${detail || rawBody.trim().slice(0, 500)}`,
     );
   }
 

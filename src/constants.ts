@@ -15,6 +15,9 @@ export const MAX_RETRY_DELAY_MS = 30000;
 /** Base retry delay in milliseconds */
 export const BASE_RETRY_DELAY_MS = 1000;
 
+/** Request timeout in milliseconds */
+export const REQUEST_TIMEOUT_MS = 120000;
+
 /** Max tool result characters for Anthropic API */
 export const ANTHROPIC_MAX_TOOL_RESULT_CHARS = 20000;
 
