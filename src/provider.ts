@@ -17,7 +17,7 @@ import { OcGoMcpClient } from "./mcp";
 import { handleAnthropicRequest } from "./streaming/anthropic";
 import { processOpenAIStream, type OpenAIModelInfo } from "./streaming/openai";
 import { FALLBACK_MODELS, OcGoModelInfo } from "./types";
-import { estimateMessagesTokens, estimateTokens } from "./utils";
+import { estimateMessagesTokens, estimateTokens } from "./tokenizer";
 
 export class OcGoChatModelProvider implements LanguageModelChatProvider {
   private readonly _onDidChangeLanguageModelChatInformation = new EventEmitter<void>();

@@ -17,7 +17,8 @@ import {
   repairToolArguments,
 } from "../tool-repair";
 import { AnthropicMessage, AnthropicSSEEvent, OcGoModelInfo, type Json } from "../types";
-import { convertMessagesToAnthropic, convertTools, convertToolsToAnthropic } from "../utils";
+import { convertMessagesToAnthropic, convertToolsToAnthropic } from "../anthropic-conversion";
+import { convertTools } from "../openai-conversion";
 
 export interface AnthropicRequestParams {
   modelId: string;

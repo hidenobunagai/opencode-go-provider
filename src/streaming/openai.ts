@@ -17,7 +17,11 @@ import {
 } from "../tool-repair";
 import type { OcGoModelInfo } from "../types";
 import { OcGoChatRequest } from "../types";
-import { applyReasoningContentWorkaround, convertMessages, convertTools } from "../utils";
+import {
+  applyReasoningContentWorkaround,
+  convertMessages,
+  convertTools,
+} from "../openai-conversion";
 
 export interface OpenAIModelInfo {
   id: string;
