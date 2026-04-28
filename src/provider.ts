@@ -25,12 +25,14 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     this._onDidChangeLanguageModelChatInformation.event;
 
   private readonly _mcpClient: OcGoMcpClient;
+  private readonly _modelMap: Map<string, OcGoModelInfo>;
 
   constructor(
     private readonly secrets: vscode.SecretStorage,
     private readonly userAgent: string,
   ) {
     this._mcpClient = new OcGoMcpClient(secrets, userAgent);
+    this._modelMap = new Map(FALLBACK_MODELS.map((m) => [m.id, m]));
   }
 
   fireModelInfoChanged(): void {
@@ -93,7 +95,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
   }
 
   private getModelInfo(modelId: string): OcGoModelInfo | undefined {
-    return FALLBACK_MODELS.find((m) => m.id === modelId);
+    return this._modelMap.get(modelId);
   }
 
   private resolveApiModelId(modelId: string): string {
@@ -106,8 +108,12 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
   }
 
   private getVisionFallbackModelId(): string | undefined {
-    const preferred = FALLBACK_MODELS.find((m) => m.id === "mimo-v2-omni" && m.supportsVision);
-    return preferred?.id ?? FALLBACK_MODELS.find((m) => m.supportsVision)?.id;
+    const omni = this._modelMap.get("mimo-v2-omni");
+    if (omni && omni.supportsVision) return omni.id;
+    for (const m of this._modelMap.values()) {
+      if (m.supportsVision) return m.id;
+    }
+    return undefined;
   }
 
   private hasImageInput(messages: readonly LanguageModelChatMessage[]): boolean {
@@ -210,7 +216,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     models: Array<{ id: string; name: string }>,
   ): LanguageModelChatInformation[] {
     return models.map((model) => {
-      const info = FALLBACK_MODELS.find((m) => m.id === model.id) ?? {
+      const info = this._modelMap.get(model.id) ?? {
         id: model.id,
         name: model.name,
         displayName: model.name,
@@ -247,7 +253,10 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     const cancellationSubscription = token.onCancellationRequested(() => abortController.abort());
 
     try {
-      const apiKey = await this.ensureApiKey(options, false);
+      const [apiKey, inputTokenCount] = await Promise.all([
+        this.ensureApiKey(options, false),
+        Promise.resolve(estimateMessagesTokens(messages as never, model.id)),
+      ]);
       if (!apiKey) {
         progress.report(
           new vscode.LanguageModelTextPart(
@@ -257,10 +266,6 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         return;
       }
 
-      const inputTokenCount = estimateMessagesTokens(
-        messages as never, // cast needed for VS Code API type compatibility
-        model.id,
-      );
       const maxInputTokens = model.maxInputTokens;
       const effectiveMaxInputTokens = Math.max(1, maxInputTokens - CONTEXT_WINDOW_SAFETY_MARGIN);
 

@@ -10,4 +10,4 @@ export {
   convertMessages,
   convertTools,
 } from "./openai-conversion";
-export { estimateMessagesTokens, estimateTokens } from "./tokenizer";
+export { estimateMessagesTokens, estimateTokens, preloadTiktoken } from "./tokenizer";

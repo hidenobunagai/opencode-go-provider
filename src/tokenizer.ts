@@ -13,6 +13,7 @@ type TiktokenModule = {
 };
 
 let cachedTiktokenModule: TiktokenModule | null | undefined;
+let preloadStarted = false;
 
 function getTiktokenModule(): TiktokenModule | null {
   if (cachedTiktokenModule !== undefined) {
@@ -27,6 +28,23 @@ function getTiktokenModule(): TiktokenModule | null {
   }
 
   return cachedTiktokenModule;
+}
+
+export function preloadTiktoken(): void {
+  if (preloadStarted) return;
+  preloadStarted = true;
+  const schedule = () => {
+    try {
+      getTiktokenModule();
+    } catch {
+      // Module may be unavailable during test teardown; fallback will handle it at runtime
+    }
+  };
+  if (typeof setImmediate !== "undefined") {
+    setImmediate(schedule);
+  } else {
+    setTimeout(schedule, 0);
+  }
 }
 
 export function estimateTokens(text: string, modelId?: string): number {
@@ -46,18 +64,59 @@ export function estimateTokens(text: string, modelId?: string): number {
   }
 }
 
+function estimateTokensWithEncoding(text: string, encoding: Encoding): number {
+  if (!text) return 0;
+  const result = encoding.encode(text);
+  return Array.isArray(result) ? result.length : "length" in result ? result.length : 0;
+}
+
 export function estimateMessagesTokens(
   messages: readonly { content: (vscode.LanguageModelInputPart | LegacyPart)[] }[],
   modelId?: string,
 ): number {
   let total = 0;
+  const tiktoken = getTiktokenModule();
+  if (!tiktoken) {
+    for (const message of messages) {
+      for (const part of message.content) {
+        const textValue = getTextPartValue(part) ?? getDataPartTextValue(part);
+        if (textValue !== undefined) {
+          total += Math.ceil(textValue.length / 2);
+        }
+      }
+    }
+    return total;
+  }
+
+  const modelName = modelId ? MODEL_TOKENIZER_MAP[modelId] : undefined;
+  let encoding: Encoding | undefined;
+  try {
+    encoding = tiktoken.encoding_for_model(modelName || "gpt-4o");
+  } catch {
+    encoding = undefined;
+  }
+
+  if (!encoding) {
+    for (const message of messages) {
+      for (const part of message.content) {
+        const textValue = getTextPartValue(part) ?? getDataPartTextValue(part);
+        if (textValue !== undefined) {
+          total += Math.ceil(textValue.length / 2);
+        }
+      }
+    }
+    return total;
+  }
+
   for (const message of messages) {
     for (const part of message.content) {
       const textValue = getTextPartValue(part) ?? getDataPartTextValue(part);
       if (textValue !== undefined) {
-        total += estimateTokens(textValue, modelId);
+        total += estimateTokensWithEncoding(textValue, encoding);
       }
     }
   }
+
+  encoding.free();
   return total;
 }

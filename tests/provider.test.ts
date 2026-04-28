@@ -81,6 +81,27 @@ describe("OcGoChatModelProvider", () => {
     expect(infos[0].name).toBeDefined();
   });
 
+  it("correctly identifies model capabilities via Map lookup", async () => {
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+    const infos = await provider.provideLanguageModelChatInformation(
+      { silent: true } as any,
+      token as any,
+    );
+    const deepseekPro = infos.find((i: any) => i.id === "deepseek-v4-pro");
+    expect(deepseekPro).toBeDefined();
+    expect(deepseekPro?.maxOutputTokens).toBe(65536);
+
+    const kimi = infos.find((i: any) => i.id === "kimi-k2.6");
+    expect(kimi).toBeDefined();
+    expect(kimi?.maxOutputTokens).toBe(262144);
+
+    const missing = infos.find((i: any) => i.id === "nonexistent-model");
+    expect(missing).toBeUndefined();
+  });
+
   it("syncs a configured API key from provider configuration", async () => {
     const token = {
       isCancellationRequested: false,
