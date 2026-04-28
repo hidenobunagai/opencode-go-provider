@@ -388,22 +388,23 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     if (typeof text === "string") {
       return Promise.resolve(estimateTokens(text));
     }
-    let total = 0;
+    const textParts: string[] = [];
     for (const part of text.content) {
       if (part instanceof vscode.LanguageModelTextPart) {
-        total += estimateTokens(part.value);
+        textParts.push(part.value);
       } else if (
         typeof part === "object" &&
         part !== null &&
         "value" in part &&
         typeof (part as Record<string, unknown>).value === "string"
       ) {
-        total += estimateTokens((part as { value: string }).value);
-      } else {
-        total += 2;
+        textParts.push((part as { value: string }).value);
       }
     }
-    return Promise.resolve(total);
+    if (textParts.length === 0) {
+      return Promise.resolve(2 * text.content.length);
+    }
+    return Promise.resolve(estimateTokens(textParts.join(" ")));
   }
 
   private async ensureApiKey(options: unknown, silent: boolean): Promise<string | undefined> {

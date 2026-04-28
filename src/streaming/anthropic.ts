@@ -4,21 +4,11 @@ import { fetchWithRetry } from "../api";
 import { BASE_URL, REQUEST_TIMEOUT_MS } from "../constants";
 import { buildProviderIdentityGuidance, sanitizeSystemPromptForModel } from "../guidance";
 import { debugLog } from "../output-channel";
-import { parseTextEmbeddedToolCalls, type ParsedTextToolCall } from "../tool-parser";
-import {
-  buildInvalidToolCallFallback,
-  buildToolCallCanonicalKey,
-  extractChatRequestContext,
-  getCompletedToolCallKeys,
-  getMissingRequiredToolArguments,
-  getToolSchemaMap,
-  hasRequiredToolArguments,
-  isToolCallInput,
-  repairToolArguments,
-} from "../tool-repair";
+import { extractChatRequestContext, getToolSchemaMap, isToolCallInput } from "../tool-repair";
 import { AnthropicMessage, AnthropicSSEEvent, OcGoModelInfo, type Json } from "../types";
 import { convertMessagesToAnthropic, convertToolsToAnthropic } from "../anthropic-conversion";
 import { convertTools } from "../openai-conversion";
+import { setupStreamState } from "./shared";
 
 export interface AnthropicRequestParams {
   modelId: string;
@@ -32,12 +22,6 @@ export interface AnthropicRequestParams {
   abortController: AbortController;
   fallbackModels: readonly OcGoModelInfo[];
   userAgent: string;
-}
-
-interface SkippedToolCall {
-  name: string;
-  required: string[];
-  missing: string[];
 }
 
 export async function handleAnthropicRequest(params: AnthropicRequestParams): Promise<void> {
@@ -113,12 +97,14 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
     }
   }
 
-  debugLog("Outgoing request messages", {
-    system: requestBody.system,
-    messages: requestBody.messages,
-    tools: requestBody.tools,
-    tool_choice: requestBody.tool_choice,
-  });
+  if (process.env.OPENCODE_GO_DEBUG === "1") {
+    debugLog("Outgoing request messages", {
+      system: requestBody.system,
+      messages: requestBody.messages,
+      tools: requestBody.tools,
+      tool_choice: requestBody.tool_choice,
+    });
+  }
 
   const timeoutController = new AbortController();
   const timeoutId = setTimeout(() => timeoutController.abort(), REQUEST_TIMEOUT_MS);
@@ -191,79 +177,14 @@ async function processAnthropicStreamingResponse(
   messages: readonly vscode.LanguageModelChatMessage[],
   options: vscode.ProvideLanguageModelChatResponseOptions,
 ): Promise<void> {
+  const toolSchemas = getToolSchemaMap(options);
+  const requestContext = extractChatRequestContext(messages);
+  const state = setupStreamState(progress, toolSchemas, requestContext, messages);
+  const openAiFallbackIndexToId = new Map<number, string>();
+
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-  // Tool call state for native Anthropic content_block events
-  const activeToolCalls = new Map<number, { id: string; name: string; inputJson: string }>();
-  // Tool call state for OpenAI-format events (e.g. DeepSeek routed via /messages endpoint)
-  // Kept separate to avoid index collisions with native Anthropic content_block indices
-  const activeOpenAiToolCalls = new Map<number, { id: string; name: string; inputJson: string }>();
-  const toolSchemas = getToolSchemaMap(options);
-  const requestContext = extractChatRequestContext(messages);
-  const skippedToolCalls: SkippedToolCall[] = [];
-  const emittedTextToolCallKeys = getCompletedToolCallKeys(messages, requestContext, toolSchemas);
-  let pendingTextEmbeddedContent = "";
-  let pendingText = "";
-  let sawToolCall = false;
-  let emittedToolCall = false;
-  /** Accumulated reasoning/thinking content for models that emit it (e.g. MiniMax with extended thinking) */
-  let reasoningContent = "";
-  /** Whether we have already flushed the accumulated reasoning content to the progress stream */
-  let reasoningFlushed = false;
-
-  const flushPendingText = (): void => {
-    if (!reasoningFlushed && reasoningContent) {
-      reasoningFlushed = true;
-    }
-    if (!pendingText) return;
-    progress.report(new vscode.LanguageModelTextPart(pendingText));
-    pendingText = "";
-  };
-
-  const emitEmbeddedToolCall = (toolCall: ParsedTextToolCall, toolId?: string): void => {
-    sawToolCall = true;
-    const schema = toolSchemas.get(toolCall.name.toLowerCase());
-    const repairedArgs = repairToolArguments(toolCall.name, toolCall.args, requestContext, schema);
-    const canonicalKey = buildToolCallCanonicalKey(toolCall.name, repairedArgs);
-    if (emittedTextToolCallKeys.has(canonicalKey)) return;
-
-    if (hasRequiredToolArguments(repairedArgs, schema) && isToolCallInput(repairedArgs)) {
-      flushPendingText();
-      progress.report(
-        new vscode.LanguageModelToolCallPart(
-          toolId ?? `text_tool_${Math.random().toString(36).slice(2, 10)}`,
-          toolCall.name,
-          repairedArgs,
-        ),
-      );
-      emittedToolCall = true;
-      emittedTextToolCallKeys.add(canonicalKey);
-      return;
-    }
-
-    skippedToolCalls.push({
-      name: toolCall.name,
-      required: schema?.required ?? [],
-      missing: getMissingRequiredToolArguments(repairedArgs, schema),
-    });
-    debugLog("Skipped invalid Anthropic embedded tool call", toolCall);
-  };
-
-  const handleTextDelta = (text: string): void => {
-    const { segments, incompleteText } = parseTextEmbeddedToolCalls(
-      pendingTextEmbeddedContent + text,
-    );
-    pendingTextEmbeddedContent = incompleteText;
-
-    for (const segment of segments) {
-      if (segment.type === "text") {
-        pendingText += segment.text;
-        continue;
-      }
-      emitEmbeddedToolCall(segment.toolCall);
-    }
-  };
 
   try {
     while (!token.isCancellationRequested) {
@@ -301,13 +222,15 @@ async function processAnthropicStreamingResponse(
             const cb = (event as { content_block?: { type?: string; id?: string; name?: string } })
               .content_block;
             if (cb?.type === "tool_use") {
-              sawToolCall = true;
               const idx = (event as { index: number }).index;
               const toolId = cb.id ?? `tu_${Math.random().toString(36).slice(2, 10)}`;
               const toolName = cb.name ?? "unknown_tool";
-              activeToolCalls.set(idx, { id: toolId, name: toolName, inputJson: "" });
+              state.nativeToolCalls.set(String(idx), {
+                id: toolId,
+                name: toolName,
+                args: "",
+              });
             }
-            // thinking content blocks are accumulated silently via thinking_delta events
             break;
           }
 
@@ -319,29 +242,29 @@ async function processAnthropicStreamingResponse(
             if (deltaEvt.delta?.type === "text_delta") {
               const text = deltaEvt.delta.text ?? "";
               if (text) {
-                handleTextDelta(text);
+                state.handleTextDelta(text);
               }
             } else if (deltaEvt.delta?.type === "input_json_delta") {
               const partialJson = deltaEvt.delta.partial_json ?? "";
-              const tc = activeToolCalls.get(deltaEvt.index);
-              if (tc) tc.inputJson += partialJson;
+              const tc = state.nativeToolCalls.get(String(deltaEvt.index));
+              if (tc) tc.args += partialJson;
             } else if (deltaEvt.delta?.type === "thinking_delta") {
               const thinking = deltaEvt.delta.thinking ?? "";
               if (thinking) {
-                reasoningContent += thinking;
+                state.reasoningContent += thinking;
               }
             }
             break;
           }
 
           case "content_block_stop": {
-            const idx = (event as { index: number }).index;
-            const tc = activeToolCalls.get(idx);
+            const idx = String((event as { index: number }).index);
+            const tc = state.nativeToolCalls.get(idx);
             if (tc) {
-              let input: Record<string, Json> | unknown = {};
-              if (tc.inputJson.trim()) {
+              let input: unknown = {};
+              if (tc.args.trim()) {
                 try {
-                  input = JSON.parse(tc.inputJson) as Record<string, Json>;
+                  input = JSON.parse(tc.args) as Record<string, Json>;
                 } catch {
                   debugLog(
                     "processAnthropicStreamingResponse",
@@ -349,8 +272,10 @@ async function processAnthropicStreamingResponse(
                   );
                 }
               }
-              emitEmbeddedToolCall({ name: tc.name, args: input }, tc.id);
-              activeToolCalls.delete(idx);
+              if (tc.id && tc.name && isToolCallInput(input)) {
+                state.tryEmitNativeToolCall(tc.id, tc.name, input);
+              }
+              state.nativeToolCalls.delete(idx);
             }
             break;
           }
@@ -379,30 +304,35 @@ async function processAnthropicStreamingResponse(
               for (const choice of openAiEvt.choices) {
                 const delta = choice.delta;
                 if (delta?.content) {
-                  handleTextDelta(delta.content);
+                  state.handleTextDelta(delta.content);
                 }
                 if (delta?.tool_calls) {
-                  sawToolCall = true;
                   for (const tc of delta.tool_calls) {
                     const idx = tc.index ?? 0;
-                    const existing = activeOpenAiToolCalls.get(idx);
-                    if (tc.id && tc.function?.name) {
-                      activeOpenAiToolCalls.set(idx, {
+                    const callId =
+                      tc.id && typeof tc.id === "string"
+                        ? (openAiFallbackIndexToId.set(idx, tc.id), tc.id)
+                        : (openAiFallbackIndexToId.get(idx) ?? String(idx));
+                    const existing = state.nativeToolCalls.get(callId);
+                    if (existing) {
+                      if (tc.function?.arguments) {
+                        existing.args += tc.function.arguments;
+                      }
+                    } else if (tc.id && tc.function?.name) {
+                      state.nativeToolCalls.set(callId, {
                         id: tc.id,
                         name: tc.function.name,
-                        inputJson: tc.function.arguments ?? "",
+                        args: tc.function.arguments ?? "",
                       });
-                    } else if (existing && tc.function?.arguments) {
-                      existing.inputJson += tc.function.arguments;
                     }
                   }
                 }
                 if (choice.finish_reason === "tool_calls") {
-                  for (const [, tc] of activeOpenAiToolCalls) {
-                    let input: Record<string, Json> | unknown = {};
-                    if (tc.inputJson.trim()) {
+                  for (const [, tc] of state.nativeToolCalls) {
+                    let input: unknown = {};
+                    if (tc.args.trim()) {
                       try {
-                        input = JSON.parse(tc.inputJson) as Record<string, Json>;
+                        input = JSON.parse(tc.args) as Record<string, Json>;
                       } catch {
                         debugLog(
                           "processAnthropicStreamingResponse",
@@ -410,9 +340,11 @@ async function processAnthropicStreamingResponse(
                         );
                       }
                     }
-                    emitEmbeddedToolCall({ name: tc.name, args: input }, tc.id);
+                    if (tc.id && tc.name && isToolCallInput(input)) {
+                      state.tryEmitNativeToolCall(tc.id, tc.name, input);
+                    }
                   }
-                  activeOpenAiToolCalls.clear();
+                  state.nativeToolCalls.clear();
                 }
               }
             }
@@ -422,28 +354,12 @@ async function processAnthropicStreamingResponse(
       }
     }
 
-    if (pendingTextEmbeddedContent) {
-      pendingText += pendingTextEmbeddedContent;
+    state.finalize("processAnthropicStreamingResponse");
+  } catch (err) {
+    if (token.isCancellationRequested || (err instanceof Error && err.name === "AbortError")) {
+      throw new vscode.CancellationError();
     }
-
-    if (pendingText && (!sawToolCall || emittedToolCall || pendingText.trim().length > 0)) {
-      flushPendingText();
-    }
-
-    if (sawToolCall && !emittedToolCall) {
-      const fallbackText = buildInvalidToolCallFallback(skippedToolCalls);
-      if (fallbackText) {
-        progress.report(new vscode.LanguageModelTextPart(fallbackText));
-      }
-    }
-
-    if (reasoningContent) {
-      reasoningFlushed = true;
-      debugLog("processAnthropicStreamingResponse", {
-        reasoning_length: reasoningContent.length,
-        reasoning_preview: reasoningContent.slice(0, 200),
-      });
-    }
+    throw err;
   } finally {
     reader.releaseLock();
   }

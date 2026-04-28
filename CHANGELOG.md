@@ -1,5 +1,18 @@
 # Change Log
 
+## [0.1.27] - 2026-04-28
+
+### Performance
+
+- Token counting in `provideTokenCount` now batches all text parts into a single `estimateTokens` call instead of creating a tiktoken encoding per part.
+- `debugLog` calls for outgoing requests are now guarded by `OPENCODE_GO_DEBUG` env check, avoiding unnecessary object construction when debug is disabled.
+
+### Refactoring
+
+- Extracted shared streaming state machine (`src/streaming/shared.ts`) to eliminate ~110 lines of duplicate code between OpenAI and Anthropic streaming handlers.
+- Tool call buffer management changed from index-based keys to ID-based keys with index→ID mapping for robustness with partial chunks.
+- Unified `CancellationError` / `AbortError` handling between OpenAI and Anthropic streaming paths.
+
 ## [0.1.26] - 2026-04-28
 
 ### Fixed

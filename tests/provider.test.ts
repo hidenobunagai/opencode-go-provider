@@ -733,6 +733,9 @@ describe("OcGoChatModelProvider", () => {
   it("logs outgoing OpenAI requests for DeepSeek models", async () => {
     (secrets.get as jest.Mock).mockResolvedValue("test-key");
 
+    const prevDebug = process.env.OPENCODE_GO_DEBUG;
+    process.env.OPENCODE_GO_DEBUG = "1";
+
     const debugSpy = jest.spyOn(outputChannel, "debugLog").mockImplementation(() => undefined);
     const mockStream = async function* () {
       yield { choices: [{ delta: { content: "done" } }] };
@@ -765,6 +768,7 @@ describe("OcGoChatModelProvider", () => {
       }),
     );
 
+    process.env.OPENCODE_GO_DEBUG = prevDebug;
     debugSpy.mockRestore();
   });
 
