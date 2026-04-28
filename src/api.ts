@@ -82,35 +82,6 @@ export async function fetchWithRetry(
   throw lastError ?? new Error("Network request failed after retries");
 }
 
-export async function fetchModels(
-  apiKey: string,
-  signal?: AbortSignal,
-  userAgent?: string,
-): Promise<Array<{ id: string; name: string }> | null> {
-  try {
-    const response = await fetchWithRetry(`${BASE_URL}/models`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        ...(userAgent ? { "User-Agent": userAgent } : {}),
-      },
-      signal,
-    });
-    if (!response.ok) {
-      return null;
-    }
-    const data = (await response.json()) as { data?: Array<{ id: string; name: string }> };
-    return data.data ?? null;
-  } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
-      throw error;
-    }
-    debugLog("fetchModels", error);
-    return null;
-  }
-}
-
 export async function* streamChatCompletion(
   apiKey: string,
   requestBody: OcGoChatRequest,

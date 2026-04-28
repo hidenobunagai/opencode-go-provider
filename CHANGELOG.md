@@ -1,5 +1,11 @@
 # Change Log
 
+## [Unreleased]
+
+### Changed
+
+- Removed startup-time `/models` discovery and now use the bundled `FALLBACK_MODELS` list as the single source of truth for selectable models.
+
 ## [0.1.23] - 2026-04-27
 
 ### Added
@@ -20,7 +26,6 @@
 
 - Refactored monolithic provider.ts into focused modules: tool-parser, tool-repair, guidance, streaming/openai, streaming/anthropic.
 - Improved token estimation with model-aware tiktoken-based tokenizer (fallback to char-based heuristic).
-- Enabled background model discovery via fetchModels on extension activation.
 - Parallelized image analysis with Promise.all for multi-image messages.
 
 ### Fixed

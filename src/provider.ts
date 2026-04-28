@@ -29,7 +29,6 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
   constructor(
     private readonly secrets: vscode.SecretStorage,
     private readonly userAgent: string,
-    private readonly globalState?: vscode.Memento,
   ) {
     this._mcpClient = new OcGoMcpClient(secrets);
   }
@@ -140,54 +139,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     token: CancellationToken,
   ): Promise<LanguageModelChatInformation[]> {
     if (token.isCancellationRequested) return [];
-
-    if (options.silent) {
-      const cached =
-        this.globalState?.get<Array<{ id: string; name: string }>>("opencode-go.models");
-      const models =
-        cached && cached.length > 0 ? this._expandWithThinkingVariants(cached) : FALLBACK_MODELS;
-      return this._mapToChatInformation(models);
-    }
-
-    const cached = this.globalState?.get<Array<{ id: string; name: string }>>("opencode-go.models");
-    const models =
-      cached && cached.length > 0 ? this._expandWithThinkingVariants(cached) : FALLBACK_MODELS;
-    return this._mapToChatInformation(models);
-  }
-
-  /**
-   * Expand cached models with thinking-variant entries from FALLBACK_MODELS.
-   * The OpenCode Go API returns only base model IDs (e.g. "deepseek-v4-pro"),
-   * but FALLBACK_MODELS defines thinking variants with colon-suffixed IDs
-   * (e.g. "deepseek-v4-pro:max").  Without this expansion those variants
-   * disappear from the model picker after the API cache is populated.
-   */
-  private _expandWithThinkingVariants(
-    cached: Array<{ id: string; name: string }>,
-  ): Array<{ id: string; name: string }> {
-    const result: Array<{ id: string; name: string }> = [];
-    const added = new Set<string>();
-
-    for (const model of cached) {
-      // Add the base model first
-      if (!added.has(model.id)) {
-        result.push(model);
-        added.add(model.id);
-      }
-
-      // Append thinking variants whose base ID matches this cached model
-      for (const fallback of FALLBACK_MODELS) {
-        const colonIndex = fallback.id.indexOf(":");
-        if (colonIndex <= 0) continue;
-        const baseId = fallback.id.slice(0, colonIndex);
-        if (baseId === model.id && !added.has(fallback.id)) {
-          result.push({ id: fallback.id, name: fallback.name });
-          added.add(fallback.id);
-        }
-      }
-    }
-
-    return result;
+    return this._mapToChatInformation(FALLBACK_MODELS);
   }
 
   private _mapToChatInformation(

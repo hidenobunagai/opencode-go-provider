@@ -1,21 +1,28 @@
-import { fetchModels, streamChatCompletion } from "../src/api";
+import { fetchWithRetry, streamChatCompletion } from "../src/api";
 import { BASE_URL } from "../src/constants";
 import { OcGoStreamResponse } from "../src/types";
 
-describe("fetchModels", () => {
+describe("fetchWithRetry", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  it("returns models on success", async () => {
-    const mockModels = [{ id: "kimi-k2.6", name: "Kimi K2.6" }];
-    global.fetch = jest.fn().mockResolvedValue({
+  it("returns the response on success", async () => {
+    const response = {
       ok: true,
-      json: async () => ({ data: mockModels }),
-    } as any);
+      status: 200,
+      statusText: "OK",
+      headers: new Headers(),
+    } as any;
+    global.fetch = jest.fn().mockResolvedValue({
+      ...response,
+    });
 
-    const result = await fetchModels("test-key");
-    expect(result).toEqual(mockModels);
+    const result = await fetchWithRetry(`${BASE_URL}/models`, {
+      method: "GET",
+      headers: { Authorization: "Bearer test-key" },
+    });
+    expect(result).toEqual(response);
     expect(fetch).toHaveBeenCalledWith(
       `${BASE_URL}/models`,
       expect.objectContaining({
@@ -24,16 +31,16 @@ describe("fetchModels", () => {
     );
   });
 
-  it("returns null on failure", async () => {
+  it("returns the first non-retryable failure response", async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,
       status: 401,
       statusText: "Unauthorized",
-      text: async () => "Invalid key",
     } as any);
 
-    const result = await fetchModels("bad-key");
-    expect(result).toBeNull();
+    const result = await fetchWithRetry(`${BASE_URL}/models`, { method: "GET" });
+    expect(result.status).toBe(401);
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -122,29 +129,37 @@ describe("streamChatCompletion", () => {
   });
 
   it("retries on network failure and succeeds", async () => {
-    const mockModels = [{ id: "kimi-k2.6", name: "Kimi K2.6" }];
+    const response = {
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      headers: new Headers(),
+    } as any;
     global.fetch = jest
       .fn()
       .mockRejectedValueOnce(new Error("Network error"))
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ data: mockModels }),
-      } as any);
+      .mockResolvedValueOnce(response);
 
-    const result = await fetchModels("test-key");
-    expect(result).toEqual(mockModels);
+    const result = await fetchWithRetry(`${BASE_URL}/models`, { method: "GET" });
+    expect(result).toEqual(response);
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
-  it("retries up to 3 times then returns null", async () => {
+  it("retries up to 3 times then throws", async () => {
     global.fetch = jest.fn().mockRejectedValue(new Error("Network error"));
 
-    const result = await fetchModels("test-key");
-    expect(result).toBeNull();
+    await expect(fetchWithRetry(`${BASE_URL}/models`, { method: "GET" })).rejects.toThrow(
+      "Network error",
+    );
     expect(fetch).toHaveBeenCalledTimes(3);
   });
   it("retries on 429 with Retry-After then succeeds", async () => {
-    const mockModels = [{ id: "kimi-k2.6", name: "Kimi K2.6" }];
+    const response = {
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      headers: new Headers(),
+    } as any;
     global.fetch = jest
       .fn()
       .mockResolvedValueOnce({
@@ -153,18 +168,20 @@ describe("streamChatCompletion", () => {
         statusText: "Too Many Requests",
         headers: { get: (name: string) => (name === "retry-after" ? "1" : null) },
       } as any)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ data: mockModels }),
-      } as any);
+      .mockResolvedValueOnce(response);
 
-    const result = await fetchModels("test-key");
-    expect(result).toEqual(mockModels);
+    const result = await fetchWithRetry(`${BASE_URL}/models`, { method: "GET" });
+    expect(result).toEqual(response);
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   it("retries on 503 then succeeds", async () => {
-    const mockModels = [{ id: "kimi-k2.6", name: "Kimi K2.6" }];
+    const response = {
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      headers: new Headers(),
+    } as any;
     global.fetch = jest
       .fn()
       .mockResolvedValueOnce({
@@ -173,26 +190,22 @@ describe("streamChatCompletion", () => {
         statusText: "Service Unavailable",
         headers: { get: () => null },
       } as any)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ data: mockModels }),
-      } as any);
+      .mockResolvedValueOnce(response);
 
-    const result = await fetchModels("test-key");
-    expect(result).toEqual(mockModels);
+    const result = await fetchWithRetry(`${BASE_URL}/models`, { method: "GET" });
+    expect(result).toEqual(response);
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
-  it("does not retry on 401 and returns null immediately", async () => {
+  it("does not retry on 401", async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,
       status: 401,
       statusText: "Unauthorized",
-      text: async () => "Invalid key",
     } as any);
 
-    const result = await fetchModels("bad-key");
-    expect(result).toBeNull();
+    const result = await fetchWithRetry(`${BASE_URL}/models`, { method: "GET" });
+    expect(result.status).toBe(401);
     expect(fetch).toHaveBeenCalledTimes(1);
   });
   it("handles partial lines across chunks", async () => {

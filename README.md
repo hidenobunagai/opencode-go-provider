@@ -30,7 +30,7 @@ VS Code extension to use OpenCode Go models in Copilot Chat with your own OpenCo
 
 ## Supported Models
 
-The extension dynamically fetches available models from OpenCode Go. Fallback models include:
+The extension uses the source-controlled `FALLBACK_MODELS` list bundled in this repository. When OpenCode Go adds new models, this extension must be updated and republished. Current bundled models include:
 
 - GLM-5, GLM-5.1
 - DeepSeek V4 Pro, DeepSeek V4 Flash

@@ -1,10 +1,9 @@
 import * as vscode from "vscode";
-import { fetchModels, streamChatCompletion } from "../src/api";
+import { streamChatCompletion } from "../src/api";
 import * as outputChannel from "../src/output-channel";
 import { OcGoChatModelProvider } from "../src/provider";
 
 jest.mock("../src/api", () => ({
-  fetchModels: jest.fn(),
   streamChatCompletion: jest.fn(),
   fetchWithRetry: jest.fn(),
 }));
@@ -55,7 +54,6 @@ jest.mock("vscode", () => ({
 
 describe("OcGoChatModelProvider", () => {
   let secrets: vscode.SecretStorage;
-  let globalState: vscode.Memento;
   let provider: OcGoChatModelProvider;
 
   beforeEach(() => {
@@ -66,17 +64,11 @@ describe("OcGoChatModelProvider", () => {
       delete: jest.fn(),
       onDidChange: jest.fn(),
     } as unknown as vscode.SecretStorage;
-    globalState = {
-      get: jest.fn(),
-      update: jest.fn(),
-      keys: jest.fn(),
-    } as unknown as vscode.Memento;
-    provider = new OcGoChatModelProvider(secrets, "test-ua", globalState);
+    provider = new OcGoChatModelProvider(secrets, "test-ua");
     ((vscode as any).window.showInputBox as jest.Mock).mockResolvedValue(undefined);
   });
 
-  it("provideLanguageModelChatInformation returns fallback models when cache is empty", async () => {
-    (globalState.get as jest.Mock).mockReturnValue(undefined);
+  it("provideLanguageModelChatInformation returns bundled fallback models", async () => {
     const token = {
       isCancellationRequested: false,
       onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
@@ -87,24 +79,6 @@ describe("OcGoChatModelProvider", () => {
     );
     expect(infos.length).toBeGreaterThan(0);
     expect(infos[0].name).toBeDefined();
-    expect(fetchModels).not.toHaveBeenCalled();
-  });
-
-  it("provideLanguageModelChatInformation returns cached models", async () => {
-    const cachedModels = [{ id: "cached-model", name: "Cached Model" }];
-    (globalState.get as jest.Mock).mockReturnValue(cachedModels);
-    const token = {
-      isCancellationRequested: false,
-      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
-    };
-
-    const infos = await provider.provideLanguageModelChatInformation(
-      { silent: true } as any,
-      token as any,
-    );
-    expect(infos.length).toBe(1);
-    expect(infos[0].id).toBe("cached-model");
-    expect(fetchModels).not.toHaveBeenCalled();
   });
 
   it("provideLanguageModelChatInformation returns empty array on cancellation", async () => {
