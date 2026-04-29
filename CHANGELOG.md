@@ -1,5 +1,13 @@
 # Change Log
 
+## [0.1.30] - 2026-04-29
+
+### Fixed
+
+- Fixed `imageInput` capability to respect `supportsVision` per model. Previously all models claimed `imageInput: true`, causing VS Code to attempt clipboard reads for non-vision models and fail with "Cannot read clipboard".
+- Fixed vision fallback path to use the fallback model's `apiFormat` instead of the original model's format, preventing API format mismatch hangs.
+- Added error handling around `processImagesForNonVisionModel` so image analysis failures report a user-facing message instead of silently throwing.
+
 ## [0.1.29] - 2026-04-29
 
 ### Changed

@@ -254,7 +254,10 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
           info.contextWindow - Math.min(info.maxOutput, DEFAULT_MAX_OUTPUT_TOKENS),
         ),
         maxOutputTokens: info.maxOutput,
-        capabilities: { toolCalling: info.supportsTools ? 128 : false, imageInput: true },
+        capabilities: {
+          toolCalling: info.supportsTools ? 128 : false,
+          imageInput: info.supportsVision,
+        },
       };
     });
   }
@@ -298,34 +301,49 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         model.maxOutputTokens,
       );
 
-      const modelInfo = this.getModelInfo(model.id);
-      const apiFormat = modelInfo?.apiFormat ?? "openai";
-      const reasoningEffort = modelInfo?.reasoningEffort;
-      const temperatureVal =
-        typeof modelInfo?.fixedTemperature === "number"
-          ? modelInfo.fixedTemperature
-          : typeof (options.modelOptions as Record<string, unknown>)?.temperature === "number"
-            ? ((options.modelOptions as Record<string, unknown>).temperature as number)
-            : 0.7;
-
       const hasImages = this.hasImageInput(messages);
       let effectiveMessages = messages;
       let effectiveModelId = this.resolveApiModelId(model.id);
+      let effectiveModelInfo = this.getModelInfo(effectiveModelId);
+      const variantModelInfo = this.getModelInfo(model.id);
 
       if (hasImages && !this.modelSupportsVision(model.id)) {
         const visionFallback = this.getVisionFallbackModelId();
         if (visionFallback && visionFallback !== model.id) {
           effectiveModelId = this.resolveApiModelId(visionFallback);
-          const fallbackInfo = this._modelMap.get(visionFallback);
+          effectiveModelInfo = this._modelMap.get(visionFallback);
+          const selectedModelInfo = this.getModelInfo(model.id);
           progress.report(
             new vscode.LanguageModelTextPart(
-              `Switching to ${fallbackInfo?.displayName ?? visionFallback} for image analysis (${modelInfo?.displayName ?? model.id} does not support vision).\n\n`,
+              `Switching to ${effectiveModelInfo?.displayName ?? visionFallback} for image analysis (${selectedModelInfo?.displayName ?? model.id} does not support vision).\n\n`,
             ),
           );
         } else {
-          effectiveMessages = await this.processImagesForNonVisionModel(messages, token, apiKey);
+          try {
+            effectiveMessages = await this.processImagesForNonVisionModel(messages, token, apiKey);
+          } catch (err) {
+            if (err instanceof vscode.CancellationError || token.isCancellationRequested) {
+              throw err;
+            }
+            const message = err instanceof Error ? err.message : String(err);
+            progress.report(
+              new vscode.LanguageModelTextPart(
+                `Image analysis failed: ${message}. The selected model (${effectiveModelInfo?.displayName ?? model.id}) does not support vision and no vision fallback model is available. Please switch to a vision-capable model and try again.`,
+              ),
+            );
+            return;
+          }
         }
       }
+
+      const apiFormat = effectiveModelInfo?.apiFormat ?? "openai";
+      const reasoningEffort = variantModelInfo?.reasoningEffort;
+      const temperatureVal =
+        typeof variantModelInfo?.fixedTemperature === "number"
+          ? variantModelInfo.fixedTemperature
+          : typeof (options.modelOptions as Record<string, unknown>)?.temperature === "number"
+            ? ((options.modelOptions as Record<string, unknown>).temperature as number)
+            : 0.7;
 
       if (apiFormat === "anthropic") {
         await handleAnthropicRequest({
@@ -346,7 +364,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
 
       const openAIModel: OpenAIModelInfo = {
         id: effectiveModelId,
-        modelInfo,
+        modelInfo: effectiveModelInfo,
         maxOutputTokens: model.maxOutputTokens,
         reasoningEffort,
       };
