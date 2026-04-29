@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.29] - 2026-04-29
+
+### Changed
+
+- Translated README Japanese text to English throughout.
+
 ## [0.1.28] - 2026-04-28
 
 ### Fixed

@@ -59,54 +59,54 @@ Press `F5` in VS Code to launch the Extension Development Host.
 
 ### Available Scripts
 
-- `bun run compile` – TypeScript コンパイル
-- `bun run watch` – ファイル変更監視付きコンパイル
-- `bun run test` – テスト実行
-- `bun run lint` – ESLint チェック
-- `bun run lint:fix` – ESLint 自動修正
-- `bun run format` – Prettier フォーマット
-- `bun run package:vsix` – VSIX パッケージ作成
-- `bun run repro:deepseek -- "テストです。モデル名を教えてください。"` – DeepSeek の上流応答を拡張機能抜きで確認
-- `bun run repro:compare -- "テストです。モデル名を教えてください。"` – DeepSeek と比較対象モデルの応答を並べて確認
-- `bun run repro:compare:json -- "テストです。モデル名を教えてください。"` – 比較結果を JSON で出力
+- `bun run compile` – Compile TypeScript
+- `bun run watch` – Compile with file watching
+- `bun run test` – Run tests
+- `bun run lint` – Lint check with ESLint
+- `bun run lint:fix` – Auto-fix with ESLint
+- `bun run format` – Format with Prettier
+- `bun run package:vsix` – Create VSIX package
+- `bun run repro:deepseek -- "What model are you?"` – Check DeepSeek upstream response without the extension
+- `bun run repro:compare -- "What model are you?"` – Compare DeepSeek and reference model responses side by side
+- `bun run repro:compare:json -- "What model are you?"` – Output comparison results as JSON
 
 ## Troubleshooting
 
-### DeepSeek が別モデル名を名乗る場合
+### DeepSeek Claiming a Different Model Name
 
-拡張機能の送信モデルを切り分けるには、次を実行してください。
-
-```bash
-export OPENCODE_GO_API_KEY="your-api-key"
-bun run repro:deepseek -- "テストです。モデル名を教えてください。"
-```
-
-このスクリプトは拡張機能を介さずに `deepseek-v4-flash` へ直接 `/messages` リクエストを送ります。ここでも Claude など別モデル名を返す場合、原因は OpenCode Go 側または上流ルーティングであり、この拡張機能ではありません。
-
-比較対象も同時に見たい場合は、次を実行してください。
+To isolate whether the model identity issue is in the extension, run:
 
 ```bash
 export OPENCODE_GO_API_KEY="your-api-key"
-bun run repro:compare -- "テストです。モデル名を教えてください。"
+bun run repro:deepseek -- "What model are you?"
 ```
 
-別の組み合わせで比較したい場合は、`--models` でカンマ区切り指定もできます。
+This script sends a `/messages` request directly to `deepseek-v4-flash` without going through the extension. If it still returns Claude or another model name, the cause is on the OpenCode Go side or upstream routing, not this extension.
 
-```bash
-bun run repro:deepseek -- --models deepseek-v4-flash,glm-5,qwen3.6-plus "テストです。モデル名を教えてください。"
-```
-
-JSON で保存したい場合は、`--json` を付けてリダイレクトしてください。
+To compare with a reference model at the same time, run:
 
 ```bash
 export OPENCODE_GO_API_KEY="your-api-key"
-bun run repro:compare:json -- "テストです。モデル名を教えてください。" > deepseek-compare.json
+bun run repro:compare -- "What model are you?"
 ```
 
-任意モデルの組み合わせでも同様です。
+To compare with a different combination, use `--models` with comma-separated IDs:
 
 ```bash
-bun run repro:deepseek -- --json --models deepseek-v4-flash,glm-5,qwen3.6-plus "テストです。モデル名を教えてください。" > compare.json
+bun run repro:deepseek -- --models deepseek-v4-flash,glm-5,qwen3.6-plus "What model are you?"
+```
+
+To save results as JSON, add `--json` and redirect:
+
+```bash
+export OPENCODE_GO_API_KEY="your-api-key"
+bun run repro:compare:json -- "What model are you?" > deepseek-compare.json
+```
+
+The same works for any combination of models:
+
+```bash
+bun run repro:deepseek -- --json --models deepseek-v4-flash,glm-5,qwen3.6-plus "What model are you?" > compare.json
 ```
 
 ## Marketplace Packaging
