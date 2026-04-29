@@ -8,7 +8,7 @@ import { extractChatRequestContext, getToolSchemaMap, isToolCallInput } from "..
 import { AnthropicMessage, AnthropicSSEEvent, OcGoModelInfo, type Json } from "../types";
 import { convertMessagesToAnthropic, convertToolsToAnthropic } from "../anthropic-conversion";
 import { convertTools } from "../openai-conversion";
-import { setupStreamState } from "./shared";
+import { setupStreamState, type StreamState } from "./shared";
 
 export interface AnthropicRequestParams {
   modelId: string;
@@ -70,104 +70,143 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
     throw new Error("No messages to send to Anthropic API");
   }
 
-  const requestBody: {
-    model: string;
-    messages: AnthropicMessage[];
-    system?: string | Array<{ type: "text"; text: string }>;
-    max_tokens: number;
-    stream: boolean;
-    temperature?: number;
-    tools?: unknown[];
-    tool_choice?: unknown;
-  } = {
-    model: modelId,
-    messages: apiMessages,
-    max_tokens: Math.max(1, requestedMaxTokens),
-    stream: true,
-  };
+  const MAX_RETRIES = 1;
+  let currentMaxTokens = requestedMaxTokens;
 
-  if (effectiveSystem) requestBody.system = effectiveSystem;
-  if (typeof temperatureVal === "number" && temperatureVal > 0) {
-    requestBody.temperature = temperatureVal;
-  }
-  if (toolConfig.tools && toolConfig.tools.length > 0) {
-    requestBody.tools = toolConfig.tools;
-    if (toolConfig.tool_choice && toolConfig.tool_choice !== "auto") {
-      requestBody.tool_choice = toolConfig.tool_choice;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (token.isCancellationRequested) throw new vscode.CancellationError();
+
+    if (attempt > 0) {
+      currentMaxTokens = Math.min(
+        currentMaxTokens * 2,
+        fallbackModels.find((m) => m.id === modelId)?.maxOutput ?? currentMaxTokens * 2,
+      );
+      progress.report(
+        new vscode.LanguageModelTextPart(
+          "\n\n(Retrying with increased output token budget...)\n\n",
+        ),
+      );
     }
-  }
 
-  if (process.env.OPENCODE_GO_DEBUG === "1") {
-    debugLog("Outgoing request messages", {
-      system: requestBody.system,
-      messages: requestBody.messages,
-      tools: requestBody.tools,
-      tool_choice: requestBody.tool_choice,
-    });
-  }
+    const requestBody: {
+      model: string;
+      messages: AnthropicMessage[];
+      system?: string | Array<{ type: "text"; text: string }>;
+      max_tokens: number;
+      stream: boolean;
+      temperature?: number;
+      tools?: unknown[];
+      tool_choice?: unknown;
+    } = {
+      model: modelId,
+      messages: apiMessages,
+      max_tokens: Math.max(1, currentMaxTokens),
+      stream: true,
+    };
 
-  const timeoutController = new AbortController();
-  const timeoutId = setTimeout(() => timeoutController.abort(), REQUEST_TIMEOUT_MS);
-  const combinedSignal = AbortSignal.any([abortController.signal, timeoutController.signal]);
+    if (effectiveSystem) requestBody.system = effectiveSystem;
+    if (typeof temperatureVal === "number" && temperatureVal > 0) {
+      requestBody.temperature = temperatureVal;
+    }
+    if (toolConfig.tools && toolConfig.tools.length > 0) {
+      requestBody.tools = toolConfig.tools;
+      if (toolConfig.tool_choice && toolConfig.tool_choice !== "auto") {
+        requestBody.tool_choice = toolConfig.tool_choice;
+      }
+    }
 
-  const response = await fetchWithRetry(
-    `${BASE_URL}/messages`,
-    {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "Content-Type": "application/json",
-        "User-Agent": userAgent,
+    if (process.env.OPENCODE_GO_DEBUG === "1" && attempt === 0) {
+      debugLog("Outgoing request messages", {
+        system: requestBody.system,
+        messages: requestBody.messages,
+        tools: requestBody.tools,
+        tool_choice: requestBody.tool_choice,
+      });
+    }
+
+    const timeoutController = new AbortController();
+    const timeoutId = setTimeout(() => timeoutController.abort(), REQUEST_TIMEOUT_MS);
+    const combinedSignal = AbortSignal.any([abortController.signal, timeoutController.signal]);
+
+    const response = await fetchWithRetry(
+      `${BASE_URL}/messages`,
+      {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+          "User-Agent": userAgent,
+        },
+        signal: combinedSignal,
+        body: JSON.stringify(requestBody),
       },
-      signal: combinedSignal,
-      body: JSON.stringify(requestBody),
-    },
-    5,
-  ).finally(() => clearTimeout(timeoutId));
+      5,
+    ).finally(() => clearTimeout(timeoutId));
 
-  if (!response.ok) {
-    const rawBody = await response.text();
-    let detail = "";
-    try {
-      const body = JSON.parse(rawBody) as {
-        error?: { message?: string; type?: string };
-      };
-      if (body.error?.message) {
-        detail = body.error.message;
+    if (!response.ok) {
+      const rawBody = await response.text();
+      let detail = "";
+      try {
+        const body = JSON.parse(rawBody) as {
+          error?: { message?: string; type?: string };
+        };
+        if (body.error?.message) {
+          detail = body.error.message;
+        }
+      } catch {
+        if (rawBody.trim().length > 0) {
+          detail = rawBody.trim().slice(0, 500);
+        }
       }
-    } catch {
-      if (rawBody.trim().length > 0) {
-        detail = rawBody.trim().slice(0, 500);
-      }
-    }
 
-    if (response.status === 401 || response.status === 403) {
-      const guide =
-        'Run "OpenCode Go: Manage OpenCode Go API Key" from the Command Palette to update your API key.';
+      if (response.status === 401 || response.status === 403) {
+        const guide =
+          'Run "OpenCode Go: Manage OpenCode Go API Key" from the Command Palette to update your API key.';
+        throw new Error(
+          `OpenCode Go API authentication failed (${response.status}). Your API key may be invalid or expired.\n${guide}\n${detail}`,
+        );
+      }
+
+      if (response.status === 429) {
+        const retryAfter = response.headers.get("retry-after");
+        const retryInfo = retryAfter ? `Retry after ${retryAfter}. ` : "";
+        throw new Error(
+          `OpenCode Go rate limit reached (429). ${retryInfo}The request will be retried automatically.\n${detail}`,
+        );
+      }
+
       throw new Error(
-        `OpenCode Go API authentication failed (${response.status}). Your API key may be invalid or expired.\n${guide}\n${detail}`,
+        `OpenCode Go Anthropic API error (${response.status} ${response.statusText})\n${detail || rawBody.trim().slice(0, 500)}`,
       );
     }
 
-    if (response.status === 429) {
-      const retryAfter = response.headers.get("retry-after");
-      const retryInfo = retryAfter ? `Retry after ${retryAfter}. ` : "";
-      throw new Error(
-        `OpenCode Go rate limit reached (429). ${retryInfo}The request will be retried automatically.\n${detail}`,
-      );
+    if (!response.body) {
+      throw new Error("No response body from Anthropic API");
     }
 
-    throw new Error(
-      `OpenCode Go Anthropic API error (${response.status} ${response.statusText})\n${detail || rawBody.trim().slice(0, 500)}`,
+    const streamState = await processAnthropicStreamingResponse(
+      response.body,
+      progress,
+      token,
+      messages,
+      options,
     );
-  }
 
-  if (!response.body) {
-    throw new Error("No response body from Anthropic API");
-  }
+    // Check if retry is needed: reasoning was produced but no visible output
+    if (
+      !streamState.hasEmittedOutput &&
+      streamState.reasoningContent &&
+      attempt < MAX_RETRIES &&
+      !token.isCancellationRequested
+    ) {
+      continue;
+    }
 
-  await processAnthropicStreamingResponse(response.body, progress, token, messages, options);
+    // Finalize on last attempt (successful or all retries exhausted)
+    streamState.finalize("processAnthropicStreamingResponse");
+    return;
+  }
 }
 
 async function processAnthropicStreamingResponse(
@@ -176,7 +215,7 @@ async function processAnthropicStreamingResponse(
   token: vscode.CancellationToken,
   messages: readonly vscode.LanguageModelChatMessage[],
   options: vscode.ProvideLanguageModelChatResponseOptions,
-): Promise<void> {
+): Promise<StreamState> {
   const toolSchemas = getToolSchemaMap(options);
   const requestContext = extractChatRequestContext(messages);
   const state = setupStreamState(progress, toolSchemas, requestContext, messages);
@@ -354,7 +393,7 @@ async function processAnthropicStreamingResponse(
       }
     }
 
-    state.finalize("processAnthropicStreamingResponse");
+    return state;
   } catch (err) {
     if (token.isCancellationRequested || (err instanceof Error && err.name === "AbortError")) {
       throw new vscode.CancellationError();

@@ -12,7 +12,11 @@ import {
   Progress,
   ProvideLanguageModelChatResponseOptions,
 } from "vscode";
-import { CONTEXT_WINDOW_SAFETY_MARGIN, DEFAULT_MAX_OUTPUT_TOKENS } from "./constants";
+import {
+  CONTEXT_WINDOW_SAFETY_MARGIN,
+  DEFAULT_MAX_OUTPUT_TOKENS,
+  REASONING_CONTENT_WORKAROUND_MODELS,
+} from "./constants";
 import { OcGoMcpClient } from "./mcp";
 import { handleAnthropicRequest } from "./streaming/anthropic";
 import { processOpenAIStream, type OpenAIModelInfo } from "./streaming/openai";
@@ -301,6 +305,19 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         model.maxOutputTokens,
       );
 
+      // Thinking models (e.g. DeepSeek V4) consume part of the max_tokens budget
+      // for internal reasoning. Enforce a minimum output budget so the model has
+      // enough room to reason AND produce a visible response.
+      const MIN_THINKING_MODEL_OUTPUT_TOKENS = 4096;
+      const resolvedModelId = this.resolveApiModelId(model.id);
+      const isThinkingModel = REASONING_CONTENT_WORKAROUND_MODELS.has(resolvedModelId);
+      const effectiveMaxTokens = isThinkingModel
+        ? Math.max(
+            requestedMaxTokens,
+            Math.min(MIN_THINKING_MODEL_OUTPUT_TOKENS, model.maxOutputTokens),
+          )
+        : requestedMaxTokens;
+
       const hasImages = this.hasImageInput(messages);
       let effectiveMessages = messages;
       let effectiveModelId = this.resolveApiModelId(model.id);
@@ -351,7 +368,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
           messages: effectiveMessages,
           options,
           apiKey,
-          requestedMaxTokens,
+          requestedMaxTokens: effectiveMaxTokens,
           temperatureVal,
           userAgent: this.userAgent,
           fallbackModels: FALLBACK_MODELS,
@@ -374,7 +391,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         effectiveMessages,
         options,
         apiKey,
-        requestedMaxTokens,
+        effectiveMaxTokens,
         temperatureVal,
         FALLBACK_MODELS,
         this.userAgent,
