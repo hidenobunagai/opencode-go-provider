@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.32] - 2026-04-29
+
+### Fixed
+
+- Made the mid-task stop diagnostic message cover additional causes (upstream disconnect, internal model error) beyond just token budget exhaustion.
+
 ## [0.1.31] - 2026-04-29
 
 ### Fixed

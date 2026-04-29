@@ -191,7 +191,7 @@ export class StreamState {
     ) {
       this.progress.report(
         new vscode.LanguageModelTextPart(
-          `\n\nThe model stopped responding after consuming its token budget during reasoning. The output above may be incomplete. Try reducing the conversation length or switching to a model with a larger context window.`,
+          `\n\nThe model stopped responding mid-task. The output above may be incomplete. This can happen when reasoning consumes the token budget, the upstream API drops the connection, or the model encounters an internal error. Try reducing the conversation length or switching to a model with a larger context window.`,
         ),
       );
     }
