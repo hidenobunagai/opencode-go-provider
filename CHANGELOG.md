@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.31] - 2026-04-29
+
+### Fixed
+
+- When a reasoning model (DeepSeek V4, Kimi K2) exhausts its token budget mid-task with partial text output and no tool calls, the extension now appends a diagnostic note explaining the likely cause instead of leaving the user with an incomplete-looking response.
+
 ## [0.1.30] - 2026-04-29
 
 ### Fixed

@@ -184,6 +184,16 @@ export class StreamState {
           `The model did not return any text content.${reasonings} This may indicate the model's token budget was exhausted during reasoning, or the request was interrupted. Try reducing the conversation length, simplifying the prompt, or switching to a model with a larger context window.`,
         ),
       );
+    } else if (
+      !this.sawToolCall &&
+      this.reasoningContent.trim().length > 0 &&
+      this.emittedCanonicalKeys.size > 0
+    ) {
+      this.progress.report(
+        new vscode.LanguageModelTextPart(
+          `\n\nThe model stopped responding after consuming its token budget during reasoning. The output above may be incomplete. Try reducing the conversation length or switching to a model with a larger context window.`,
+        ),
+      );
     }
   }
 }
