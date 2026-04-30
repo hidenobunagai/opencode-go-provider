@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.36] - 2026-04-30
+
+### Fixed
+
+- **Removed spurious "(Retrying with increased output token budget...)" noise for thinking models (DeepSeek, Kimi).** Since v0.1.35 no longer sends `max_tokens` to thinking models, the retry loop with doubled budgets had no effect — the API already manages reasoning/output balance internally. Retries are now skipped for thinking models entirely.
+
 ## [0.1.35] - 2026-04-30
 
 ### Fixed
