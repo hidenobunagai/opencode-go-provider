@@ -558,11 +558,11 @@ describe("OcGoChatModelProvider", () => {
       "You are Claude Code running inside Anthropic tools.",
     );
     expect(systemMessages[0].content).toContain(
-      "You are GitHub Copilot running through the OpenCode Go provider.",
+      "You are GitHub Copilot using the OpenCode Go provider",
     );
     expect(systemMessages[0].content).toContain("DeepSeek V4 Flash");
     expect(systemMessages[0].content).toContain(
-      "Answer identity or model questions as GitHub Copilot using the selected OpenCode Go model.",
+      "Answer identity/model questions as GitHub Copilot",
     );
     expect(systemMessages[0].content).not.toContain("Claude");
     expect(systemMessages[0].content).not.toContain("Anthropic tools");
@@ -630,34 +630,22 @@ describe("OcGoChatModelProvider", () => {
 
     expect(systemMessages).toHaveLength(1);
     expect(systemMessages[0].content).toContain(
-      "When the user asks about the workspace, files, or current state, use the relevant tools before answering.",
+      "Use tools to inspect workspace state before answering.",
     );
     expect(systemMessages[0].content).toContain(
-      "Do not claim to have listed, read, inspected, or verified anything unless you actually used the corresponding tool.",
+      "Never claim to have read files or listed directories without calling the corresponding tool first.",
     );
     expect(systemMessages[0].content).toContain(
-      "If tool use is needed, emit the tool call instead of narrating that you will do it.",
+      "If tool use is needed, emit the tool call directly.",
     );
     expect(systemMessages[0].content).toContain(
-      "Base file summaries and workspace claims only on tool outputs you have actually received.",
+      "Base claims only on tool outputs you actually received.",
     );
     expect(systemMessages[0].content).toContain(
-      "If a file read returns too little information to answer the request, call the appropriate tool again instead of guessing.",
+      "For read_file, always provide filePath and line ranges from editor context.",
     );
     expect(systemMessages[0].content).toContain(
-      "Do not say you checked modification times, recency, or ordering unless a tool output explicitly provided that metadata.",
-    );
-    expect(systemMessages[0].content).toContain(
-      "If you infer which file is latest from sortable filenames or listing order, say that explicitly instead of describing it as verified metadata.",
-    );
-    expect(systemMessages[0].content).toContain(
-      "Only describe workspace structure that was actually returned by a directory listing or file content you received.",
-    );
-    expect(systemMessages[0].content).toContain(
-      "Do not treat planning or task-management tool output as evidence about workspace structure, file contents, or which file is latest.",
-    );
-    expect(systemMessages[0].content).toContain(
-      "If you have not yet used a file or directory inspection tool in the current answer, do not say the workspace or latest file is already confirmed.",
+      "Do not treat planning output as evidence about workspace structure or file contents.",
     );
   });
 
@@ -723,10 +711,10 @@ describe("OcGoChatModelProvider", () => {
 
     expect(systemMessages).toHaveLength(1);
     expect(systemMessages[0].content).toContain(
-      "For read_file, always provide filePath and the required line range fields from the available editor context before calling the tool.",
+      "For read_file, always provide filePath and line ranges from editor context.",
     );
     expect(systemMessages[0].content).toContain(
-      "If you do not know the file path or line range, ask for clarification instead of emitting an empty read_file call.",
+      "If unknown, ask.",
     );
   });
 
