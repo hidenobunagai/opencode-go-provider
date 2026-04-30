@@ -98,18 +98,14 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
         retryReason === "mid-response-stop"
           ? "Retrying after mid-response stop with increased output token budget"
           : "Retrying with increased output token budget";
-      progress.report(
-        new vscode.LanguageModelTextPart(
-          `\n\n(${retryLabel}...)\n\n`,
-        ),
-      );
+      progress.report(new vscode.LanguageModelTextPart(`\n\n(${retryLabel}...)\n\n`));
     }
 
     const requestBody: {
       model: string;
       messages: AnthropicMessage[];
       system?: string | Array<{ type: "text"; text: string }>;
-      max_tokens: number;
+      max_tokens?: number;
       stream: boolean;
       temperature?: number;
       tools?: unknown[];
@@ -117,9 +113,12 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
     } = {
       model: modelId,
       messages: apiMessages,
-      max_tokens: Math.max(1, currentMaxTokens),
       stream: true,
     };
+
+    if (!isDeepSeek) {
+      requestBody.max_tokens = Math.max(1, currentMaxTokens);
+    }
 
     if (effectiveSystem) requestBody.system = effectiveSystem;
     if (typeof temperatureVal === "number" && temperatureVal > 0) {
