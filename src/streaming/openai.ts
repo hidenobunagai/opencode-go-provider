@@ -2,16 +2,16 @@
 import * as vscode from "vscode";
 import { streamChatCompletion } from "../api";
 import { applyOpenAiSystemPromptGuidance, calculateMaxToolResultChars } from "../guidance";
+import { isProbablyCompleteJson } from "../incremental-json";
 import {
   applyReasoningContentWorkaround,
   convertMessages,
   convertTools,
 } from "../openai-conversion";
-import { isProbablyCompleteJson } from "../incremental-json";
+import { debugLog } from "../output-channel";
+import { extractChatRequestContext, getToolSchemaMap, isToolCallInput } from "../tool-repair";
 import type { OcGoModelInfo } from "../types";
 import { OcGoChatRequest } from "../types";
-import { getToolSchemaMap, extractChatRequestContext, isToolCallInput } from "../tool-repair";
-import { debugLog } from "../output-channel";
 import { setupStreamState } from "./shared";
 
 export interface OpenAIModelInfo {
@@ -63,11 +63,15 @@ export async function processOpenAIStream(
 
   const MAX_RETRIES = 1;
   let currentMaxTokens = requestedMaxTokens;
+  let prevEmittedKeys: Set<string> | undefined;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (token.isCancellationRequested) throw new vscode.CancellationError();
 
     if (attempt > 0) {
+      // Reasoning-only retry: model produced thinking but no text/tool calls.
+      // The reasoning likely consumed the output budget.  Increase output tokens
+      // significantly so the model has room to reason AND respond.
       currentMaxTokens = Math.min(currentMaxTokens * 2, model.maxOutputTokens);
       progress.report(
         new vscode.LanguageModelTextPart(
@@ -102,6 +106,12 @@ export async function processOpenAIStream(
     }
 
     const state = setupStreamState(progress, toolSchemas, requestContext, apiMessages);
+    // Seed with previously emitted tool call keys to prevent duplicates on retry
+    if (prevEmittedKeys) {
+      for (const key of prevEmittedKeys) {
+        state.emittedCanonicalKeys.add(key);
+      }
+    }
     const indexToId = new Map<number, string>();
 
     try {
@@ -193,6 +203,7 @@ export async function processOpenAIStream(
         attempt < MAX_RETRIES &&
         !token.isCancellationRequested
       ) {
+        prevEmittedKeys = state.snapshotEmittedKeys();
         continue;
       }
 

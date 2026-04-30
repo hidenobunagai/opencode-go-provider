@@ -73,6 +73,7 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
 
   const MAX_RETRIES = 1;
   let currentMaxTokens = requestedMaxTokens;
+  let prevEmittedKeys: Set<string> | undefined;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (token.isCancellationRequested) throw new vscode.CancellationError();
@@ -192,6 +193,7 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
       token,
       messages,
       options,
+      prevEmittedKeys,
     );
 
     // Check if retry is needed: reasoning was produced but no visible output
@@ -201,6 +203,7 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
       attempt < MAX_RETRIES &&
       !token.isCancellationRequested
     ) {
+      prevEmittedKeys = streamState.snapshotEmittedKeys();
       continue;
     }
 
@@ -216,10 +219,16 @@ async function processAnthropicStreamingResponse(
   token: vscode.CancellationToken,
   messages: readonly vscode.LanguageModelChatMessage[],
   options: vscode.ProvideLanguageModelChatResponseOptions,
+  prevEmittedKeys?: Set<string>,
 ): Promise<StreamState> {
   const toolSchemas = getToolSchemaMap(options);
   const requestContext = extractChatRequestContext(messages);
   const state = setupStreamState(progress, toolSchemas, requestContext, messages);
+  if (prevEmittedKeys) {
+    for (const key of prevEmittedKeys) {
+      state.emittedCanonicalKeys.add(key);
+    }
+  }
 
   const reader = body.getReader();
   const decoder = new TextDecoder();

@@ -144,6 +144,14 @@ export class StreamState {
     return true;
   }
 
+  /**
+   * Capture the set of already-emitted tool call canonical keys so they can
+   * seed a new StreamState on retry, preventing duplicate tool call emissions.
+   */
+  snapshotEmittedKeys(): Set<string> {
+    return new Set(this.emittedCanonicalKeys);
+  }
+
   finalize(reasoningLogLabel: string): void {
     const leftoverText = this.toolCallScanner.flushText();
     if (leftoverText) {
