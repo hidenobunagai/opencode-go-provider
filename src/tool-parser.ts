@@ -129,6 +129,26 @@ export function parseTextEmbeddedToolCalls(text: string): ParsedTextToolCallResu
   const endToken = "<|tool_call_end|>";
   const xmlStartTokens = ["<tool_calls>", "<tool_call "] as const;
 
+  const result = parseTextEmbeddedToolCallsFrom(
+    text,
+    0,
+    beginToken,
+    argBeginToken,
+    endToken,
+    xmlStartTokens,
+  );
+  return { segments: result.segments, incompleteText: result.incompleteText };
+}
+
+/** Internal: underlying scanner with configurable start position.  Exposed for streaming state. */
+export function parseTextEmbeddedToolCallsFrom(
+  text: string,
+  startPos: number,
+  beginToken: string,
+  argBeginToken: string,
+  endToken: string,
+  xmlStartTokens: readonly string[],
+): { segments: ParsedTextSegment[]; incompleteText: string; consumedLength: number } {
   const segments: ParsedTextSegment[] = [];
   let remaining = text;
   let incompleteText = "";
@@ -213,7 +233,138 @@ export function parseTextEmbeddedToolCalls(text: string): ParsedTextToolCallResu
     }
   }
 
-  return { segments, incompleteText };
+  return { segments, incompleteText, consumedLength: text.length - remaining.length };
 }
 
-export type { ParsedTextToolCall, ParsedTextSegment, ParsedTextToolCallResult };
+export type { ParsedTextSegment, ParsedTextToolCall, ParsedTextToolCallResult };
+
+// ---------------------------------------------------------------------------
+// Stateful scanner for streaming text-embedded tool calls.
+// Avoids re-scanning the entire accumulated buffer on every text delta.
+// ---------------------------------------------------------------------------
+
+export class ToolCallScanner {
+  private readonly beginToken = "<|tool_call_begin|>";
+  private readonly argBeginToken = "<|tool_call_argument_begin|>";
+  private readonly endToken = "<|tool_call_end|>";
+  private readonly xmlStartTokens = ["<tool_calls>", "<tool_call "] as const;
+
+  /** Accumulated unprocessed or partial content. */
+  buffer = "";
+
+  /**
+   * Feed a new text delta into the scanner.
+   * Returns fully-parsed segments.  Incomplete content is kept in {@link buffer}
+   * and will be retried when the next delta arrives.
+   */
+  feed(text: string): ParsedTextSegment[] {
+    this.buffer += text;
+
+    const delimTokens = [this.beginToken, ...this.xmlStartTokens];
+
+    const segments: ParsedTextSegment[] = [];
+    let pos = 0;
+    let lastAppendTextEnd = 0;
+
+    const appendText = (value: string): void => {
+      if (!value) return;
+      const lastSegment = segments.at(-1);
+      if (lastSegment?.type === "text") {
+        lastSegment.text += value;
+        return;
+      }
+      segments.push({ type: "text", text: value });
+    };
+
+    while (pos < this.buffer.length) {
+      // Find the earliest delimiter in the remaining buffer
+      let earliestIdx = -1;
+      let earliestKind: "legacy" | "xml" = "legacy";
+
+      const legacyIdx = this.buffer.indexOf(this.beginToken, pos);
+      if (legacyIdx !== -1) {
+        earliestIdx = legacyIdx;
+        earliestKind = "legacy";
+      }
+      for (const token of this.xmlStartTokens) {
+        const idx = this.buffer.indexOf(token, pos);
+        if (idx !== -1 && (earliestIdx === -1 || idx < earliestIdx)) {
+          earliestIdx = idx;
+          earliestKind = "xml";
+        }
+      }
+
+      if (earliestIdx === -1) {
+        // No delimiter found.  Check for partial delimiter at the very end.
+        const partialStart = findTrailingTokenPrefixStartAny(this.buffer.slice(pos), delimTokens);
+        if (partialStart === -1) {
+          // All remaining content is plain text — emit it and clear buffer
+          appendText(this.buffer.slice(pos));
+          pos = this.buffer.length;
+        } else {
+          // Partial delimiter — keep in buffer for next delta
+          appendText(this.buffer.slice(pos, pos + partialStart));
+          this.buffer = this.buffer.slice(pos + partialStart);
+          return segments;
+        }
+        break;
+      }
+
+      // Emit text before the delimiter
+      appendText(this.buffer.slice(pos, earliestIdx));
+      pos = earliestIdx;
+
+      if (earliestKind === "xml") {
+        const xmlResult = parseXmlStyleToolCall(this.buffer.slice(pos));
+        if (xmlResult.incomplete) {
+          // Incomplete XML — keep from pos onward for next delta
+          this.buffer = this.buffer.slice(pos);
+          return segments;
+        }
+        pos += xmlResult.consumed;
+        if (xmlResult.rawText) {
+          appendText(xmlResult.rawText);
+        } else if (xmlResult.toolCall) {
+          segments.push({ type: "toolCall", toolCall: xmlResult.toolCall });
+        }
+        continue;
+      }
+
+      // Legacy format: <|tool_call_begin|> name <|tool_call_argument_begin|> args <|tool_call_end|>
+      pos += this.beginToken.length;
+      const argBeginIdx = this.buffer.indexOf(this.argBeginToken, pos);
+      const endIdx = this.buffer.indexOf(this.endToken, pos);
+      if (argBeginIdx === -1 || endIdx === -1 || argBeginIdx > endIdx) {
+        // Incomplete — keep from the beginToken position
+        this.buffer = this.buffer.slice(earliestIdx);
+        return segments;
+      }
+
+      const name = this.buffer.slice(pos, argBeginIdx).trim();
+      pos = endIdx + this.endToken.length;
+
+      if (!name) continue;
+
+      const argsText = this.buffer.slice(argBeginIdx + this.argBeginToken.length, endIdx).trim();
+      try {
+        segments.push({
+          type: "toolCall",
+          toolCall: { name, args: argsText ? JSON.parse(argsText) : {} },
+        });
+      } catch {
+        appendText(`${this.beginToken}${name}${this.argBeginToken}${argsText}${this.endToken}`);
+      }
+    }
+
+    // All content consumed — reset buffer
+    this.buffer = "";
+    return segments;
+  }
+
+  /** Flush any remaining buffered content as plain text. */
+  flushText(): string {
+    const text = this.buffer;
+    this.buffer = "";
+    return text;
+  }
+}

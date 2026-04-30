@@ -1,15 +1,15 @@
 // streaming/anthropic.ts — Anthropic-format SSE streaming for /messages endpoint
 import * as vscode from "vscode";
+import { convertMessagesToAnthropic, convertToolsToAnthropic } from "../anthropic-conversion";
 import { fetchWithRetry } from "../api";
 import { BASE_URL, REQUEST_TIMEOUT_MS } from "../constants";
 import { buildProviderIdentityGuidance, sanitizeSystemPromptForModel } from "../guidance";
+import { isProbablyCompleteJson } from "../incremental-json";
+import { convertTools } from "../openai-conversion";
 import { debugLog } from "../output-channel";
 import { extractChatRequestContext, getToolSchemaMap, isToolCallInput } from "../tool-repair";
 import { AnthropicMessage, AnthropicSSEEvent, OcGoModelInfo, type Json } from "../types";
-import { convertMessagesToAnthropic, convertToolsToAnthropic } from "../anthropic-conversion";
-import { convertTools } from "../openai-conversion";
 import { setupStreamState, type StreamState } from "./shared";
-import { isProbablyCompleteJson } from "../incremental-json";
 
 export interface AnthropicRequestParams {
   modelId: string;
@@ -220,7 +220,6 @@ async function processAnthropicStreamingResponse(
   const toolSchemas = getToolSchemaMap(options);
   const requestContext = extractChatRequestContext(messages);
   const state = setupStreamState(progress, toolSchemas, requestContext, messages);
-  const openAiFallbackIndexToId = new Map<number, string>();
 
   const reader = body.getReader();
   const decoder = new TextDecoder();
@@ -324,72 +323,11 @@ async function processAnthropicStreamingResponse(
           case "message_stop":
             break;
 
-          default: {
-            const openAiEvt = event as unknown as {
-              object?: string;
-              choices?: Array<{
-                delta?: {
-                  role?: string;
-                  content?: string | null;
-                  tool_calls?: Array<{
-                    id?: string;
-                    function?: { name?: string; arguments?: string };
-                    index?: number;
-                  }> | null;
-                };
-                finish_reason?: string | null;
-              }>;
-            };
-            if (openAiEvt.object === "chat.completion.chunk" && openAiEvt.choices) {
-              for (const choice of openAiEvt.choices) {
-                const delta = choice.delta;
-                if (delta?.content) {
-                  state.handleTextDelta(delta.content);
-                }
-                if (delta?.tool_calls) {
-                  for (const tc of delta.tool_calls) {
-                    const idx = tc.index ?? 0;
-                    const callId =
-                      tc.id && typeof tc.id === "string"
-                        ? (openAiFallbackIndexToId.set(idx, tc.id), tc.id)
-                        : (openAiFallbackIndexToId.get(idx) ?? String(idx));
-                    const existing = state.nativeToolCalls.get(callId);
-                    if (existing) {
-                      if (tc.function?.arguments) {
-                        existing.args += tc.function.arguments;
-                      }
-                    } else if (tc.id && tc.function?.name) {
-                      state.nativeToolCalls.set(callId, {
-                        id: tc.id,
-                        name: tc.function.name,
-                        args: tc.function.arguments ?? "",
-                      });
-                    }
-                  }
-                }
-                if (choice.finish_reason === "tool_calls") {
-                  for (const [, tc] of state.nativeToolCalls) {
-                    let input: unknown = {};
-                    if (tc.args.trim()) {
-                      try {
-                        input = JSON.parse(tc.args) as Record<string, Json>;
-                      } catch {
-                        debugLog(
-                          "processAnthropicStreamingResponse",
-                          "Failed to parse DeepSeek tool call input",
-                        );
-                      }
-                    }
-                    if (tc.id && tc.name && isToolCallInput(input)) {
-                      state.tryEmitNativeToolCall(tc.id, tc.name, input);
-                    }
-                  }
-                  state.nativeToolCalls.clear();
-                }
-              }
-            }
+          default:
+            // Unknown event type — skip silently.  The Anthropic endpoint only
+            // emits the event types handled above; anything else is either a
+            // protocol extension or noise.
             break;
-          }
         }
       }
     }

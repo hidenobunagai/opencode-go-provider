@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { debugLog } from "../output-channel";
-import { parseTextEmbeddedToolCalls, type ParsedTextToolCall } from "../tool-parser";
+import { ToolCallScanner, type ParsedTextToolCall } from "../tool-parser";
 import {
   buildInvalidToolCallFallback,
   buildToolCallCanonicalKey,
@@ -9,8 +9,8 @@ import {
   hasRequiredToolArguments,
   isToolCallInput,
   repairToolArguments,
-  type ToolSchema,
   type ChatRequestContext,
+  type ToolSchema,
 } from "../tool-repair";
 
 export interface SkippedToolCall {
@@ -37,7 +37,6 @@ export function setupStreamState(
 
 export class StreamState {
   pendingText = "";
-  pendingTextEmbeddedContent = "";
   sawToolCall = false;
   emittedToolCall = false;
   hasEmittedOutput = false;
@@ -47,6 +46,8 @@ export class StreamState {
 
   nativeToolCalls = new Map<string, NativeToolCall>();
   completedNativeCallIds = new Set<string>();
+
+  private toolCallScanner = new ToolCallScanner();
 
   constructor(
     private progress: vscode.Progress<vscode.LanguageModelResponsePart>,
@@ -70,10 +71,7 @@ export class StreamState {
   }
 
   handleTextDelta(text: string): void {
-    const { segments, incompleteText } = parseTextEmbeddedToolCalls(
-      this.pendingTextEmbeddedContent + text,
-    );
-    this.pendingTextEmbeddedContent = incompleteText;
+    const segments = this.toolCallScanner.feed(text);
     for (const segment of segments) {
       if (segment.type === "text") {
         this.pendingText += segment.text;
@@ -147,8 +145,9 @@ export class StreamState {
   }
 
   finalize(reasoningLogLabel: string): void {
-    if (this.pendingTextEmbeddedContent) {
-      this.pendingText += this.pendingTextEmbeddedContent;
+    const leftoverText = this.toolCallScanner.flushText();
+    if (leftoverText) {
+      this.pendingText += leftoverText;
     }
 
     if (
