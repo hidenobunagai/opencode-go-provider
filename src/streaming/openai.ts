@@ -8,6 +8,7 @@ import {
   convertMessages,
   convertTools,
 } from "../openai-conversion";
+import { REASONING_CONTENT_WORKAROUND_MODELS } from "../constants";
 import { debugLog } from "../output-channel";
 import { extractChatRequestContext, getToolSchemaMap, isToolCallInput } from "../tool-repair";
 import type { OcGoModelInfo } from "../types";
@@ -59,7 +60,7 @@ export async function processOpenAIStream(
 
   const toolConfig = convertTools(options);
   const reasoningEffort = normalizeReasoningEffort(model.reasoningEffort);
-  const isThinkingModel = model.id.startsWith("deepseek-v");
+  const isThinkingModel = REASONING_CONTENT_WORKAROUND_MODELS.has(model.id);
 
   const MAX_RETRIES = 1;
   let currentMaxTokens = requestedMaxTokens;
