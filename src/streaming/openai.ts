@@ -7,6 +7,7 @@ import {
   convertMessages,
   convertTools,
 } from "../openai-conversion";
+import { isProbablyCompleteJson } from "../incremental-json";
 import type { OcGoModelInfo } from "../types";
 import { OcGoChatRequest } from "../types";
 import { getToolSchemaMap, extractChatRequestContext, isToolCallInput } from "../tool-repair";
@@ -149,6 +150,9 @@ export async function processOpenAIStream(
             const buf = state.nativeToolCalls.get(callId);
             if (!buf || !buf.args.trim()) continue;
 
+            // Avoid JSON.parse on fragments that are structurally incomplete
+            if (!isProbablyCompleteJson(buf.args)) continue;
+
             try {
               const args = JSON.parse(buf.args) as unknown;
               if (buf.id && buf.name && isToolCallInput(args)) {
@@ -159,9 +163,10 @@ export async function processOpenAIStream(
                 }
               }
             } catch {
+              // Structural check passed but JSON.parse failed — rare edge case
               debugLog(
                 "processOpenAIStream",
-                "Failed to parse tool call JSON, waiting for next chunk",
+                "Json parse failed despite structural completeness check",
               );
             }
           }

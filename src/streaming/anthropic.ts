@@ -9,6 +9,7 @@ import { AnthropicMessage, AnthropicSSEEvent, OcGoModelInfo, type Json } from ".
 import { convertMessagesToAnthropic, convertToolsToAnthropic } from "../anthropic-conversion";
 import { convertTools } from "../openai-conversion";
 import { setupStreamState, type StreamState } from "./shared";
+import { isProbablyCompleteJson } from "../incremental-json";
 
 export interface AnthropicRequestParams {
   modelId: string;
@@ -301,7 +302,7 @@ async function processAnthropicStreamingResponse(
             const tc = state.nativeToolCalls.get(idx);
             if (tc) {
               let input: unknown = {};
-              if (tc.args.trim()) {
+              if (tc.args.trim() && isProbablyCompleteJson(tc.args)) {
                 try {
                   input = JSON.parse(tc.args) as Record<string, Json>;
                 } catch {
