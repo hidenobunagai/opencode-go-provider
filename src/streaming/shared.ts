@@ -180,17 +180,5 @@ export class StreamState {
         reasoning_preview: this.reasoningContent.slice(0, 300),
       });
     }
-
-    if (!this.hasEmittedOutput) {
-      const reasonings =
-        this.reasoningContent.trim().length > 0
-          ? ` The model produced ${this.reasoningContent.length} characters of internal reasoning but no visible output.`
-          : " The API returned no content.";
-      this.progress.report(
-        new vscode.LanguageModelTextPart(
-          `The model did not return any text content.${reasonings} This may indicate the model's token budget was exhausted during reasoning, or the request was interrupted. Try reducing the conversation length, simplifying the prompt, or switching to a model with a larger context window.`,
-        ),
-      );
-    }
   }
 }
