@@ -65,7 +65,9 @@ export async function processOpenAIStream(
   // Reasoning models may consume the entire output budget on internal thinking
   // before producing any visible text/tool calls.  Allow multiple retries with
   // exponentially increasing budgets so the model has room to reason AND respond.
-  const MAX_RETRIES = 3;
+  // NOTE: Thinking models do NOT receive max_tokens — the API manages the budget
+  // internally, so retries with increased limits are meaningless for them.
+  const MAX_RETRIES = isThinkingModel ? 0 : 3;
   let currentMaxTokens = requestedMaxTokens;
   let prevEmittedKeys: Set<string> | undefined;
   let retryReason: "reasoning-only" | "mid-response-stop" | undefined;
