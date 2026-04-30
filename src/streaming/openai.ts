@@ -1,6 +1,7 @@
 // streaming/openai.ts — OpenAI-format SSE streaming + tool call assembly
 import * as vscode from "vscode";
 import { streamChatCompletion } from "../api";
+import { REASONING_CONTENT_WORKAROUND_MODELS } from "../constants";
 import { applyOpenAiSystemPromptGuidance, calculateMaxToolResultChars } from "../guidance";
 import { isProbablyCompleteJson } from "../incremental-json";
 import {
@@ -8,7 +9,6 @@ import {
   convertMessages,
   convertTools,
 } from "../openai-conversion";
-import { REASONING_CONTENT_WORKAROUND_MODELS } from "../constants";
 import { debugLog } from "../output-channel";
 import { extractChatRequestContext, getToolSchemaMap, isToolCallInput } from "../tool-repair";
 import type { OcGoModelInfo } from "../types";

@@ -713,9 +713,7 @@ describe("OcGoChatModelProvider", () => {
     expect(systemMessages[0].content).toContain(
       "For read_file, always provide filePath and line ranges from editor context.",
     );
-    expect(systemMessages[0].content).toContain(
-      "If unknown, ask.",
-    );
+    expect(systemMessages[0].content).toContain("If unknown, ask.");
   });
 
   it("logs outgoing OpenAI requests for DeepSeek models", async () => {
