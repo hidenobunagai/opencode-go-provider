@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.37] - 2026-04-30
+
+### Removed
+
+- **Silenced the "no text content" diagnostic** that appeared when the API occasionally returned an empty response. OpenCode Go itself never shows this message — it handles empty responses silently. The diagnostic was alarming users with a misleading token-budget warning.
+
 ## [0.1.36] - 2026-04-30
 
 ### Fixed
