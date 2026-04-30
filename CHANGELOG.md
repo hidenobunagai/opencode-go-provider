@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.35] - 2026-04-30
+
+### Fixed
+
+- **Removed false-positive "stopped mid-task" diagnostic** that appeared after successful responses. The message was incorrectly triggered by a condition that checked `!sawToolCall && emittedCanonicalKeys.size > 0`, which fired whenever the model produced a text-only response after previously emitting tool calls in the conversation history.
+
 ## [0.1.34] - 2026-04-30
 
 ### Fixed
