@@ -15,6 +15,9 @@ type TiktokenModule = {
 let cachedTiktokenModule: TiktokenModule | null | undefined;
 let preloadStarted = false;
 
+/** Cache encoding objects per model name to avoid repeated allocation/free cycles. */
+const encodingCache = new Map<string, Encoding>();
+
 function getTiktokenModule(): TiktokenModule | null {
   if (cachedTiktokenModule !== undefined) {
     return cachedTiktokenModule;
@@ -30,6 +33,41 @@ function getTiktokenModule(): TiktokenModule | null {
   return cachedTiktokenModule;
 }
 
+/**
+ * Return a cached (or newly created) tiktoken Encoding for the given model name.
+ * The caller MUST NOT call {@link Encoding.free} on the returned object — it is
+ * managed by the cache and reused across calls.
+ */
+function getCachedEncoding(modelName: string): Encoding | undefined {
+  const cached = encodingCache.get(modelName);
+  if (cached) return cached;
+
+  const tiktoken = getTiktokenModule();
+  if (!tiktoken) return undefined;
+
+  let encoding: Encoding;
+  try {
+    encoding = tiktoken.encoding_for_model(modelName);
+  } catch {
+    return undefined;
+  }
+
+  encodingCache.set(modelName, encoding);
+  return encoding;
+}
+
+/** Release all cached encodings. Safe to call during extension deactivation. */
+export function disposeTokenizerCache(): void {
+  for (const encoding of encodingCache.values()) {
+    try {
+      encoding.free();
+    } catch {
+      // best-effort cleanup
+    }
+  }
+  encodingCache.clear();
+}
+
 export function preloadTiktoken(): void {
   if (preloadStarted) return;
   preloadStarted = true;
@@ -43,15 +81,12 @@ export function preloadTiktoken(): void {
 export function estimateTokens(text: string, modelId?: string): number {
   if (!text) return 0;
   try {
-    const tiktoken = getTiktokenModule();
-    if (!tiktoken) {
+    const modelName = modelId ? MODEL_TOKENIZER_MAP[modelId] : undefined;
+    const encoding = getCachedEncoding(modelName || "gpt-4o");
+    if (!encoding) {
       throw new Error("@dqbd/tiktoken unavailable");
     }
-    const modelName = modelId ? MODEL_TOKENIZER_MAP[modelId] : undefined;
-    const encoding = tiktoken.encoding_for_model(modelName || "gpt-4o");
-    const tokens = encoding.encode(text).length;
-    encoding.free();
-    return tokens;
+    return estimateTokensWithEncoding(text, encoding);
   } catch {
     return Math.ceil(text.length / 2);
   }
@@ -68,26 +103,8 @@ export function estimateMessagesTokens(
   modelId?: string,
 ): number {
   let total = 0;
-  const tiktoken = getTiktokenModule();
-  if (!tiktoken) {
-    for (const message of messages) {
-      for (const part of message.content) {
-        const textValue = getTextPartValue(part) ?? getDataPartTextValue(part);
-        if (textValue !== undefined) {
-          total += Math.ceil(textValue.length / 2);
-        }
-      }
-    }
-    return total;
-  }
-
   const modelName = modelId ? MODEL_TOKENIZER_MAP[modelId] : undefined;
-  let encoding: Encoding | undefined;
-  try {
-    encoding = tiktoken.encoding_for_model(modelName || "gpt-4o");
-  } catch {
-    encoding = undefined;
-  }
+  const encoding = getCachedEncoding(modelName || "gpt-4o");
 
   if (!encoding) {
     for (const message of messages) {
@@ -110,6 +127,5 @@ export function estimateMessagesTokens(
     }
   }
 
-  encoding.free();
   return total;
 }

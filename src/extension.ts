@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { EXTENSION_VERSION } from "./constants";
 import { debugLog, getOutputChannel } from "./output-channel";
 import { OcGoChatModelProvider } from "./provider";
-import { preloadTiktoken } from "./tokenizer";
+import { disposeTokenizerCache, preloadTiktoken } from "./tokenizer";
 import { registerOcGoTools } from "./tools";
 
 let _provider: OcGoChatModelProvider | null = null;
@@ -91,4 +91,5 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
   _provider = null;
+  disposeTokenizerCache();
 }
