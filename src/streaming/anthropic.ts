@@ -71,9 +71,13 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
     throw new Error("No messages to send to Anthropic API");
   }
 
-  const MAX_RETRIES = 1;
+  // Reasoning models may consume the entire output budget on internal thinking
+  // before producing any visible text/tool calls.  Allow multiple retries with
+  // exponentially increasing budgets so the model has room to reason AND respond.
+  const MAX_RETRIES = 3;
   let currentMaxTokens = requestedMaxTokens;
   let prevEmittedKeys: Set<string> | undefined;
+  let retryReason: "reasoning-only" | "mid-response-stop" | undefined;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (token.isCancellationRequested) throw new vscode.CancellationError();
@@ -90,9 +94,13 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
             currentMaxTokens * 2,
             fallbackModels.find((m) => m.id === modelId)?.maxOutput ?? currentMaxTokens * 2,
           );
+      const retryLabel =
+        retryReason === "mid-response-stop"
+          ? "Retrying after mid-response stop with increased output token budget"
+          : "Retrying with increased output token budget";
       progress.report(
         new vscode.LanguageModelTextPart(
-          "\n\n(Retrying with increased output token budget...)\n\n",
+          `\n\n(${retryLabel}...)\n\n`,
         ),
       );
     }
@@ -203,13 +211,29 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
       prevEmittedKeys,
     );
 
-    // Check if retry is needed: reasoning was produced but no visible output
+    // Check if retry is needed
+    let shouldRetry = false;
     if (
       !streamState.hasEmittedOutput &&
       streamState.reasoningContent &&
       attempt < MAX_RETRIES &&
       !token.isCancellationRequested
     ) {
+      shouldRetry = true;
+      retryReason = "reasoning-only";
+    } else if (
+      streamState.sawToolCall &&
+      !streamState.emittedToolCall &&
+      streamState.reasoningContent &&
+      attempt < MAX_RETRIES &&
+      !token.isCancellationRequested
+    ) {
+      // Model started producing tool calls but stopped mid-response
+      shouldRetry = true;
+      retryReason = "mid-response-stop";
+    }
+
+    if (shouldRetry) {
       prevEmittedKeys = streamState.snapshotEmittedKeys();
       continue;
     }

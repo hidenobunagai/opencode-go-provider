@@ -62,9 +62,13 @@ export async function processOpenAIStream(
   const reasoningEffort = normalizeReasoningEffort(model.reasoningEffort);
   const isThinkingModel = REASONING_CONTENT_WORKAROUND_MODELS.has(model.id);
 
-  const MAX_RETRIES = 1;
+  // Reasoning models may consume the entire output budget on internal thinking
+  // before producing any visible text/tool calls.  Allow multiple retries with
+  // exponentially increasing budgets so the model has room to reason AND respond.
+  const MAX_RETRIES = 3;
   let currentMaxTokens = requestedMaxTokens;
   let prevEmittedKeys: Set<string> | undefined;
+  let retryReason: "reasoning-only" | "mid-response-stop" | undefined;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (token.isCancellationRequested) throw new vscode.CancellationError();
@@ -79,11 +83,11 @@ export async function processOpenAIStream(
       currentMaxTokens = isThinkingModel
         ? currentMaxTokens * 2
         : Math.min(currentMaxTokens * 2, model.maxOutputTokens);
-      progress.report(
-        new vscode.LanguageModelTextPart(
-          "\n\n(Retrying with increased output token budget...)\n\n",
-        ),
-      );
+      const retryLabel =
+        retryReason === "mid-response-stop"
+          ? "Retrying after mid-response stop with increased output token budget"
+          : "Retrying with increased output token budget";
+      progress.report(new vscode.LanguageModelTextPart(`\n\n(${retryLabel}...)\n\n`));
     }
 
     const requestBody: OcGoChatRequest = {
@@ -202,13 +206,29 @@ export async function processOpenAIStream(
         }
       }
 
-      // Check if retry is needed: reasoning was produced but no visible output
+      // Check if retry is needed
+      let shouldRetry = false;
       if (
         !state.hasEmittedOutput &&
         state.reasoningContent &&
         attempt < MAX_RETRIES &&
         !token.isCancellationRequested
       ) {
+        shouldRetry = true;
+        retryReason = "reasoning-only";
+      } else if (
+        state.sawToolCall &&
+        !state.emittedToolCall &&
+        state.reasoningContent &&
+        attempt < MAX_RETRIES &&
+        !token.isCancellationRequested
+      ) {
+        // Model started producing tool calls but stopped mid-response
+        shouldRetry = true;
+        retryReason = "mid-response-stop";
+      }
+
+      if (shouldRetry) {
         prevEmittedKeys = state.snapshotEmittedKeys();
         continue;
       }
