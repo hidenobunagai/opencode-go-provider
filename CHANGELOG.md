@@ -1,6 +1,24 @@
 # Change Log
 
-## [0.1.32] - 2026-04-29
+## [0.1.34] - 2026-04-30
+
+### Fixed
+
+- **Critical:** Thinking models (DeepSeek V4, Kimi K2) no longer receive `max_completion_tokens` / `max_tokens` in API requests. The OpenCode Go API balances reasoning vs visible output internally; overriding with explicit limits caused the model to exhaust the entire budget on internal reasoning, producing zero visible text or tool calls. This eliminates the frequent "stopped mid-response" failures.
+- Mid-response stop detection: when a model starts producing tool calls but stops before completing any, the extension now retries with increased token budget.
+- Extended automatic retry from 1 to 3 attempts with exponentially increasing budgets each time.
+
+### Performance
+
+- Token counting now uses cached tiktoken encodings instead of allocating/freeing per call.
+- Incomplete JSON tool call fragments are detected structurally before attempting `JSON.parse`, avoiding unnecessary parse failures.
+- Stateful tool call scanner replaces regex-based text-embedded tool call parsing for more efficient incremental processing.
+- Removed OpenAI SSE fallback parser from Anthropic streaming path.
+- System prompt guidance compressed to reduce token overhead.
+- Dynamic context window safety margin: 1% of model context window (minimum 2048 tokens), replacing the flat 4096 across all models.
+- Improved retry with snapshot-based tool call deduplication so already-emitted calls aren't repeated on retry.
+
+## [0.1.33] - 2026-04-29
 
 ### Fixed
 
