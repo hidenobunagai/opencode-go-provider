@@ -79,10 +79,17 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
     if (token.isCancellationRequested) throw new vscode.CancellationError();
 
     if (attempt > 0) {
-      currentMaxTokens = Math.min(
-        currentMaxTokens * 2,
-        fallbackModels.find((m) => m.id === modelId)?.maxOutput ?? currentMaxTokens * 2,
-      );
+      // Reasoning-only retry: model produced thinking but no text/tool calls.
+      // Increase output tokens so the model has room to reason AND respond.
+      // For thinking models the maxOutput cap is skipped on retry because
+      // the budget must cover both reasoning and visible output; doubling
+      // against the cap would be a no-op when already at limit.
+      currentMaxTokens = isDeepSeek
+        ? currentMaxTokens * 2
+        : Math.min(
+            currentMaxTokens * 2,
+            fallbackModels.find((m) => m.id === modelId)?.maxOutput ?? currentMaxTokens * 2,
+          );
       progress.report(
         new vscode.LanguageModelTextPart(
           "\n\n(Retrying with increased output token budget...)\n\n",

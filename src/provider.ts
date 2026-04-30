@@ -13,15 +13,15 @@ import {
   ProvideLanguageModelChatResponseOptions,
 } from "vscode";
 import {
-  CONTEXT_WINDOW_SAFETY_MARGIN,
   DEFAULT_MAX_OUTPUT_TOKENS,
   REASONING_CONTENT_WORKAROUND_MODELS,
+  getContextWindowSafetyMargin,
 } from "./constants";
 import { OcGoMcpClient } from "./mcp";
 import { handleAnthropicRequest } from "./streaming/anthropic";
 import { processOpenAIStream, type OpenAIModelInfo } from "./streaming/openai";
-import { FALLBACK_MODELS, OcGoModelInfo } from "./types";
 import { estimateMessagesTokens, estimateTokens } from "./tokenizer";
+import { FALLBACK_MODELS, OcGoModelInfo } from "./types";
 
 export class OcGoChatModelProvider implements LanguageModelChatProvider {
   private readonly _onDidChangeLanguageModelChatInformation = new EventEmitter<void>();
@@ -291,7 +291,9 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
       }
 
       const maxInputTokens = model.maxInputTokens;
-      const effectiveMaxInputTokens = Math.max(1, maxInputTokens - CONTEXT_WINDOW_SAFETY_MARGIN);
+      const modelContextWindow = maxInputTokens + model.maxOutputTokens;
+      const safetyMargin = getContextWindowSafetyMargin(modelContextWindow);
+      const effectiveMaxInputTokens = Math.max(1, maxInputTokens - safetyMargin);
 
       if (inputTokenCount > effectiveMaxInputTokens) {
         throw new Error(
@@ -308,7 +310,9 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
       // Thinking models (e.g. DeepSeek V4) consume part of the max_tokens budget
       // for internal reasoning. Enforce a minimum output budget so the model has
       // enough room to reason AND produce a visible response.
-      const MIN_THINKING_MODEL_OUTPUT_TOKENS = 4096;
+      // 16K floor avoids the common failure where reasoning exhausts the budget
+      // before any text or tool calls are emitted.
+      const MIN_THINKING_MODEL_OUTPUT_TOKENS = 16384;
       const resolvedModelId = this.resolveApiModelId(model.id);
       const isThinkingModel = REASONING_CONTENT_WORKAROUND_MODELS.has(resolvedModelId);
       const effectiveMaxTokens = isThinkingModel

@@ -3,8 +3,15 @@ import { version } from "../package.json";
 export const BASE_URL = "https://opencode.ai/zen/go/v1";
 export const EXTENSION_VERSION: string = version;
 
-/** Safety margin for context window calculations (in tokens) */
+/** Safety margin for context window calculations (in tokens).
+ * Fallback value used when model context window is unknown. */
 export const CONTEXT_WINDOW_SAFETY_MARGIN = 4096;
+
+/** Compute a dynamic safety margin: 1% of context window, minimum 2048 tokens.
+ * Larger models need proportionally larger margins for system overhead. */
+export function getContextWindowSafetyMargin(contextWindow: number): number {
+  return Math.max(2048, Math.floor(contextWindow * 0.01));
+}
 
 /** Default token limit if model info is unknown */
 export const DEFAULT_MAX_OUTPUT_TOKENS = 65536;

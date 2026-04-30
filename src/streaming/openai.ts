@@ -72,7 +72,12 @@ export async function processOpenAIStream(
       // Reasoning-only retry: model produced thinking but no text/tool calls.
       // The reasoning likely consumed the output budget.  Increase output tokens
       // significantly so the model has room to reason AND respond.
-      currentMaxTokens = Math.min(currentMaxTokens * 2, model.maxOutputTokens);
+      // For thinking models the maxOutputTokens cap is skipped on retry because
+      // the budget must cover both reasoning and visible output; doubling
+      // against the cap would be a no-op when already at limit.
+      currentMaxTokens = isThinkingModel
+        ? currentMaxTokens * 2
+        : Math.min(currentMaxTokens * 2, model.maxOutputTokens);
       progress.report(
         new vscode.LanguageModelTextPart(
           "\n\n(Retrying with increased output token budget...)\n\n",
