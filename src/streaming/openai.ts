@@ -29,6 +29,23 @@ function normalizeReasoningEffort(reasoningEffort: string | undefined): string |
   return reasoningEffort;
 }
 
+function getRetryReasoningEffort(
+  reasoningEffort: string | undefined,
+  attempt: number,
+): string | undefined {
+  if (!reasoningEffort || attempt <= 0) {
+    return reasoningEffort;
+  }
+
+  const fallbackOrder = ["xhigh", "high", "medium", "low"] as const;
+  const index = fallbackOrder.indexOf(reasoningEffort as (typeof fallbackOrder)[number]);
+  if (index === -1) {
+    return reasoningEffort;
+  }
+
+  return fallbackOrder[Math.min(index + attempt, fallbackOrder.length - 1)];
+}
+
 export async function processOpenAIStream(
   model: OpenAIModelInfo,
   apiMessages: readonly vscode.LanguageModelChatMessage[],
@@ -75,6 +92,8 @@ export async function processOpenAIStream(
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (token.isCancellationRequested) throw new vscode.CancellationError();
 
+    const attemptReasoningEffort = getRetryReasoningEffort(reasoningEffort, attempt);
+
     if (attempt > 0) {
       // Reasoning-only retry: model produced thinking but no text/tool calls.
       // The reasoning likely consumed the output budget.  Increase output tokens
@@ -86,9 +105,11 @@ export async function processOpenAIStream(
       currentMaxTokens = isThinkingModel
         ? currentMaxTokens * 2
         : Math.min(currentMaxTokens * 2, model.maxOutputTokens);
-      const retryLabel =
-        retryReason === "mid-response-stop" ? "Retrying after mid-response stop..." : "Retrying...";
-      progress.report(new vscode.LanguageModelTextPart(`\n\n(${retryLabel})\n\n`));
+      debugLog("processOpenAIStream retry", {
+        attempt,
+        retryReason,
+        reasoning_effort: attemptReasoningEffort,
+      });
     }
 
     const requestBody: OcGoChatRequest = {
@@ -108,7 +129,7 @@ export async function processOpenAIStream(
 
     if (toolConfig.tools) requestBody.tools = toolConfig.tools;
     if (toolConfig.tool_choice) requestBody.tool_choice = toolConfig.tool_choice;
-    if (reasoningEffort) requestBody.reasoning_effort = reasoningEffort;
+    if (attemptReasoningEffort) requestBody.reasoning_effort = attemptReasoningEffort;
 
     if (process.env.OPENCODE_GO_DEBUG === "1" && attempt === 0) {
       debugLog("Outgoing request messages", {

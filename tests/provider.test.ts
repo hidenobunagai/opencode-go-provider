@@ -963,6 +963,48 @@ describe("OcGoChatModelProvider", () => {
     );
   });
 
+  it("reduces DeepSeek Flash reasoning_effort across retries without emitting retry text", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    let attempt = 0;
+    (streamChatCompletion as jest.Mock).mockImplementation(() => {
+      attempt += 1;
+      return (async function* () {
+        if (attempt < 3) {
+          yield { choices: [{ delta: { reasoning_content: "thinking" } }] };
+          return;
+        }
+
+        yield { choices: [{ delta: { content: "done" } }] };
+      })();
+    });
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "deepseek-v4-flash:max", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "Hi" }] }] as any,
+      { modelOptions: {} } as any,
+      progress,
+      token as any,
+    );
+
+    expect(streamChatCompletion).toHaveBeenCalledTimes(3);
+    expect(
+      (streamChatCompletion as jest.Mock).mock.calls.map((call) => call[1]?.reasoning_effort),
+    ).toEqual(["xhigh", "high", "medium"]);
+
+    const emittedText = progress.report.mock.calls
+      .map((call: any[]) => call[0]?.value)
+      .filter((value: unknown): value is string => typeof value === "string");
+
+    expect(emittedText).toEqual(["done"]);
+  });
+
   it("assembles tool call arguments split across chunks", async () => {
     (secrets.get as jest.Mock).mockResolvedValue("test-key");
 
