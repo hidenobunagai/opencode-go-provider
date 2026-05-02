@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.38] - 2026-05-02
+
+### Fixed
+
+- **Restored retries for thinking-model empty responses** without reintroducing explicit `max_tokens`. DeepSeek and other reasoning-heavy paths can again retry when the upstream returns only reasoning content or stops mid-response, reducing cases where VS Code falls back to "Sorry, no response was returned."
+
 ## [0.1.37] - 2026-04-30
 
 ### Removed

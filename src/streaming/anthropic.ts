@@ -74,9 +74,9 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
   // Reasoning models may consume the entire output budget on internal thinking
   // before producing any visible text/tool calls.  Allow multiple retries with
   // exponentially increasing budgets so the model has room to reason AND respond.
-  // NOTE: Thinking models do NOT receive max_tokens — the API manages the budget
-  // internally, so retries with increased limits are meaningless for them.
-  const MAX_RETRIES = isDeepSeek ? 0 : 3;
+  // The API manages the budget internally for DeepSeek models (no max_tokens is
+  // sent), but retries still help when the model produces only reasoning content.
+  const MAX_RETRIES = 3;
   let currentMaxTokens = requestedMaxTokens;
   let prevEmittedKeys: Set<string> | undefined;
   let retryReason: "reasoning-only" | "mid-response-stop" | undefined;
@@ -87,9 +87,10 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
     if (attempt > 0) {
       // Reasoning-only retry: model produced thinking but no text/tool calls.
       // Increase output tokens so the model has room to reason AND respond.
-      // For thinking models the maxOutput cap is skipped on retry because
-      // the budget must cover both reasoning and visible output; doubling
-      // against the cap would be a no-op when already at limit.
+      // For DeepSeek models max_tokens is not sent to the API (budget is
+      // managed internally), but we still track the budget for non-DeepSeek
+      // models where doubling against the cap would be a no-op when already
+      // at limit.
       currentMaxTokens = isDeepSeek
         ? currentMaxTokens * 2
         : Math.min(
@@ -97,10 +98,8 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
             fallbackModels.find((m) => m.id === modelId)?.maxOutput ?? currentMaxTokens * 2,
           );
       const retryLabel =
-        retryReason === "mid-response-stop"
-          ? "Retrying after mid-response stop with increased output token budget"
-          : "Retrying with increased output token budget";
-      progress.report(new vscode.LanguageModelTextPart(`\n\n(${retryLabel}...)\n\n`));
+        retryReason === "mid-response-stop" ? "Retrying after mid-response stop..." : "Retrying...";
+      progress.report(new vscode.LanguageModelTextPart(`\n\n(${retryLabel})\n\n`));
     }
 
     const requestBody: {
