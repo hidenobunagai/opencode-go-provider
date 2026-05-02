@@ -264,7 +264,6 @@ export class ToolCallScanner {
 
     const segments: ParsedTextSegment[] = [];
     let pos = 0;
-    let lastAppendTextEnd = 0;
 
     const appendText = (value: string): void => {
       if (!value) return;
