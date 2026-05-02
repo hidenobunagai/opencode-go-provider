@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.1.39] - 2026-05-02
+
+### Fixed
+
+- **Made DeepSeek retry attempts more effective for Flash/Max and other thinking variants.** On empty-response retries, the extension now reduces `reasoning_effort` step by step (`xhigh -> high -> medium -> low`) instead of retrying with the same settings, which helps models that frequently end with only internal reasoning and no visible output.
+- Retry attempts are no longer emitted into the chat transcript as `Retrying...` text; they are logged only in debug output.
+
 ## [0.1.38] - 2026-05-02
 
 ### Fixed
