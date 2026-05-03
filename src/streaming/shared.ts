@@ -180,5 +180,13 @@ export class StreamState {
         reasoning_preview: this.reasoningContent.slice(0, 300),
       });
     }
+
+    if (!this.hasEmittedOutput) {
+      const fallbackText = this.reasoningContent
+        ? "The model completed internal reasoning but returned no visible response. Please retry. If this keeps happening, try a lower reasoning setting."
+        : "The model returned no visible response. Please retry.";
+      this.progress.report(new vscode.LanguageModelTextPart(fallbackText));
+      this.hasEmittedOutput = true;
+    }
   }
 }

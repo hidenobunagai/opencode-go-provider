@@ -1005,6 +1005,67 @@ describe("OcGoChatModelProvider", () => {
     expect(emittedText).toEqual(["done"]);
   });
 
+  it("returns a fallback text when all DeepSeek retries end with reasoning-only output", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    (streamChatCompletion as jest.Mock).mockImplementation(() => {
+      return (async function* () {
+        yield { choices: [{ delta: { reasoning_content: "thinking" } }] };
+      })();
+    });
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "deepseek-v4-flash:max", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "Hi" }] }] as any,
+      { modelOptions: {} } as any,
+      progress,
+      token as any,
+    );
+
+    expect(streamChatCompletion).toHaveBeenCalledTimes(4);
+
+    const emittedText = progress.report.mock.calls
+      .map((call: any[]) => call[0]?.value)
+      .filter((value: unknown): value is string => typeof value === "string");
+
+    expect(emittedText).toEqual([
+      "The model completed internal reasoning but returned no visible response. Please retry. If this keeps happening, try a lower reasoning setting.",
+    ]);
+  });
+
+  it("returns a fallback text when the model yields no visible output at all", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const mockStream = async function* () {};
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "kimi-k2.6", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "Hi" }] }] as any,
+      { modelOptions: {} } as any,
+      progress,
+      token as any,
+    );
+
+    const emittedText = progress.report.mock.calls
+      .map((call: any[]) => call[0]?.value)
+      .filter((value: unknown): value is string => typeof value === "string");
+
+    expect(emittedText).toEqual(["The model returned no visible response. Please retry."]);
+  });
+
   it("assembles tool call arguments split across chunks", async () => {
     (secrets.get as jest.Mock).mockResolvedValue("test-key");
 
