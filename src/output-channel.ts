@@ -29,15 +29,23 @@ export function debugEnabled(): boolean {
   return process.env.OPENCODE_GO_DEBUG === "1";
 }
 
+function appendChannelLine(prefix: string, label: string, value: unknown, ensureChannel = false) {
+  const message = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+  const channel = ensureChannel ? getOutputChannel() : getGlobalOutputChannel();
+  if (channel) {
+    channel.appendLine(`[OpenCode Go ${prefix}] ${label}: ${message}`);
+    return;
+  }
+  console.log(`[OpenCode Go ${prefix}] ${label}:`, value);
+}
+
 export function debugLog(label: string, value: unknown): void {
   if (!debugEnabled()) {
     return;
   }
-  const message = typeof value === "string" ? value : JSON.stringify(value, null, 2);
-  const channel = getGlobalOutputChannel();
-  if (channel) {
-    channel.appendLine(`[OpenCode Go Debug] ${label}: ${message}`);
-    return;
-  }
-  console.log(`[OpenCode Go Debug] ${label}:`, value);
+  appendChannelLine("Debug", label, value);
+}
+
+export function captureLog(label: string, value: unknown): void {
+  appendChannelLine("Capture", label, value, true);
 }

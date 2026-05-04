@@ -9,7 +9,7 @@ import {
   convertMessages,
   convertTools,
 } from "../openai-conversion";
-import { debugLog } from "../output-channel";
+import { captureLog, debugLog } from "../output-channel";
 import { extractChatRequestContext, getToolSchemaMap, isToolCallInput } from "../tool-repair";
 import type { OcGoModelInfo } from "../types";
 import { OcGoChatRequest } from "../types";
@@ -88,6 +88,7 @@ export async function processOpenAIStream(
   let currentMaxTokens = requestedMaxTokens;
   let prevEmittedKeys: Set<string> | undefined;
   let retryReason: "reasoning-only" | "mid-response-stop" | "empty-response" | undefined;
+  const attemptSnapshots: Array<Record<string, unknown>> = [];
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (token.isCancellationRequested) throw new vscode.CancellationError();
@@ -147,6 +148,7 @@ export async function processOpenAIStream(
       }
     }
     const indexToId = new Map<number, string>();
+    let finishReason: string | null = null;
 
     try {
       for await (const chunk of streamChatCompletion(
@@ -158,6 +160,10 @@ export async function processOpenAIStream(
         if (token.isCancellationRequested) throw new vscode.CancellationError();
 
         const choice = chunk.choices?.[0];
+
+        if (typeof choice?.finish_reason === "string") {
+          finishReason = choice.finish_reason;
+        }
 
         if (choice?.delta?.content) {
           state.handleTextDelta(choice.delta.content);
@@ -265,9 +271,38 @@ export async function processOpenAIStream(
         retryReason = "empty-response";
       }
 
+      attemptSnapshots.push({
+        attempt: attempt + 1,
+        retryReason: shouldRetry ? retryReason : null,
+        requestBody: JSON.parse(JSON.stringify(requestBody)) as OcGoChatRequest,
+        state: {
+          hasVisibleOutput,
+          sawToolCall: state.sawToolCall,
+          emittedToolCall: state.emittedToolCall,
+          incompleteToolCall: state.hasIncompleteToolCall(),
+          pendingTextChars: state.pendingText.length,
+          reasoningChars: state.reasoningContent.length,
+          nativeToolCalls: state.nativeToolCalls.size,
+          skippedToolCalls: state.skippedToolCalls,
+          finishReason,
+        },
+      });
+
       if (shouldRetry) {
         prevEmittedKeys = state.snapshotEmittedKeys();
         continue;
+      }
+
+      const shouldCaptureNoOutput =
+        !hasVisibleOutput &&
+        (!state.sawToolCall || state.reasoningContent.length > 0 || state.hasIncompleteToolCall());
+      if (shouldCaptureNoOutput) {
+        captureLog("OpenAI exhausted no-output retries", {
+          model: model.id,
+          attempts: attemptSnapshots,
+          hint:
+            "Replay the requestBody payloads above against /chat/completions to compare plain-vs-extension behavior.",
+        });
       }
 
       // Finalize on last attempt (successful or all retries exhausted)

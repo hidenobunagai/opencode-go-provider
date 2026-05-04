@@ -1007,6 +1007,9 @@ describe("OcGoChatModelProvider", () => {
 
   it("returns a fallback text when all DeepSeek retries end with reasoning-only output", async () => {
     (secrets.get as jest.Mock).mockResolvedValue("test-key");
+    const captureSpy = jest
+      .spyOn(outputChannel, "captureLog")
+      .mockImplementation(() => undefined);
 
     (streamChatCompletion as jest.Mock).mockImplementation(() => {
       return (async function* () {
@@ -1037,6 +1040,31 @@ describe("OcGoChatModelProvider", () => {
     expect(emittedText).toEqual([
       "The model completed internal reasoning but returned no visible response. Please retry. If this keeps happening, try a lower reasoning setting.",
     ]);
+
+    expect(captureSpy).toHaveBeenCalledWith(
+      "OpenAI exhausted no-output retries",
+      expect.objectContaining({
+        model: "deepseek-v4-flash",
+        attempts: expect.arrayContaining([
+          expect.objectContaining({
+            attempt: 1,
+            requestBody: expect.objectContaining({
+              model: "deepseek-v4-flash",
+              reasoning_effort: "xhigh",
+            }),
+          }),
+          expect.objectContaining({
+            attempt: 4,
+            requestBody: expect.objectContaining({
+              model: "deepseek-v4-flash",
+              reasoning_effort: "low",
+            }),
+          }),
+        ]),
+      }),
+    );
+
+    captureSpy.mockRestore();
   });
 
   it("returns a fallback text when the model yields no visible output at all", async () => {
@@ -1330,6 +1358,9 @@ describe("OcGoChatModelProvider", () => {
 
   it("returns a text fallback when all tool calls are skipped as invalid", async () => {
     (secrets.get as jest.Mock).mockResolvedValue("test-key");
+    const captureSpy = jest
+      .spyOn(outputChannel, "captureLog")
+      .mockImplementation(() => undefined);
 
     const mockStream = async function* () {
       yield {
@@ -1382,6 +1413,9 @@ describe("OcGoChatModelProvider", () => {
     expect(textReports).toHaveLength(1);
     expect(textReports[0][0].value).toContain("filePath");
     expect(textReports[0][0].value).toContain("read_file");
+    expect(captureSpy).not.toHaveBeenCalled();
+
+    captureSpy.mockRestore();
   });
 
   it("returns a text fallback when invalid tool calls are preceded by whitespace content", async () => {
