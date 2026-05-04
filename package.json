@@ -112,7 +112,9 @@
     "package:vsix": "bun run compile && vsce package --allow-missing-repository",
     "repro:deepseek": "bun scripts/repro-deepseek-identity.mjs",
     "repro:compare": "bun scripts/repro-deepseek-identity.mjs --models deepseek-v4-flash,kimi-k2.6",
-    "repro:compare:json": "bun scripts/repro-deepseek-identity.mjs --models deepseek-v4-flash,kimi-k2.6 --json"
+    "repro:compare:json": "bun scripts/repro-deepseek-identity.mjs --models deepseek-v4-flash,kimi-k2.6 --json",
+    "measure:deepseek": "bun scripts/measure-deepseek-chat-completions.mjs",
+    "measure:deepseek:json": "bun scripts/measure-deepseek-chat-completions.mjs --json"
   },
   "devDependencies": {
     "@types/jest": "^29.0.0",
