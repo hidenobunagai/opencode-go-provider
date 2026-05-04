@@ -87,7 +87,7 @@ export async function processOpenAIStream(
   const MAX_RETRIES = 3;
   let currentMaxTokens = requestedMaxTokens;
   let prevEmittedKeys: Set<string> | undefined;
-  let retryReason: "reasoning-only" | "mid-response-stop" | undefined;
+  let retryReason: "reasoning-only" | "mid-response-stop" | "empty-response" | undefined;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (token.isCancellationRequested) throw new vscode.CancellationError();
@@ -203,9 +203,9 @@ export async function processOpenAIStream(
                 const emitted = state.tryEmitNativeToolCall(buf.id, buf.name, args);
                 if (emitted) {
                   state.completedNativeCallIds.add(callId);
-                  state.nativeToolCalls.delete(callId);
                 }
               }
+              state.nativeToolCalls.delete(callId);
             } catch {
               // Structural check passed but JSON.parse failed — rare edge case
               debugLog(
@@ -225,15 +225,17 @@ export async function processOpenAIStream(
           if (buf.id && buf.name && isToolCallInput(args)) {
             state.tryEmitNativeToolCall(buf.id, buf.name, args);
           }
+          state.nativeToolCalls.delete(callId);
         } catch {
           debugLog("processOpenAIStream", "Failed to parse incomplete JSON at stream end");
         }
       }
 
       // Check if retry is needed
+      const hasVisibleOutput = state.hasVisibleOutput();
       let shouldRetry = false;
       if (
-        !state.hasEmittedOutput &&
+        !hasVisibleOutput &&
         state.reasoningContent &&
         attempt < MAX_RETRIES &&
         !token.isCancellationRequested
@@ -241,15 +243,26 @@ export async function processOpenAIStream(
         shouldRetry = true;
         retryReason = "reasoning-only";
       } else if (
-        state.sawToolCall &&
-        !state.emittedToolCall &&
-        state.reasoningContent &&
+        !hasVisibleOutput &&
+        state.hasIncompleteToolCall() &&
         attempt < MAX_RETRIES &&
         !token.isCancellationRequested
       ) {
         // Model started producing tool calls but stopped mid-response
         shouldRetry = true;
         retryReason = "mid-response-stop";
+      } else if (
+        !hasVisibleOutput &&
+        !state.sawToolCall &&
+        !state.reasoningContent &&
+        attempt < MAX_RETRIES &&
+        !token.isCancellationRequested
+      ) {
+        // Some providers occasionally terminate a stream without yielding any
+        // visible content or tool calls. Retry a few times before surfacing the
+        // fallback text to the user.
+        shouldRetry = true;
+        retryReason = "empty-response";
       }
 
       if (shouldRetry) {

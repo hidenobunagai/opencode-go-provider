@@ -152,6 +152,17 @@ export class StreamState {
     return new Set(this.emittedCanonicalKeys);
   }
 
+  hasVisibleOutput(): boolean {
+    return this.hasEmittedOutput || this.pendingText.trim().length > 0;
+  }
+
+  hasIncompleteToolCall(): boolean {
+    return (
+      this.nativeToolCalls.size > 0 ||
+      (this.sawToolCall && !this.emittedToolCall && this.skippedToolCalls.length === 0)
+    );
+  }
+
   finalize(reasoningLogLabel: string): void {
     const leftoverText = this.toolCallScanner.flushText();
     if (leftoverText) {

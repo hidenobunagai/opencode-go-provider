@@ -1066,6 +1066,155 @@ describe("OcGoChatModelProvider", () => {
     expect(emittedText).toEqual(["The model returned no visible response. Please retry."]);
   });
 
+  it("retries silent DeepSeek responses before succeeding", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    let attempt = 0;
+    (streamChatCompletion as jest.Mock).mockImplementation(() => {
+      attempt += 1;
+      return (async function* () {
+        if (attempt < 3) {
+          return;
+        }
+
+        yield { choices: [{ delta: { content: "done" } }] };
+      })();
+    });
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "deepseek-v4-flash:max", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "Hi" }] }] as any,
+      { modelOptions: {} } as any,
+      progress,
+      token as any,
+    );
+
+    expect(streamChatCompletion).toHaveBeenCalledTimes(3);
+    expect(
+      (streamChatCompletion as jest.Mock).mock.calls.map((call) => call[1]?.reasoning_effort),
+    ).toEqual(["xhigh", "high", "medium"]);
+
+    const emittedText = progress.report.mock.calls
+      .map((call: any[]) => call[0]?.value)
+      .filter((value: unknown): value is string => typeof value === "string");
+
+    expect(emittedText).toEqual(["done"]);
+  });
+
+  it("does not retry when visible text is buffered alongside reasoning output", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const mockStream = async function* () {
+      yield { choices: [{ delta: { reasoning_content: "thinking" } }] };
+      yield { choices: [{ delta: { content: "done" } }] };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "deepseek-v4-flash:max", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "Hi" }] }] as any,
+      { modelOptions: {} } as any,
+      progress,
+      token as any,
+    );
+
+    expect(streamChatCompletion).toHaveBeenCalledTimes(1);
+
+    const emittedText = progress.report.mock.calls
+      .map((call: any[]) => call[0]?.value)
+      .filter((value: unknown): value is string => typeof value === "string");
+
+    expect(emittedText).toEqual(["done"]);
+  });
+
+  it("retries incomplete tool calls even when no reasoning content is emitted", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    let attempt = 0;
+    (streamChatCompletion as jest.Mock).mockImplementation(() => {
+      attempt += 1;
+      return (async function* () {
+        if (attempt === 1) {
+          yield {
+            choices: [
+              {
+                delta: {
+                  tool_calls: [
+                    {
+                      index: 0,
+                      id: "call_1",
+                      type: "function",
+                      function: { name: "get_weather", arguments: '{"city": ' },
+                    },
+                  ],
+                },
+              },
+            ],
+          };
+          return;
+        }
+
+        yield {
+          choices: [
+            {
+              delta: {
+                tool_calls: [
+                  {
+                    index: 0,
+                    id: "call_1",
+                    type: "function",
+                    function: { name: "get_weather", arguments: '{"city":"Tokyo"}' },
+                  },
+                ],
+              },
+            },
+          ],
+        };
+      })();
+    });
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "kimi-k2.6", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "Hi" }] }] as any,
+      {
+        modelOptions: {},
+        tools: [{ name: "get_weather", description: "Get weather", inputSchema: {} }],
+      } as any,
+      progress,
+      token as any,
+    );
+
+    expect(streamChatCompletion).toHaveBeenCalledTimes(2);
+
+    const toolCallReports = progress.report.mock.calls.filter((c: any) => c[0]?.callId);
+    expect(toolCallReports).toHaveLength(1);
+    expect(toolCallReports[0][0]).toEqual(
+      expect.objectContaining({
+        callId: "call_1",
+        name: "get_weather",
+        input: { city: "Tokyo" },
+      }),
+    );
+  });
+
   it("assembles tool call arguments split across chunks", async () => {
     (secrets.get as jest.Mock).mockResolvedValue("test-key");
 
