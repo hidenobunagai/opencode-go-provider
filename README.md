@@ -69,6 +69,8 @@ Press `F5` in VS Code to launch the Extension Development Host.
 - `bun run repro:deepseek -- "What model are you?"` – Check DeepSeek upstream response without the extension
 - `bun run repro:compare -- "What model are you?"` – Compare DeepSeek and reference model responses side by side
 - `bun run repro:compare:json -- "What model are you?"` – Output comparison results as JSON
+- `bun run measure:deepseek` – Measure `deepseek-v4-flash:max` / `deepseek-v4-pro:max` directly against `/chat/completions`
+- `bun run measure:deepseek:json` – Output the same DeepSeek measurement results as JSON
 
 ## Troubleshooting
 
@@ -107,6 +109,22 @@ The same works for any combination of models:
 
 ```bash
 bun run repro:deepseek -- --json --models deepseek-v4-flash,glm-5,qwen3.6-plus "What model are you?" > compare.json
+```
+
+### Measuring DeepSeek Empty-Response Behavior Directly
+
+To measure whether `deepseek-v4-flash:max` or `deepseek-v4-pro:max` are returning visible output directly from the OpenCode Go backend, run:
+
+```bash
+export OPENCODE_GO_API_KEY="your-api-key"
+bun run measure:deepseek
+```
+
+For machine-readable results:
+
+```bash
+export OPENCODE_GO_API_KEY="your-api-key"
+bun run measure:deepseek:json > deepseek-measure.json
 ```
 
 ## Marketplace Packaging

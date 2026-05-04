@@ -6,6 +6,8 @@ __mocks__/**
 .github/
 node_modules/**
 .gitignore
+.env
+.env.*
 package-lock.json
 jest.config.js
 tsconfig.json

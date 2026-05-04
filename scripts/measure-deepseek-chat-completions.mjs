@@ -232,17 +232,25 @@ function summarizeAttempts(attempts) {
     reasoningOnly: successes.filter((attempt) => attempt.reasoningOnly).length,
     silent: successes.filter((attempt) => attempt.silent).length,
     avgElapsedMs: successes.length
-      ? Math.round(successes.reduce((sum, attempt) => sum + attempt.elapsedMs, 0) / successes.length)
+      ? Math.round(
+          successes.reduce((sum, attempt) => sum + attempt.elapsedMs, 0) / successes.length,
+        )
       : 0,
   };
 }
 
 function printHelp() {
-  console.log("Usage: bun run measure:deepseek -- [--models a,b] [--attempts 5] [--temperature 0.2] [--json] [prompt]");
+  console.log(
+    "Usage: bun run measure:deepseek -- [--models a,b] [--attempts 5] [--temperature 0.2] [--json] [prompt]",
+  );
   console.log("Examples:");
   console.log("  bun run measure:deepseek");
-  console.log('  bun run measure:deepseek -- --attempts 10 --models deepseek-v4-flash:max,deepseek-v4-pro:max');
-  console.log('  bun run measure:deepseek -- --json "日本語で一文だけ答えてください。最後にOKで終えてください。"');
+  console.log(
+    "  bun run measure:deepseek -- --attempts 10 --models deepseek-v4-flash:max,deepseek-v4-pro:max",
+  );
+  console.log(
+    '  bun run measure:deepseek -- --json "日本語で一文だけ答えてください。最後にOKで終えてください。"',
+  );
   console.log("");
   console.log("Environment variables:");
   console.log("  OPENCODE_GO_API_KEY       OpenCode Go API key for /chat/completions");
@@ -300,7 +308,9 @@ async function main() {
     );
     for (const attempt of model.attempts) {
       if (!attempt.ok) {
-        console.log(`  [${attempt.attempt}] ERROR status=${attempt.status ?? "n/a"} elapsed=${attempt.elapsedMs}ms ${attempt.error}`);
+        console.log(
+          `  [${attempt.attempt}] ERROR status=${attempt.status ?? "n/a"} elapsed=${attempt.elapsedMs}ms ${attempt.error}`,
+        );
         continue;
       }
       console.log(

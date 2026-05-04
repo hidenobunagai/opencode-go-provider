@@ -1,5 +1,17 @@
 # Change Log
 
+## [0.1.40] - 2026-05-04
+
+### Fixed
+
+- **Reduced empty-response failures for OpenAI/DeepSeek streaming paths.** The extension now retries not only reasoning-only responses, but also fully silent stream terminations and incomplete tool-call stops, which were previously more likely to fall through to no visible output.
+- **Empty responses now fail more gracefully when retries are exhausted.** If a model still produces no visible text or tool calls after all retries, the extension returns an explicit fallback message instead of letting VS Code surface the generic "Sorry, no response was returned" message.
+
+### Added
+
+- **Replay-ready diagnostics for no-output incidents.** When OpenAI/DeepSeek retries are exhausted with no visible output, the extension now captures the exact request payloads and attempt metadata in the `OpenCode Go` output channel so problematic requests can be replayed directly against `/chat/completions`.
+- Added `bun run measure:deepseek` and `bun run measure:deepseek:json` helper scripts to measure `deepseek-v4-flash:max` / `deepseek-v4-pro:max` behavior directly against `/chat/completions`.
+
 ## [0.1.39] - 2026-05-02
 
 ### Fixed

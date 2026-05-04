@@ -1007,9 +1007,7 @@ describe("OcGoChatModelProvider", () => {
 
   it("returns a fallback text when all DeepSeek retries end with reasoning-only output", async () => {
     (secrets.get as jest.Mock).mockResolvedValue("test-key");
-    const captureSpy = jest
-      .spyOn(outputChannel, "captureLog")
-      .mockImplementation(() => undefined);
+    const captureSpy = jest.spyOn(outputChannel, "captureLog").mockImplementation(() => undefined);
 
     (streamChatCompletion as jest.Mock).mockImplementation(() => {
       return (async function* () {
@@ -1358,9 +1356,7 @@ describe("OcGoChatModelProvider", () => {
 
   it("returns a text fallback when all tool calls are skipped as invalid", async () => {
     (secrets.get as jest.Mock).mockResolvedValue("test-key");
-    const captureSpy = jest
-      .spyOn(outputChannel, "captureLog")
-      .mockImplementation(() => undefined);
+    const captureSpy = jest.spyOn(outputChannel, "captureLog").mockImplementation(() => undefined);
 
     const mockStream = async function* () {
       yield {

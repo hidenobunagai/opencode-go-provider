@@ -300,8 +300,7 @@ export async function processOpenAIStream(
         captureLog("OpenAI exhausted no-output retries", {
           model: model.id,
           attempts: attemptSnapshots,
-          hint:
-            "Replay the requestBody payloads above against /chat/completions to compare plain-vs-extension behavior.",
+          hint: "Replay the requestBody payloads above against /chat/completions to compare plain-vs-extension behavior.",
         });
       }
 
