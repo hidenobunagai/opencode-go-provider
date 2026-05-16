@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.41] - 2026-05-16
+
+### Fixed
+
+- **Restored OpenCode Go model visibility in the chat model picker after recent VS Code updates.** The provider configuration no longer requires `apiKey` in settings, so models remain selectable when the key is managed via SecretStorage/command-based setup.
+
 ## [0.1.40] - 2026-05-04
 
 ### Fixed
