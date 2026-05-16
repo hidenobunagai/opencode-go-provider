@@ -3,7 +3,7 @@
   "publisher": "HidenobuNagai",
   "displayName": "OpenCode Go Provider",
   "description": "OpenCode Go Chat Provider for VS Code Copilot Chat",
-  "version": "0.1.41",
+  "version": "0.1.42",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -40,17 +40,7 @@
       {
         "vendor": "opencode-go",
         "displayName": "OpenCode Go",
-        "configuration": {
-          "type": "object",
-          "properties": {
-            "apiKey": {
-              "type": "string",
-              "secret": true,
-              "description": "Optional API key for OpenCode Go (you can also manage it via command)",
-              "title": "API Key"
-            }
-          }
-        }
+        "managementCommand": "opencode-go.manage"
       }
     ],
     "languageModelTools": [

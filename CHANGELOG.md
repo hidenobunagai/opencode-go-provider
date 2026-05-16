@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.42] - 2026-05-16
+
+### Fixed
+
+- **Fixed OpenCode Go models not appearing in the model picker after VS Code 1.104 update.** VS Code 1.104 finalized the `LanguageModelChatProviders` API and removed support for the `configuration` field in the manifest contribution. The provider now uses `managementCommand` instead, which is the correct format for the stable API.
+
 ## [0.1.41] - 2026-05-16
 
 ### Fixed
@@ -270,7 +276,6 @@
 ### Fixed
 
 - Set `supportsVision: false` for DeepSeek V4 Pro and V4 Flash (these models do not accept `image_url` input).
-
 
 ## [0.1.2] - 2026-04-24
 
