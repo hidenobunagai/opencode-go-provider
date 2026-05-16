@@ -31,8 +31,17 @@ export function activate(context: vscode.ExtensionContext) {
     }),
   );
 
-  const registration = vscode.lm.registerLanguageModelChatProvider("opencode-go", provider);
-  context.subscriptions.push(registration);
+  try {
+    const registration = vscode.lm.registerLanguageModelChatProvider("opencode-go", provider);
+    context.subscriptions.push(registration);
+    debugLog("activate/registerProvider", "Registered language model provider: opencode-go");
+  } catch (error) {
+    debugLog("activate/registerProviderError", error);
+    vscode.window.showErrorMessage(
+      "OpenCode Go provider registration failed. Open 'OpenCode Go: Open Debug Log' for details.",
+    );
+    throw error;
+  }
   context.subscriptions.push(
     vscode.commands.registerCommand("opencode-go.manage", async () => {
       const existing = await context.secrets.get("opencode-go.apiKey");

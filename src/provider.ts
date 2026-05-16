@@ -22,6 +22,7 @@ import { handleAnthropicRequest } from "./streaming/anthropic";
 import { processOpenAIStream, type OpenAIModelInfo } from "./streaming/openai";
 import { estimateMessagesTokens, estimateTokens } from "./tokenizer";
 import { FALLBACK_MODELS, OcGoModelInfo } from "./types";
+import { debugLog } from "./output-channel";
 
 export class OcGoChatModelProvider implements LanguageModelChatProvider {
   private readonly _onDidChangeLanguageModelChatInformation = new EventEmitter<void>();
@@ -212,8 +213,22 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     token: CancellationToken,
   ): Promise<LanguageModelChatInformation[]> {
     if (token.isCancellationRequested) return [];
-    await this.syncConfiguredApiKey(options);
-    return this._mapToChatInformation(FALLBACK_MODELS);
+    try {
+      await this.syncConfiguredApiKey(options);
+      const models = this._mapToChatInformation(FALLBACK_MODELS);
+      debugLog("provideLanguageModelChatInformation", {
+        silent: options.silent,
+        modelCount: models.length,
+      });
+      return models;
+    } catch (error) {
+      debugLog("provideLanguageModelChatInformationError", error);
+      const models = this._mapToChatInformation(FALLBACK_MODELS);
+      debugLog("provideLanguageModelChatInformationFallback", {
+        modelCount: models.length,
+      });
+      return models;
+    }
   }
 
   private _mapToChatInformation(
@@ -259,7 +274,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         ),
         maxOutputTokens: info.maxOutput,
         capabilities: {
-          toolCalling: info.supportsTools ? 128 : false,
+          toolCalling: info.supportsTools,
           imageInput: info.supportsVision,
         },
       };

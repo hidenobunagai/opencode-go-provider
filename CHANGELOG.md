@@ -1,5 +1,13 @@
 # Change Log
 
+## [0.1.43] - 2026-05-16
+
+### Fixed
+
+- **Removed runtime dependency on `@dqbd/tiktoken` to eliminate startup `MODULE_NOT_FOUND` errors.** Token estimation now consistently uses the built-in lightweight character-based estimator, so missing native/WASM artifacts cannot break extension startup diagnostics.
+- **Hardened provider registration and model-discovery diagnostics.** Added explicit debug logs for provider registration success/failure and `provideLanguageModelChatInformation` calls so model picker issues can be traced directly from the `OpenCode Go` output channel.
+- **Normalized model capability shape for compatibility.** `toolCalling` is now returned as a boolean capability.
+
 ## [0.1.42] - 2026-05-16
 
 ### Fixed

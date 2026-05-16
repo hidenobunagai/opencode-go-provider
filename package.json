@@ -3,7 +3,7 @@
   "publisher": "HidenobuNagai",
   "displayName": "OpenCode Go Provider",
   "description": "OpenCode Go Chat Provider for VS Code Copilot Chat",
-  "version": "0.1.42",
+  "version": "0.1.43",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -118,7 +118,5 @@
     "typescript": "^5.9.0",
     "typescript-eslint": "^8.58.2"
   },
-  "dependencies": {
-    "@dqbd/tiktoken": "^1.0.22"
-  }
+  "dependencies": {}
 }
