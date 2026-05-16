@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.1.44] - 2026-05-16
+
+### Fixed
+
+- **Improved model picker compatibility by explicitly marking models as user-selectable.** Each contributed model now sets `isUserSelectable: true`.
+- **Added startup diagnostics for model-picker visibility.** On activation, the extension now logs the result of `vscode.lm.selectChatModels({ vendor: "opencode-go" })` (count and IDs), making it clear whether VS Code can resolve selectable models for the vendor.
+
 ## [0.1.43] - 2026-05-16
 
 ### Fixed

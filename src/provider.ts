@@ -18,11 +18,11 @@ import {
   getContextWindowSafetyMargin,
 } from "./constants";
 import { OcGoMcpClient } from "./mcp";
+import { debugLog } from "./output-channel";
 import { handleAnthropicRequest } from "./streaming/anthropic";
 import { processOpenAIStream, type OpenAIModelInfo } from "./streaming/openai";
 import { estimateMessagesTokens, estimateTokens } from "./tokenizer";
 import { FALLBACK_MODELS, OcGoModelInfo } from "./types";
-import { debugLog } from "./output-channel";
 
 export class OcGoChatModelProvider implements LanguageModelChatProvider {
   private readonly _onDidChangeLanguageModelChatInformation = new EventEmitter<void>();
@@ -268,6 +268,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         tooltip: tooltipParts.join(" · "),
         family: "opencode-go",
         version: "1.0.0",
+        isUserSelectable: true,
         maxInputTokens: Math.max(
           1,
           info.contextWindow - Math.min(info.maxOutput, DEFAULT_MAX_OUTPUT_TOKENS),

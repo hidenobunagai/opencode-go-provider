@@ -35,6 +35,21 @@ export function activate(context: vscode.ExtensionContext) {
     const registration = vscode.lm.registerLanguageModelChatProvider("opencode-go", provider);
     context.subscriptions.push(registration);
     debugLog("activate/registerProvider", "Registered language model provider: opencode-go");
+
+    if (typeof vscode.lm.selectChatModels === "function") {
+      void vscode.lm
+        .selectChatModels({ vendor: "opencode-go" })
+        .then((models) => {
+          debugLog("activate/selectChatModels", {
+            count: models.length,
+            modelIds: models.map((m) => m.id),
+          });
+        }, (error: unknown) => {
+          debugLog("activate/selectChatModelsError", error);
+        });
+    } else {
+      debugLog("activate/selectChatModels", "API unavailable in this host");
+    }
   } catch (error) {
     debugLog("activate/registerProviderError", error);
     vscode.window.showErrorMessage(
