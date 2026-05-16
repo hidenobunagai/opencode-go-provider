@@ -46,13 +46,10 @@
             "apiKey": {
               "type": "string",
               "secret": true,
-              "description": "API key for OpenCode Go",
+              "description": "Optional API key for OpenCode Go (you can also manage it via command)",
               "title": "API Key"
             }
-          },
-          "required": [
-            "apiKey"
-          ]
+          }
         }
       }
     ],
