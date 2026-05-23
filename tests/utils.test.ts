@@ -78,7 +78,7 @@ describe("convertMessages", () => {
         role: vscode.LanguageModelChatMessageRole.Assistant,
         content: [
           new vscode.LanguageModelTextPart(
-            `<details data-reasoning="true">\n<summary>思考プロセス (Thinking Process)</summary>\n\nThinking process here\n</details>\n\nActual response here`
+            `<details data-reasoning="true">\n<summary>思考プロセス (Thinking Process)</summary>\n\nThinking process here\n</details>\n\nActual response here`,
           ),
         ],
       },

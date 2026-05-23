@@ -75,8 +75,10 @@ export interface ExtractedMessageContent {
 }
 
 export function extractReasoningContent(text: string): ExtractedMessageContent {
-  const detailsRegex = /<details\s+data-reasoning="true"\s*>[\s\S]*?<summary>.*?<\/summary>\s*([\s\S]*?)\s*<\/details>/i;
-  const globalDetailsRegex = /<details\s+data-reasoning="true"\s*>[\s\S]*?<summary>.*?<\/summary>\s*([\s\S]*?)\s*<\/details>/gi;
+  const detailsRegex =
+    /<details\s+data-reasoning="true"\s*>[\s\S]*?<summary>.*?<\/summary>\s*([\s\S]*?)\s*<\/details>/i;
+  const globalDetailsRegex =
+    /<details\s+data-reasoning="true"\s*>[\s\S]*?<summary>.*?<\/summary>\s*([\s\S]*?)\s*<\/details>/gi;
   let reasoningContent: string | undefined;
   const match = detailsRegex.exec(text);
   if (match) {
@@ -176,13 +178,17 @@ export function convertMessages(
         result.push({
           role,
           content: contentParts,
-          ...(role === "assistant" && reasoningContent ? { reasoning_content: reasoningContent } : {}),
+          ...(role === "assistant" && reasoningContent
+            ? { reasoning_content: reasoningContent }
+            : {}),
         });
       } else {
         result.push({
           role,
           content: content,
-          ...(role === "assistant" && reasoningContent ? { reasoning_content: reasoningContent } : {}),
+          ...(role === "assistant" && reasoningContent
+            ? { reasoning_content: reasoningContent }
+            : {}),
         });
       }
     } else if (!isAssistantWithToolCalls && toolResults.length === 0 && !hasTextOrImage) {

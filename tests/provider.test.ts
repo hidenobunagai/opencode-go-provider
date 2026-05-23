@@ -1003,10 +1003,10 @@ describe("OcGoChatModelProvider", () => {
       .filter((value: unknown): value is string => typeof value === "string");
 
     expect(emittedText).toEqual([
-      "<details data-reasoning=\"true\">\n<summary>思考プロセス (Thinking Process)</summary>\n\n",
+      '<details data-reasoning="true">\n<summary>思考プロセス (Thinking Process)</summary>\n\n',
       "thinking",
       "\n</details>\n\n",
-      "<details data-reasoning=\"true\">\n<summary>思考プロセス (Thinking Process)</summary>\n\n",
+      '<details data-reasoning="true">\n<summary>思考プロセス (Thinking Process)</summary>\n\n',
       "thinking",
       "\n</details>\n\n",
       "done",
@@ -1044,16 +1044,16 @@ describe("OcGoChatModelProvider", () => {
       .filter((value: unknown): value is string => typeof value === "string");
 
     expect(emittedText).toEqual([
-      "<details data-reasoning=\"true\">\n<summary>思考プロセス (Thinking Process)</summary>\n\n",
+      '<details data-reasoning="true">\n<summary>思考プロセス (Thinking Process)</summary>\n\n',
       "thinking",
       "\n</details>\n\n",
-      "<details data-reasoning=\"true\">\n<summary>思考プロセス (Thinking Process)</summary>\n\n",
+      '<details data-reasoning="true">\n<summary>思考プロセス (Thinking Process)</summary>\n\n',
       "thinking",
       "\n</details>\n\n",
-      "<details data-reasoning=\"true\">\n<summary>思考プロセス (Thinking Process)</summary>\n\n",
+      '<details data-reasoning="true">\n<summary>思考プロセス (Thinking Process)</summary>\n\n',
       "thinking",
       "\n</details>\n\n",
-      "<details data-reasoning=\"true\">\n<summary>思考プロセス (Thinking Process)</summary>\n\n",
+      '<details data-reasoning="true">\n<summary>思考プロセス (Thinking Process)</summary>\n\n',
       "thinking",
       "\n</details>\n\n",
       "The model completed internal reasoning but returned no visible response. Please retry. If this keeps happening, try a lower reasoning setting.",
@@ -1183,7 +1183,7 @@ describe("OcGoChatModelProvider", () => {
       .filter((value: unknown): value is string => typeof value === "string");
 
     expect(emittedText).toEqual([
-      "<details data-reasoning=\"true\">\n<summary>思考プロセス (Thinking Process)</summary>\n\n",
+      '<details data-reasoning="true">\n<summary>思考プロセス (Thinking Process)</summary>\n\n',
       "thinking",
       "\n</details>\n\n",
       "done",
