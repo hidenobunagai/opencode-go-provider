@@ -1002,7 +1002,15 @@ describe("OcGoChatModelProvider", () => {
       .map((call: any[]) => call[0]?.value)
       .filter((value: unknown): value is string => typeof value === "string");
 
-    expect(emittedText).toEqual(["done"]);
+    expect(emittedText).toEqual([
+      "<details data-reasoning=\"true\">\n<summary>思考プロセス (Thinking Process)</summary>\n\n",
+      "thinking",
+      "\n</details>\n\n",
+      "<details data-reasoning=\"true\">\n<summary>思考プロセス (Thinking Process)</summary>\n\n",
+      "thinking",
+      "\n</details>\n\n",
+      "done",
+    ]);
   });
 
   it("returns a fallback text when all DeepSeek retries end with reasoning-only output", async () => {
@@ -1036,6 +1044,18 @@ describe("OcGoChatModelProvider", () => {
       .filter((value: unknown): value is string => typeof value === "string");
 
     expect(emittedText).toEqual([
+      "<details data-reasoning=\"true\">\n<summary>思考プロセス (Thinking Process)</summary>\n\n",
+      "thinking",
+      "\n</details>\n\n",
+      "<details data-reasoning=\"true\">\n<summary>思考プロセス (Thinking Process)</summary>\n\n",
+      "thinking",
+      "\n</details>\n\n",
+      "<details data-reasoning=\"true\">\n<summary>思考プロセス (Thinking Process)</summary>\n\n",
+      "thinking",
+      "\n</details>\n\n",
+      "<details data-reasoning=\"true\">\n<summary>思考プロセス (Thinking Process)</summary>\n\n",
+      "thinking",
+      "\n</details>\n\n",
       "The model completed internal reasoning but returned no visible response. Please retry. If this keeps happening, try a lower reasoning setting.",
     ]);
 
@@ -1162,7 +1182,12 @@ describe("OcGoChatModelProvider", () => {
       .map((call: any[]) => call[0]?.value)
       .filter((value: unknown): value is string => typeof value === "string");
 
-    expect(emittedText).toEqual(["done"]);
+    expect(emittedText).toEqual([
+      "<details data-reasoning=\"true\">\n<summary>思考プロセス (Thinking Process)</summary>\n\n",
+      "thinking",
+      "\n</details>\n\n",
+      "done",
+    ]);
   });
 
   it("retries incomplete tool calls even when no reasoning content is emitted", async () => {
