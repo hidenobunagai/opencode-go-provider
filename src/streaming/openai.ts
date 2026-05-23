@@ -170,7 +170,7 @@ export async function processOpenAIStream(
         }
 
         if (choice?.delta?.reasoning_content) {
-          state.reasoningContent += choice.delta.reasoning_content;
+          state.handleReasoningDelta(choice.delta.reasoning_content);
         }
 
         if (choice?.delta?.tool_calls) {
