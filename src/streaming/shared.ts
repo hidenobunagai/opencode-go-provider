@@ -211,6 +211,7 @@ export class StreamState {
       if (fallbackText) {
         this.progress.report(new vscode.LanguageModelTextPart(fallbackText));
         this.hasEmittedOutput = true;
+        this.hasEmittedNormalOutput = true;
       }
     }
 
