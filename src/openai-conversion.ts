@@ -69,6 +69,23 @@ function buildToolDescription(
   return baseDescription || guidanceText || undefined;
 }
 
+export interface ExtractedMessageContent {
+  content: string;
+  reasoningContent?: string;
+}
+
+export function extractReasoningContent(text: string): ExtractedMessageContent {
+  const detailsRegex = /<details\s+data-reasoning="true"\s*>[\s\S]*?<summary>.*?<\/summary>\s*([\s\S]*?)\s*<\/details>/i;
+  const globalDetailsRegex = /<details\s+data-reasoning="true"\s*>[\s\S]*?<summary>.*?<\/summary>\s*([\s\S]*?)\s*<\/details>/gi;
+  let reasoningContent: string | undefined;
+  const match = detailsRegex.exec(text);
+  if (match) {
+    reasoningContent = match[1].trim();
+  }
+  const content = text.replace(globalDetailsRegex, "").trim();
+  return { content, reasoningContent };
+}
+
 export function convertMessages(
   messages: readonly vscode.LanguageModelChatMessage[],
   options?: { maxToolResultChars?: number },
@@ -118,10 +135,13 @@ export function convertMessages(
           Boolean(toolCall),
       );
 
+    const rawTextContent = textParts.join("");
+    const { content, reasoningContent } = extractReasoningContent(rawTextContent);
+
     if (toolCalls.length > 0) {
       result.push({
         role: "assistant",
-        content: textParts.join(""),
+        content: content,
         tool_calls: toolCalls.map((toolCall) => ({
           id: toolCall.id ?? `call_${Math.random().toString(36).slice(2, 10)}`,
           type: "function",
@@ -130,7 +150,7 @@ export function convertMessages(
             arguments: JSON.stringify(toolCall.args ?? {}),
           },
         })),
-        reasoning_content: " ",
+        reasoning_content: reasoningContent || " ",
       });
     }
 
@@ -145,21 +165,36 @@ export function convertMessages(
       result.push({ role: "tool", tool_call_id: toolResult.callId, content });
     }
 
-    const hasTextOrImage = textParts.length > 0 || imageParts.length > 0;
+    const hasTextOrImage = content.length > 0 || imageParts.length > 0;
     const isAssistantWithToolCalls = role === "assistant" && toolCalls.length > 0;
 
     if (hasTextOrImage && !isAssistantWithToolCalls) {
       if (imageParts.length > 0) {
         const contentParts: OcGoContentPart[] = [];
-        const text = textParts.join("");
-        if (text) contentParts.push({ type: "text", text });
+        if (content) contentParts.push({ type: "text", text: content });
         contentParts.push(...imageParts);
-        result.push({ role, content: contentParts });
+        result.push({
+          role,
+          content: contentParts,
+          ...(role === "assistant" && reasoningContent ? { reasoning_content: reasoningContent } : {}),
+        });
       } else {
-        result.push({ role, content: textParts.join("") });
+        result.push({
+          role,
+          content: content,
+          ...(role === "assistant" && reasoningContent ? { reasoning_content: reasoningContent } : {}),
+        });
       }
     } else if (!isAssistantWithToolCalls && toolResults.length === 0 && !hasTextOrImage) {
-      result.push({ role, content: "" });
+      if (role === "assistant" && reasoningContent) {
+        result.push({
+          role,
+          content: "",
+          reasoning_content: reasoningContent,
+        });
+      } else {
+        result.push({ role, content: "" });
+      }
     }
   }
 
