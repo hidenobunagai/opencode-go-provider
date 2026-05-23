@@ -40,6 +40,7 @@ export class StreamState {
   sawToolCall = false;
   emittedToolCall = false;
   hasEmittedOutput = false;
+  hasEmittedNormalOutput = false;
   reasoningContent = "";
   reasoningFlushed = false;
   isReasoningActive = false;
@@ -89,6 +90,7 @@ export class StreamState {
     if (!this.pendingText) return;
     this.progress.report(new vscode.LanguageModelTextPart(this.pendingText));
     this.hasEmittedOutput = true;
+    this.hasEmittedNormalOutput = true;
     this.pendingText = "";
   }
 
@@ -128,6 +130,7 @@ export class StreamState {
       );
       this.emittedToolCall = true;
       this.hasEmittedOutput = true;
+      this.hasEmittedNormalOutput = true;
       this.emittedCanonicalKeys.add(canonicalKey);
     } else {
       this.skippedToolCalls.push({
@@ -166,6 +169,7 @@ export class StreamState {
     this.progress.report(new vscode.LanguageModelToolCallPart(id, name, repairedArgs));
     this.emittedToolCall = true;
     this.hasEmittedOutput = true;
+    this.hasEmittedNormalOutput = true;
     return true;
   }
 
@@ -178,7 +182,7 @@ export class StreamState {
   }
 
   hasVisibleOutput(): boolean {
-    return this.hasEmittedOutput || this.pendingText.trim().length > 0;
+    return this.hasEmittedNormalOutput || this.pendingText.trim().length > 0;
   }
 
   hasIncompleteToolCall(): boolean {
