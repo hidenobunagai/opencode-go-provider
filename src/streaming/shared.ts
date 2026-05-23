@@ -42,6 +42,8 @@ export class StreamState {
   hasEmittedOutput = false;
   reasoningContent = "";
   reasoningFlushed = false;
+  isReasoningActive = false;
+  hasReasoningStarted = false;
   skippedToolCalls: SkippedToolCall[] = [];
 
   nativeToolCalls = new Map<string, NativeToolCall>();
@@ -55,6 +57,26 @@ export class StreamState {
     private requestContext: ChatRequestContext | undefined,
     public emittedCanonicalKeys: Set<string>,
   ) {}
+
+  handleReasoningDelta(text: string): void {
+    if (!this.hasReasoningStarted) {
+      this.hasReasoningStarted = true;
+      this.isReasoningActive = true;
+      const startTag = `<details data-reasoning="true">\n<summary>思考プロセス (Thinking Process)</summary>\n\n`;
+      this.progress.report(new vscode.LanguageModelTextPart(startTag));
+      this.hasEmittedOutput = true;
+    }
+    this.progress.report(new vscode.LanguageModelTextPart(text));
+    this.reasoningContent += text;
+  }
+
+  closeReasoningBlockIfNeeded(): void {
+    if (this.isReasoningActive) {
+      this.isReasoningActive = false;
+      const endTag = `\n</details>\n\n`;
+      this.progress.report(new vscode.LanguageModelTextPart(endTag));
+    }
+  }
 
   flushPendingText(reasoningLogLabel: string): void {
     if (!this.reasoningFlushed && this.reasoningContent) {
@@ -71,6 +93,7 @@ export class StreamState {
   }
 
   handleTextDelta(text: string): void {
+    this.closeReasoningBlockIfNeeded();
     const segments = this.toolCallScanner.feed(text);
     for (const segment of segments) {
       if (segment.type === "text") {
@@ -82,6 +105,7 @@ export class StreamState {
   }
 
   emitTextEmbeddedToolCall(toolCall: ParsedTextToolCall, toolId?: string): void {
+    this.closeReasoningBlockIfNeeded();
     this.sawToolCall = true;
     const schema = this.toolSchemas.get(toolCall.name.toLowerCase());
     const repairedArgs = repairToolArguments(
@@ -116,6 +140,7 @@ export class StreamState {
   }
 
   tryEmitNativeToolCall(id: string, name: string, rawArgs: unknown): boolean {
+    this.closeReasoningBlockIfNeeded();
     this.sawToolCall = true;
     const schema = this.toolSchemas.get(name.toLowerCase());
     const repairedArgs = repairToolArguments(name, rawArgs, this.requestContext, schema);
@@ -164,6 +189,7 @@ export class StreamState {
   }
 
   finalize(reasoningLogLabel: string): void {
+    this.closeReasoningBlockIfNeeded();
     const leftoverText = this.toolCallScanner.flushText();
     if (leftoverText) {
       this.pendingText += leftoverText;
