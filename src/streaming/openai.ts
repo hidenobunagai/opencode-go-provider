@@ -289,6 +289,7 @@ export async function processOpenAIStream(
       });
 
       if (shouldRetry) {
+        state.closeReasoningBlockIfNeeded();
         prevEmittedKeys = state.snapshotEmittedKeys();
         continue;
       }
