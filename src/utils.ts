@@ -9,5 +9,6 @@ export {
   applyReasoningContentWorkaround,
   convertMessages,
   convertTools,
+  extractReasoningContent,
 } from "./openai-conversion";
 export { estimateMessagesTokens, estimateTokens, preloadTiktoken } from "./tokenizer";

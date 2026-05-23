@@ -6,6 +6,7 @@ import {
   estimateMessagesTokens,
   estimateTokens,
   preloadTiktoken,
+  extractReasoningContent,
 } from "../src/utils";
 
 describe("convertMessages", () => {
@@ -62,6 +63,34 @@ describe("convertMessages", () => {
     const content = result[0].content as Array<{ type: string; image_url?: { url: string } }>;
     expect(content[0].type).toBe("image_url");
     expect(content[0].image_url?.url).toMatch(/^data:image\/png;base64,/);
+  });
+
+  it("extracts reasoning content from details block", () => {
+    const rawText = `<details data-reasoning="true">\n<summary>思考プロセス (Thinking Process)</summary>\n\nThinking process here\n</details>\n\nActual response here`;
+    const result = extractReasoningContent(rawText);
+    expect(result.content).toBe("Actual response here");
+    expect(result.reasoningContent).toBe("Thinking process here");
+  });
+
+  it("converts assistant message with reasoning details block", () => {
+    const messages = [
+      {
+        role: vscode.LanguageModelChatMessageRole.Assistant,
+        content: [
+          new vscode.LanguageModelTextPart(
+            `<details data-reasoning="true">\n<summary>思考プロセス (Thinking Process)</summary>\n\nThinking process here\n</details>\n\nActual response here`
+          ),
+        ],
+      },
+    ];
+    const result = convertMessages(messages as any);
+    expect(result).toEqual<OcGoChatMessage[]>([
+      {
+        role: "assistant",
+        content: "Actual response here",
+        reasoning_content: "Thinking process here",
+      },
+    ]);
   });
 });
 
