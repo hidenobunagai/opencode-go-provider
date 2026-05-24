@@ -60,22 +60,34 @@ export class StreamState {
   ) {}
 
   handleReasoningDelta(text: string): void {
+    this.reasoningContent += text;
+
+    const LanguageModelThinkingPartClass = (vscode as any).LanguageModelThinkingPart;
+    if (LanguageModelThinkingPartClass) {
+      this.progress.report(new LanguageModelThinkingPartClass(text));
+      this.hasEmittedOutput = true;
+      return;
+    }
+
     if (!this.hasReasoningStarted) {
       this.hasReasoningStarted = true;
       this.isReasoningActive = true;
-      const startTag = `<details data-reasoning="true">\n<summary>思考プロセス (Thinking Process)</summary>\n\n`;
+      const startTag = `\n> **[思考プロセス (Thinking Process)]**\n> `;
       this.progress.report(new vscode.LanguageModelTextPart(startTag));
       this.hasEmittedOutput = true;
     }
-    this.progress.report(new vscode.LanguageModelTextPart(text));
-    this.reasoningContent += text;
+    const formattedText = text.replace(/\n/g, "\n> ");
+    this.progress.report(new vscode.LanguageModelTextPart(formattedText));
   }
 
   closeReasoningBlockIfNeeded(): void {
     if (this.isReasoningActive) {
       this.isReasoningActive = false;
-      const endTag = `\n</details>\n\n`;
-      this.progress.report(new vscode.LanguageModelTextPart(endTag));
+      const LanguageModelThinkingPartClass = (vscode as any).LanguageModelThinkingPart;
+      if (!LanguageModelThinkingPartClass) {
+        const endTag = `\n\n---\n\n`;
+        this.progress.report(new vscode.LanguageModelTextPart(endTag));
+      }
     }
   }
 

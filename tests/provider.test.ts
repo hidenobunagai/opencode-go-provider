@@ -1003,12 +1003,12 @@ describe("OcGoChatModelProvider", () => {
       .filter((value: unknown): value is string => typeof value === "string");
 
     expect(emittedText).toEqual([
-      '<details data-reasoning="true">\n<summary>思考プロセス (Thinking Process)</summary>\n\n',
+      "\n> **[思考プロセス (Thinking Process)]**\n> ",
       "thinking",
-      "\n</details>\n\n",
-      '<details data-reasoning="true">\n<summary>思考プロセス (Thinking Process)</summary>\n\n',
+      "\n\n---\n\n",
+      "\n> **[思考プロセス (Thinking Process)]**\n> ",
       "thinking",
-      "\n</details>\n\n",
+      "\n\n---\n\n",
       "done",
     ]);
   });
@@ -1044,18 +1044,18 @@ describe("OcGoChatModelProvider", () => {
       .filter((value: unknown): value is string => typeof value === "string");
 
     expect(emittedText).toEqual([
-      '<details data-reasoning="true">\n<summary>思考プロセス (Thinking Process)</summary>\n\n',
+      "\n> **[思考プロセス (Thinking Process)]**\n> ",
       "thinking",
-      "\n</details>\n\n",
-      '<details data-reasoning="true">\n<summary>思考プロセス (Thinking Process)</summary>\n\n',
+      "\n\n---\n\n",
+      "\n> **[思考プロセス (Thinking Process)]**\n> ",
       "thinking",
-      "\n</details>\n\n",
-      '<details data-reasoning="true">\n<summary>思考プロセス (Thinking Process)</summary>\n\n',
+      "\n\n---\n\n",
+      "\n> **[思考プロセス (Thinking Process)]**\n> ",
       "thinking",
-      "\n</details>\n\n",
-      '<details data-reasoning="true">\n<summary>思考プロセス (Thinking Process)</summary>\n\n',
+      "\n\n---\n\n",
+      "\n> **[思考プロセス (Thinking Process)]**\n> ",
       "thinking",
-      "\n</details>\n\n",
+      "\n\n---\n\n",
       "The model completed internal reasoning but returned no visible response. Please retry. If this keeps happening, try a lower reasoning setting.",
     ]);
 
@@ -1183,9 +1183,9 @@ describe("OcGoChatModelProvider", () => {
       .filter((value: unknown): value is string => typeof value === "string");
 
     expect(emittedText).toEqual([
-      '<details data-reasoning="true">\n<summary>思考プロセス (Thinking Process)</summary>\n\n',
+      "\n> **[思考プロセス (Thinking Process)]**\n> ",
       "thinking",
-      "\n</details>\n\n",
+      "\n\n---\n\n",
       "done",
     ]);
   });

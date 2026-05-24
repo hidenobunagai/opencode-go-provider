@@ -8,6 +8,7 @@ import {
   applyReasoningContentWorkaround,
   convertMessages,
   convertTools,
+  reasoningCache,
 } from "../openai-conversion";
 import { captureLog, debugLog } from "../output-channel";
 import { extractChatRequestContext, getToolSchemaMap, isToolCallInput } from "../tool-repair";
@@ -92,6 +93,7 @@ export async function processOpenAIStream(
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (token.isCancellationRequested) throw new vscode.CancellationError();
+    let fullContent = "";
 
     const attemptReasoningEffort = getRetryReasoningEffort(reasoningEffort, attempt);
 
@@ -166,6 +168,7 @@ export async function processOpenAIStream(
         }
 
         if (choice?.delta?.content) {
+          fullContent += choice.delta.content;
           state.handleTextDelta(choice.delta.content);
         }
 
@@ -307,6 +310,9 @@ export async function processOpenAIStream(
 
       // Finalize on last attempt (successful or all retries exhausted)
       state.finalize("processOpenAIStream");
+      if (state.reasoningContent) {
+        reasoningCache.set(fullContent.trim(), state.reasoningContent.trim());
+      }
       return;
     } catch (err) {
       if (token.isCancellationRequested || (err instanceof Error && err.name === "AbortError")) {

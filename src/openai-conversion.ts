@@ -74,18 +74,44 @@ export interface ExtractedMessageContent {
   reasoningContent?: string;
 }
 
+export const reasoningCache = new Map<string, string>();
+
 export function extractReasoningContent(text: string): ExtractedMessageContent {
+  // 1. Try HTML details block
   const detailsRegex =
     /<details\s+data-reasoning="true"\s*>[\s\S]*?<summary>.*?<\/summary>\s*([\s\S]*?)\s*<\/details>/i;
   const globalDetailsRegex =
     /<details\s+data-reasoning="true"\s*>[\s\S]*?<summary>.*?<\/summary>\s*([\s\S]*?)\s*<\/details>/gi;
-  let reasoningContent: string | undefined;
-  const match = detailsRegex.exec(text);
+  let match = detailsRegex.exec(text);
   if (match) {
-    reasoningContent = match[1].trim();
+    const reasoningContent = match[1].trim();
+    const content = text.replace(globalDetailsRegex, "").trim();
+    return { content, reasoningContent };
   }
-  const content = text.replace(globalDetailsRegex, "").trim();
-  return { content, reasoningContent };
+
+  // 2. Try Markdown blockquote
+  const markdownRegex =
+    />\s*\*\*\[思考プロセス\s+\(Thinking\s+Process\)\]\*\*\s*\n((?:>\s*.*(?:\n|$))*)/i;
+  const globalMarkdownRegex =
+    />\s*\*\*\[思考プロセス\s+\(Thinking\s+Process\)\]\*\*\s*\n(?:>\s*.*(?:\n|$))*/gi;
+
+  match = markdownRegex.exec(text);
+  if (match) {
+    const reasoningContent = match[1]
+      .split("\n")
+      .map((line) => line.replace(/^>\s?/, ""))
+      .join("\n")
+      .trim();
+
+    let content = text.replace(globalMarkdownRegex, "").trim();
+    content = content
+      .replace(/^---\s*/, "")
+      .replace(/\s*---\s*$/, "")
+      .trim();
+    return { content, reasoningContent };
+  }
+
+  return { content: text };
 }
 
 export function convertMessages(
@@ -138,7 +164,15 @@ export function convertMessages(
       );
 
     const rawTextContent = textParts.join("");
-    const { content, reasoningContent } = extractReasoningContent(rawTextContent);
+    const extracted = extractReasoningContent(rawTextContent);
+    const content = extracted.content;
+    let reasoningContent = extracted.reasoningContent;
+    if (!reasoningContent && role === "assistant") {
+      const cached = reasoningCache.get(rawTextContent.trim());
+      if (cached) {
+        reasoningContent = cached;
+      }
+    }
 
     if (toolCalls.length > 0) {
       result.push({

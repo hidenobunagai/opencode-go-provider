@@ -72,6 +72,13 @@ describe("convertMessages", () => {
     expect(result.reasoningContent).toBe("Thinking process here");
   });
 
+  it("extracts reasoning content from markdown blockquote", () => {
+    const rawText = `> **[思考プロセス (Thinking Process)]**\n> Thinking process line 1\n> Thinking process line 2\n\n---\n\nActual response here`;
+    const result = extractReasoningContent(rawText);
+    expect(result.content).toBe("Actual response here");
+    expect(result.reasoningContent).toBe("Thinking process line 1\nThinking process line 2");
+  });
+
   it("converts assistant message with reasoning details block", () => {
     const messages = [
       {
@@ -91,6 +98,21 @@ describe("convertMessages", () => {
         reasoning_content: "Thinking process here",
       },
     ]);
+  });
+
+  it("uses cached reasoning content if no block is present in text", () => {
+    const { reasoningCache } = require("../src/openai-conversion");
+    reasoningCache.set("Actual response here", "Cached thinking process");
+
+    const messages = [
+      {
+        role: vscode.LanguageModelChatMessageRole.Assistant,
+        content: [new vscode.LanguageModelTextPart("Actual response here")],
+      },
+    ];
+    const result = convertMessages(messages as any);
+    expect(result[0].reasoning_content).toBe("Cached thinking process");
+    reasoningCache.clear();
   });
 });
 
