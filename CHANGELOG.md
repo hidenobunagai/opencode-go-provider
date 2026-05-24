@@ -1,5 +1,31 @@
 # Change Log
 
+## [0.1.47] - 2026-05-24
+
+### Changed
+
+- **Encouraged parallel tool calling in system prompt guidance.** Instructed the model to emit independent tool calls in parallel within a single response (e.g., editing multiple sections/files or reading multiple files) instead of sequentially across multiple turns, minimizing user prompts and round-trips.
+
+## [0.1.46] - 2026-05-24
+
+### Added
+
+- **Implemented native VS Code `LanguageModelThinkingPart` support when available.** Allows thinking content from reasoning models (like DeepSeek V4) to be rendered using the native VS Code API without polluting text output.
+- **Added a clean Markdown blockquote fallback for thinking process display.** When native `LanguageModelThinkingPart` is not supported, the extension streams reasoning content inside a blockquote formatting block (`\n> **[思考プロセス (Thinking Process)]**\n> `) ending with a divider, keeping it clearly distinct from normal response content.
+- **Implemented round-trip reasoning content caching and extraction.** Extracted blockquote formatting cleanly from chat logs, and introduced an in-memory `reasoningCache` to map assistant replies to their respective thinking history to maintain context on subsequent turns.
+
+## [0.1.45] - 2026-05-24
+
+### Added
+
+- **Implemented HTML `<details>` details-block streaming and round-tripping for reasoning content.** Models that support thinking output now stream reasoning content inside an HTML `<details>` details block to hide it behind a disclosure widget by default in the chat UI.
+- **Added comprehensive unit tests for details-block reasoning extraction and message conversion.** Validated details-block reasoning round-tripping, tiktoken preloading, and caching behaviors.
+
+### Fixed
+
+- **Improved retry state-tracking with `hasEmittedNormalOutput`.** Introduced state tracking inside `StreamState` to ensure retry logic correctly determines if a model successfully produced normal visible output vs only thinking process content, hardening fallback behavior on empty responses.
+- **Gracefully handled details-block termination during retries.** The extension now explicitly closes the active reasoning details block before transitioning to a retry attempt or fallback messaging.
+
 ## [0.1.44] - 2026-05-16
 
 ### Fixed
