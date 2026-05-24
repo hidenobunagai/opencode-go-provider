@@ -1,5 +1,6 @@
 src/**
 tests/**
+scripts/**
 docs/**
 __mocks__/**
 .vscode/**
