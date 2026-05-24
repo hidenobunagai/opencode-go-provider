@@ -31,6 +31,7 @@ export function buildToolUseGroundingGuidance(
     "If tool use is needed, emit the tool call directly. Base claims only on tool outputs you actually received.",
     "For read_file, always provide filePath and line ranges from editor context. If unknown, ask.",
     "Do not treat planning output as evidence about workspace structure or file contents.",
+    "Prefer emitting all independent tool calls in parallel within a single response (e.g., editing multiple sections/files or reading multiple files) instead of sequentially across multiple turns, to minimize user prompts and round-trips.",
   ].join(" ");
 }
 
