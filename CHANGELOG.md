@@ -1,5 +1,15 @@
 # Change Log
 
+## [0.1.48] - 2026-06-01
+
+### Added
+
+- **Added newly available OpenCode Go models to the bundled `FALLBACK_MODELS` list.** The `/models` endpoint now returns models that were not yet selectable in the extension:
+  - **Qwen3.7 Max** (`qwen3.7-max`) — 1M context, vision, OpenAI format (mirrors Qwen3.6 Plus).
+  - **MiniMax M3** (`minimax-m3`) — Anthropic Messages API format (mirrors MiniMax M2.7).
+  - **HY3 Preview** (`hy3-preview`) — 256K context, OpenAI format.
+- Registered tiktoken encoder mappings (`gpt-4o`) for the three new models.
+
 ## [0.1.47] - 2026-05-24
 
 ### Changed

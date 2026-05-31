@@ -48,8 +48,11 @@ export const MODEL_TOKENIZER_MAP: Record<string, string> = {
   "mimo-v2.5": "gpt-4o",
   "minimax-m2.5": "gpt-4o",
   "minimax-m2.7": "gpt-4o",
+  "minimax-m3": "gpt-4o",
   "qwen3.5-plus": "gpt-4o",
   "qwen3.6-plus": "gpt-4o",
+  "qwen3.7-max": "gpt-4o",
   "deepseek-v4-pro": "gpt-4o",
   "deepseek-v4-flash": "gpt-4o",
+  "hy3-preview": "gpt-4o",
 };
