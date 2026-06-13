@@ -30,8 +30,8 @@ export const ANTHROPIC_MAX_TOOL_RESULT_CHARS = 20000;
 
 /** Models that require the reasoning_content workaround */
 export const REASONING_CONTENT_WORKAROUND_MODELS = new Set([
-  "kimi-k2.5",
   "kimi-k2.6",
+  "kimi-k2.7-code",
   "deepseek-v4-pro",
   "deepseek-v4-flash",
 ]);
@@ -40,19 +40,15 @@ export const REASONING_CONTENT_WORKAROUND_MODELS = new Set([
 export const MODEL_TOKENIZER_MAP: Record<string, string> = {
   "glm-5": "gpt-4o",
   "glm-5.1": "gpt-4o",
-  "kimi-k2.5": "gpt-4o",
   "kimi-k2.6": "gpt-4o",
-  "mimo-v2-pro": "gpt-4o",
-  "mimo-v2-omni": "gpt-4o",
+  "kimi-k2.7-code": "gpt-4o",
   "mimo-v2.5-pro": "gpt-4o",
   "mimo-v2.5": "gpt-4o",
-  "minimax-m2.5": "gpt-4o",
   "minimax-m2.7": "gpt-4o",
   "minimax-m3": "gpt-4o",
-  "qwen3.5-plus": "gpt-4o",
   "qwen3.6-plus": "gpt-4o",
+  "qwen3.7-plus": "gpt-4o",
   "qwen3.7-max": "gpt-4o",
   "deepseek-v4-pro": "gpt-4o",
   "deepseek-v4-flash": "gpt-4o",
-  "hy3-preview": "gpt-4o",
 };
