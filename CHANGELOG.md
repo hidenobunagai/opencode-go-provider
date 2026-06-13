@@ -1,5 +1,15 @@
 # Change Log
 
+## [0.1.49] - 2026-06-14
+
+### Changed
+
+- **Updated supported models list in `FALLBACK_MODELS` to match the latest OpenCode Go offerings:**
+  - Added **Kimi K2.7 Code** (`kimi-k2.7-code`) and configured it for the reasoning content workaround.
+  - Added **Qwen3.7 Plus** (`qwen3.7-plus`).
+  - Switched Qwen models (`qwen3.6-plus`, `qwen3.7-plus`, `qwen3.7-max`) to use the **Anthropic Messages API format** (`apiFormat: "anthropic"`) as specified by OpenCode Go's updated endpoints.
+  - Removed deprecated models: `kimi-k2.5`, `mimo-v2-pro`, `mimo-v2-omni`, `minimax-m2.5`, `qwen3.5-plus`, and `hy3-preview`.
+
 ## [0.1.48] - 2026-06-01
 
 ### Added
