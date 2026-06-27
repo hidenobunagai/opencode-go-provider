@@ -246,8 +246,8 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
       };
 
       const tooltipParts: string[] = [`OpenCode Go — ${info.name}`];
-      if (info.reasoningEffort) {
-        tooltipParts.push(`Reasoning: ${info.reasoningEffort}`);
+      if (info.supportsThinking) {
+        tooltipParts.push("Thinking Effort: configurable");
       }
       if (info.supportsVision) {
         tooltipParts.push("Vision: supported");
@@ -278,6 +278,29 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
           toolCalling: info.supportsTools,
           imageInput: info.supportsVision,
         },
+        ...(info.supportsThinking
+          ? {
+              configurationSchema: {
+                properties: {
+                  reasoningEffort: {
+                    type: "string",
+                    title: "Thinking Effort",
+                    enum: ["default", "max", "high", "medium", "low"],
+                    enumItemLabels: ["Default", "Max", "High", "Medium", "Low"],
+                    enumDescriptions: [
+                      "Let the model decide the reasoning effort",
+                      "Maximum reasoning effort (xhigh)",
+                      "High reasoning effort",
+                      "Medium reasoning effort",
+                      "Low reasoning effort",
+                    ],
+                    default: "default",
+                    group: "navigation",
+                  },
+                },
+              },
+            }
+          : {}),
       };
     });
   }
@@ -374,7 +397,14 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
       }
 
       const apiFormat = effectiveModelInfo?.apiFormat ?? "openai";
-      const reasoningEffort = variantModelInfo?.reasoningEffort;
+      const modelConfig = (options as unknown as Record<string, unknown>).modelConfiguration as
+        | Record<string, unknown>
+        | undefined;
+      const rawReasoningEffort =
+        typeof modelConfig?.reasoningEffort === "string"
+          ? (modelConfig.reasoningEffort as string)
+          : undefined;
+      const reasoningEffort = rawReasoningEffort === "default" ? undefined : rawReasoningEffort;
       const temperatureVal =
         typeof variantModelInfo?.fixedTemperature === "number"
           ? variantModelInfo.fixedTemperature
@@ -403,7 +433,6 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         id: effectiveModelId,
         modelInfo: effectiveModelInfo,
         maxOutputTokens: model.maxOutputTokens,
-        reasoningEffort,
       };
 
       await processOpenAIStream(
@@ -418,6 +447,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         progress,
         token,
         abortController,
+        reasoningEffort,
       );
     } catch (err) {
       if (token.isCancellationRequested) {

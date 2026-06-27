@@ -1,5 +1,26 @@
 # Change Log
 
+## [0.1.52] - 2026-06-27
+
+### Changed
+
+- **Replaced model-variant approach with a dedicated Thinking Effort dropdown.** Instead of listing separate model variants (e.g. `DeepSeek V4 Flash (Max)`), each reasoning model now shows a single entry with a configurable "Thinking Effort" dropdown (Default / Max / High / Medium / Low) directly in the model picker. This matches how the native OpenCode provider works in VS Code Copilot Chat.
+  - Uses `configurationSchema` (non-public Copilot Chat API) to render the dropdown.
+  - The selected effort is sent as `reasoning_effort` in the API request body.
+  - "Default" lets the model decide; "Max" sends maximum reasoning effort.
+  - Affects GLM-5/5.1/5.2, Kimi K2.5/K2.6/K2.7 Code, Qwen3.5/3.6/3.7 Plus/Max, MiMo V2 Pro/Omni/2.5 Pro/2.5, DeepSeek V4 Pro/Flash, and HY3 Preview.
+
+## [0.1.51] - 2026-06-27
+
+### Added
+
+- **Added Thinking Effort variants for all reasoning models.** Each reasoning model now has variants (e.g. `:max`, `:high`) that let you control how much effort the model spends on reasoning before responding. Selectable from the model picker in VS Code Copilot Chat.
+  - **GLM-5, GLM-5.1, GLM-5.2** — new `:max` (Max) variant for maximum reasoning effort.
+  - **Kimi K2.5, K2.6, K2.7 Code** — new `:max` (Max), `:high`, `:medium`, `:low` variants for fine-grained reasoning control.
+  - **Qwen3.5 Plus, Qwen3.6 Plus, Qwen3.7 Plus, Qwen3.7 Max** — new `:max` (Max) variant.
+  - **MiMo-V2-Pro, MiMo-V2-Omni, MiMo-V2.5-Pro, MiMo-V2.5** — new `:max` (Max) variant.
+  - **HY3 Preview** — new `:max` (Max) variant.
+
 ## [0.1.50] - 2026-06-27
 
 ### Fixed

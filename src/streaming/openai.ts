@@ -20,7 +20,6 @@ export interface OpenAIModelInfo {
   id: string;
   modelInfo?: OcGoModelInfo;
   maxOutputTokens: number;
-  reasoningEffort?: string;
 }
 
 function normalizeReasoningEffort(reasoningEffort: string | undefined): string | undefined {
@@ -59,6 +58,7 @@ export async function processOpenAIStream(
   progress: vscode.Progress<vscode.LanguageModelResponsePart>,
   token: vscode.CancellationToken,
   abortController: AbortController,
+  reasoningEffort?: string,
 ): Promise<void> {
   const toolSchemas = getToolSchemaMap(options);
   const requestContext = extractChatRequestContext(
@@ -77,7 +77,7 @@ export async function processOpenAIStream(
   );
 
   const toolConfig = convertTools(options);
-  const reasoningEffort = normalizeReasoningEffort(model.reasoningEffort);
+  const normalizedEffort = normalizeReasoningEffort(reasoningEffort);
   const isThinkingModel = REASONING_CONTENT_WORKAROUND_MODELS.has(model.id);
 
   // Reasoning models may consume the entire output budget on internal thinking
@@ -95,7 +95,7 @@ export async function processOpenAIStream(
     if (token.isCancellationRequested) throw new vscode.CancellationError();
     let fullContent = "";
 
-    const attemptReasoningEffort = getRetryReasoningEffort(reasoningEffort, attempt);
+    const attemptReasoningEffort = getRetryReasoningEffort(normalizedEffort, attempt);
 
     if (attempt > 0) {
       // Reasoning-only retry: model produced thinking but no text/tool calls.
