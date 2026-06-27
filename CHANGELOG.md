@@ -1,5 +1,17 @@
 # Change Log
 
+## [0.1.50] - 2026-06-27
+
+### Fixed
+
+- **Restored accidentally removed models in `FALLBACK_MODELS`.** Kimi K2.5, MiMo-V2-Pro, MiMo-V2-Omni, MiniMax M2.5, Qwen3.5 Plus, and HY3 Preview were missing from the list and are now selectable again.
+- **Fixed Qwen model `apiFormat`.** Qwen3.6 Plus, Qwen3.7 Plus, and Qwen3.7 Max were incorrectly set to `anthropic` instead of `openai`.
+- Restored missing tiktoken encoder mappings for the restored models.
+
+### Added
+
+- **Added `glm-5.2` (GLM-5.2)** to the `FALLBACK_MODELS` list. Mirrors GLM-5.1 with 202,752 context window and OpenAI API format.
+
 ## [0.1.49] - 2026-06-14
 
 ### Changed
