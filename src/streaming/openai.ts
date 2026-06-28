@@ -88,7 +88,7 @@ export async function processOpenAIStream(
   const MAX_RETRIES = 3;
   let currentMaxTokens = requestedMaxTokens;
   let prevEmittedKeys: Set<string> | undefined;
-  let retryReason: "reasoning-only" | "mid-response-stop" | "empty-response" | undefined;
+  let retryReason: "reasoning-only" | "mid-response-stop" | "empty-response" | "truncated" | undefined;
   const attemptSnapshots: Array<Record<string, unknown>> = [];
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -272,6 +272,19 @@ export async function processOpenAIStream(
         // fallback text to the user.
         shouldRetry = true;
         retryReason = "empty-response";
+      } else if (
+        finishReason === "length" &&
+        attempt < MAX_RETRIES &&
+        !token.isCancellationRequested
+      ) {
+        // The model hit its output token budget mid-response, producing only
+        // partial text or a fragment before being cut off.  Retry with larger
+        // budget so the model has room to complete its full response.
+        // This can fire even when hasVisibleOutput is true (e.g. the model
+        // produced one word then exhausted the budget), which the three
+        // conditions above would all skip.
+        shouldRetry = true;
+        retryReason = "truncated";
       }
 
       attemptSnapshots.push({
@@ -297,6 +310,7 @@ export async function processOpenAIStream(
         continue;
       }
 
+      const wasTruncated = finishReason === "length" && hasVisibleOutput;
       const shouldCaptureNoOutput =
         !hasVisibleOutput &&
         (!state.sawToolCall || state.reasoningContent.length > 0 || state.hasIncompleteToolCall());
@@ -307,9 +321,25 @@ export async function processOpenAIStream(
           hint: "Replay the requestBody payloads above against /chat/completions to compare plain-vs-extension behavior.",
         });
       }
+      if (wasTruncated) {
+        captureLog("OpenAI truncated response", {
+          model: model.id,
+          attempts: attemptSnapshots,
+          finishReason,
+          hasVisibleOutput,
+          pendingTextChars: state.pendingText.length,
+        });
+      }
 
       // Finalize on last attempt (successful or all retries exhausted)
       state.finalize("processOpenAIStream");
+      if (wasTruncated) {
+        progress.report(
+          new vscode.LanguageModelTextPart(
+            "\n\n_⚠️ The response was automatically truncated. You can ask the model to continue if the response seems incomplete._",
+          ),
+        );
+      }
       if (state.reasoningContent) {
         reasoningCache.set(fullContent.trim(), state.reasoningContent.trim());
       }

@@ -79,7 +79,7 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
   const MAX_RETRIES = 3;
   let currentMaxTokens = requestedMaxTokens;
   let prevEmittedKeys: Set<string> | undefined;
-  let retryReason: "reasoning-only" | "mid-response-stop" | undefined;
+  let retryReason: "reasoning-only" | "mid-response-stop" | "truncated" | undefined;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (token.isCancellationRequested) throw new vscode.CancellationError();
@@ -213,8 +213,9 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
 
     // Check if retry is needed
     let shouldRetry = false;
+    const hasVisibleOutput = streamState.hasEmittedOutput || streamState.pendingText.trim().length > 0;
     if (
-      !streamState.hasEmittedOutput &&
+      !hasVisibleOutput &&
       streamState.reasoningContent &&
       attempt < MAX_RETRIES &&
       !token.isCancellationRequested
@@ -222,15 +223,23 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
       shouldRetry = true;
       retryReason = "reasoning-only";
     } else if (
-      streamState.sawToolCall &&
-      !streamState.emittedToolCall &&
-      streamState.reasoningContent &&
+      !hasVisibleOutput &&
+      streamState.hasIncompleteToolCall() &&
       attempt < MAX_RETRIES &&
       !token.isCancellationRequested
     ) {
       // Model started producing tool calls but stopped mid-response
       shouldRetry = true;
       retryReason = "mid-response-stop";
+    } else if (
+      streamState.stopReason === "max_tokens" &&
+      attempt < MAX_RETRIES &&
+      !token.isCancellationRequested
+    ) {
+      // The model hit its output token budget mid-response.
+      // Retry with larger budget for a complete response.
+      shouldRetry = true;
+      retryReason = "truncated";
     }
 
     if (shouldRetry) {
@@ -238,8 +247,17 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
       continue;
     }
 
+    const wasTruncated = streamState.stopReason === "max_tokens" && hasVisibleOutput;
+
     // Finalize on last attempt (successful or all retries exhausted)
     streamState.finalize("processAnthropicStreamingResponse");
+    if (wasTruncated) {
+      progress.report(
+        new vscode.LanguageModelTextPart(
+          "\n\n_⚠️ The response was automatically truncated. You can ask the model to continue if the response seems incomplete._",
+        ),
+      );
+    }
     return;
   }
 }
@@ -359,7 +377,16 @@ async function processAnthropicStreamingResponse(
             break;
           }
 
-          case "message_delta":
+          case "message_delta": {
+            const deltaEvt = event as {
+              delta?: { stop_reason?: string; stop_sequence?: string | null };
+              usage?: { output_tokens?: number };
+            };
+            if (deltaEvt.delta?.stop_reason) {
+              state.stopReason = deltaEvt.delta.stop_reason;
+            }
+            break;
+          }
           case "message_stop":
             break;
 

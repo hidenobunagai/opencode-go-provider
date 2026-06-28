@@ -50,6 +50,9 @@ export class StreamState {
   nativeToolCalls = new Map<string, NativeToolCall>();
   completedNativeCallIds = new Set<string>();
 
+  /** Captured stop_reason from Anthropic message_delta events */
+  stopReason: string | null = null;
+
   private toolCallScanner = new ToolCallScanner();
 
   constructor(
