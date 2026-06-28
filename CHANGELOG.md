@@ -1,5 +1,14 @@
 # Change Log
 
+## [0.1.53] - 2026-06-28
+
+### Fixed
+
+- **Fixed chat getting stuck mid-response when the model hits its output token budget.** Previously, if a model produced even one character before exhausting its token budget (`finish_reason: "length"` / `stop_reason: "max_tokens"`), no retry was attempted because all retry conditions required zero visible output. The response was silently truncated, appearing to the user as if the chat had stopped mid-sentence. Now the extension retries with a larger budget, and if retries are exhausted, a truncation warning is shown.
+  - OpenAI handler: new `finish_reason === "length"` retry condition (bypasses `hasVisibleOutput` gate).
+  - Anthropic handler: captures `stop_reason` from `message_delta` events; new `stop_reason === "max_tokens"` retry condition.
+  - Both handlers emit `_⚠️ The response was automatically truncated._` when retries are exhausted.
+
 ## [0.1.52] - 2026-06-27
 
 ### Changed
