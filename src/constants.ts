@@ -25,6 +25,15 @@ export const BASE_RETRY_DELAY_MS = 1000;
 /** Request timeout in milliseconds */
 export const REQUEST_TIMEOUT_MS = 120000;
 
+/**
+ * Per-read timeout for SSE stream reads (milliseconds).
+ * Prevents infinite hangs when the server pauses mid-stream or the
+ * connection silently drops.  The reader races against this timeout;
+ * if it fires, the stream is cancelled and the generator exits so
+ * the retry loop can re-establish a new connection.
+ */
+export const STREAM_READ_TIMEOUT_MS = 60000;
+
 /** Max tool result characters for Anthropic API */
 export const ANTHROPIC_MAX_TOOL_RESULT_CHARS = 20000;
 

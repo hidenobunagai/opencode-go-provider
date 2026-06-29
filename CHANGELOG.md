@@ -1,5 +1,18 @@
 # Change Log
 
+## [0.1.54] - 2026-06-30
+
+### Fixed
+
+- **Fixed chat getting stuck mid-response due to SSE stream read timeout.** Previously, each `reader.read()` call during SSE streaming had no timeout. If the server paused mid-stream (e.g., during a long generation), the extension would hang indefinitely waiting for data. Now a 60-second per-read timeout races each read; if the timeout fires, the stream is cancelled and the retry loop re-establishes a new connection.
+  - OpenAI SSE path (`api.ts`): per-read timeout with stream cancellation.
+  - Anthropic SSE path (`anthropic.ts`): same timeout logic.
+  - Both paths added a 1 MB safety cap on the SSE buffer to prevent unbounded memory growth.
+
+### Changed
+
+- **Added visible retry progress for OpenAI-format models.** When the extension retries a failed attempt (reasoning-only, empty-response, truncated, mid-response-stop), the user now sees a progress message like `"(Retrying...)"` in the chat, matching the existing Anthropic path behavior. Previously, retries happened silently and the chat appeared to have stopped.
+
 ## [0.1.53] - 2026-06-28
 
 ### Fixed

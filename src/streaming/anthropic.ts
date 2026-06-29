@@ -2,7 +2,7 @@
 import * as vscode from "vscode";
 import { convertMessagesToAnthropic, convertToolsToAnthropic } from "../anthropic-conversion";
 import { fetchWithRetry } from "../api";
-import { BASE_URL, REQUEST_TIMEOUT_MS } from "../constants";
+import { BASE_URL, REQUEST_TIMEOUT_MS, STREAM_READ_TIMEOUT_MS } from "../constants";
 import { buildProviderIdentityGuidance, sanitizeSystemPromptForModel } from "../guidance";
 import { isProbablyCompleteJson } from "../incremental-json";
 import { convertTools } from "../openai-conversion";
@@ -282,13 +282,33 @@ async function processAnthropicStreamingResponse(
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  const MAX_SSE_BUFFER_SIZE = 1024 * 1024; // 1 MB safety cap
 
   try {
     while (!token.isCancellationRequested) {
-      const { done, value } = await reader.read();
+      let readTimedOut = false;
+      const readPromise = reader.read();
+      const timeoutId = setTimeout(() => {
+        readTimedOut = true;
+        reader.cancel().catch(() => {});
+      }, STREAM_READ_TIMEOUT_MS);
+
+      const { done, value } = await readPromise;
+      clearTimeout(timeoutId);
+
+      if (readTimedOut) {
+        debugLog("processAnthropicStreamingResponse", "Stream read timed out — cancelling");
+        return state;
+      }
+
       if (done) break;
 
-      buffer += decoder.decode(value, { stream: true });
+      const text = decoder.decode(value, { stream: true });
+      if (buffer.length + text.length > MAX_SSE_BUFFER_SIZE) {
+        debugLog("processAnthropicStreamingResponse", "SSE buffer exceeded 1 MB — flushing");
+        buffer = "";
+      }
+      buffer += text;
       const lines = buffer.split("\n");
       buffer = lines.pop() ?? "";
 

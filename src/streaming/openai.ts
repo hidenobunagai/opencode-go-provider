@@ -108,6 +108,13 @@ export async function processOpenAIStream(
       currentMaxTokens = isThinkingModel
         ? currentMaxTokens * 2
         : Math.min(currentMaxTokens * 2, model.maxOutputTokens);
+      const retryLabel =
+        retryReason === "mid-response-stop"
+          ? "Retrying after mid-response stop..."
+          : retryReason === "truncated"
+            ? "Response was truncated, retrying with larger budget..."
+            : "Retrying...";
+      progress.report(new vscode.LanguageModelTextPart(`\n\n(${retryLabel})\n\n`));
       debugLog("processOpenAIStream retry", {
         attempt,
         retryReason,
