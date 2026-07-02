@@ -17,3 +17,6 @@ coverage/
 *.log
 .env
 .env.*
+
+# Local state
+.headroom/
