@@ -1,4 +1,10 @@
-import { BASE_RETRY_DELAY_MS, BASE_URL, MAX_RETRY_DELAY_MS, REQUEST_TIMEOUT_MS, STREAM_READ_TIMEOUT_MS } from "./constants";
+import {
+  BASE_RETRY_DELAY_MS,
+  BASE_URL,
+  MAX_RETRY_DELAY_MS,
+  REQUEST_TIMEOUT_MS,
+  STREAM_READ_TIMEOUT_MS,
+} from "./constants";
 import { debugLog } from "./output-channel";
 import { OcGoChatCompletionResponse, OcGoChatRequest, OcGoStreamResponse } from "./types";
 

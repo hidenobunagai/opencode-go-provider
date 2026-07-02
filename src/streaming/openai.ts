@@ -3,7 +3,6 @@ import * as vscode from "vscode";
 import { streamChatCompletion } from "../api";
 import { REASONING_CONTENT_WORKAROUND_MODELS } from "../constants";
 import { applyOpenAiSystemPromptGuidance, calculateMaxToolResultChars } from "../guidance";
-import { isProbablyCompleteJson } from "../incremental-json";
 import {
   applyReasoningContentWorkaround,
   convertMessages,
@@ -106,7 +105,12 @@ export async function processOpenAIStream(
   const MAX_RETRIES = 3;
   let currentMaxTokens = requestedMaxTokens;
   let prevEmittedKeys: Set<string> | undefined;
-  let retryReason: "reasoning-only" | "mid-response-stop" | "empty-response" | "truncated" | undefined;
+  let retryReason:
+    | "reasoning-only"
+    | "mid-response-stop"
+    | "empty-response"
+    | "truncated"
+    | undefined;
   const attemptSnapshots: Array<Record<string, unknown>> = [];
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {

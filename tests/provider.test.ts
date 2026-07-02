@@ -1160,11 +1160,7 @@ describe("OcGoChatModelProvider", () => {
       .map((call: any[]) => call[0]?.value)
       .filter((value: unknown): value is string => typeof value === "string");
 
-    expect(emittedText).toEqual([
-      "\n\n(Retrying...)\n\n",
-      "\n\n(Retrying...)\n\n",
-      "done",
-    ]);
+    expect(emittedText).toEqual(["\n\n(Retrying...)\n\n", "\n\n(Retrying...)\n\n", "done"]);
   });
 
   it("does not retry when visible text is buffered alongside reasoning output", async () => {

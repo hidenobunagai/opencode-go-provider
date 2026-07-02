@@ -213,7 +213,8 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
 
     // Check if retry is needed
     let shouldRetry = false;
-    const hasVisibleOutput = streamState.hasEmittedOutput || streamState.pendingText.trim().length > 0;
+    const hasVisibleOutput =
+      streamState.hasEmittedOutput || streamState.pendingText.trim().length > 0;
     if (
       !hasVisibleOutput &&
       streamState.reasoningContent &&

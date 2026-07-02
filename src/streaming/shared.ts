@@ -65,7 +65,11 @@ export class StreamState {
   handleReasoningDelta(text: string): void {
     this.reasoningContent += text;
 
-    const LanguageModelThinkingPartClass = (vscode as any).LanguageModelThinkingPart;
+    const LanguageModelThinkingPartClass = (
+      vscode as unknown as {
+        LanguageModelThinkingPart?: new (text: string) => vscode.LanguageModelResponsePart;
+      }
+    ).LanguageModelThinkingPart;
     if (LanguageModelThinkingPartClass) {
       this.progress.report(new LanguageModelThinkingPartClass(text));
       this.hasEmittedOutput = true;
@@ -86,7 +90,11 @@ export class StreamState {
   closeReasoningBlockIfNeeded(): void {
     if (this.isReasoningActive) {
       this.isReasoningActive = false;
-      const LanguageModelThinkingPartClass = (vscode as any).LanguageModelThinkingPart;
+      const LanguageModelThinkingPartClass = (
+        vscode as unknown as {
+          LanguageModelThinkingPart?: new (text: string) => vscode.LanguageModelResponsePart;
+        }
+      ).LanguageModelThinkingPart;
       if (!LanguageModelThinkingPartClass) {
         const endTag = `\n\n---\n\n`;
         this.progress.report(new vscode.LanguageModelTextPart(endTag));
