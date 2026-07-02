@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.1.55] - 2026-07-02
+
+### Fixed
+
+- **Fixed tool execution cutting off midway for Opencode Go models.** Previously, native tool calls were validated and deleted early during streaming if the accumulated JSON structure happened to be complete (such as when the model streams a nested object like `ArtifactMetadata` first). This caused subsequent fields to be ignored and the conversation to hang. Now, the extension buffers native tool calls and only validates and emits them when the model starts outputting normal text/reasoning or when the stream finishes.
+- **Fixed broken reasoning_effort and retry unit tests.** Updated tests to align with the new `reasoningEffort` configuration schema.
+
 ## [0.1.54] - 2026-06-30
 
 ### Fixed
