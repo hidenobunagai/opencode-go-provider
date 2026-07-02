@@ -14,7 +14,7 @@ import { captureLog, debugLog } from "../output-channel";
 import { extractChatRequestContext, getToolSchemaMap, isToolCallInput } from "../tool-repair";
 import type { OcGoModelInfo } from "../types";
 import { OcGoChatRequest } from "../types";
-import { setupStreamState } from "./shared";
+import { setupStreamState, type StreamState } from "./shared";
 
 export interface OpenAIModelInfo {
   id: string;
@@ -44,6 +44,24 @@ function getRetryReasoningEffort(
   }
 
   return fallbackOrder[Math.min(index + attempt, fallbackOrder.length - 1)];
+}
+
+function emitPendingToolCalls(state: StreamState): void {
+  for (const [callId, buf] of Array.from(state.nativeToolCalls.entries())) {
+    if (state.completedNativeCallIds.has(callId)) continue;
+    try {
+      const args = buf.args ? JSON.parse(buf.args) : {};
+      if (buf.id && buf.name && isToolCallInput(args)) {
+        const emitted = state.tryEmitNativeToolCall(buf.id, buf.name, args);
+        if (emitted) {
+          state.completedNativeCallIds.add(callId);
+        }
+      }
+    } catch {
+      debugLog("processOpenAIStream", `Failed to parse JSON for tool call ${buf.name}`);
+    }
+    state.nativeToolCalls.delete(callId);
+  }
 }
 
 export async function processOpenAIStream(
@@ -175,11 +193,13 @@ export async function processOpenAIStream(
         }
 
         if (choice?.delta?.content) {
+          emitPendingToolCalls(state);
           fullContent += choice.delta.content;
           state.handleTextDelta(choice.delta.content);
         }
 
         if (choice?.delta?.reasoning_content) {
+          emitPendingToolCalls(state);
           state.handleReasoningDelta(choice.delta.reasoning_content);
         }
 
@@ -206,46 +226,12 @@ export async function processOpenAIStream(
                 args: tc.function?.arguments ?? "",
               });
             }
-
-            const buf = state.nativeToolCalls.get(callId);
-            if (!buf || !buf.args.trim()) continue;
-
-            // Avoid JSON.parse on fragments that are structurally incomplete
-            if (!isProbablyCompleteJson(buf.args)) continue;
-
-            try {
-              const args = JSON.parse(buf.args) as unknown;
-              if (buf.id && buf.name && isToolCallInput(args)) {
-                const emitted = state.tryEmitNativeToolCall(buf.id, buf.name, args);
-                if (emitted) {
-                  state.completedNativeCallIds.add(callId);
-                }
-              }
-              state.nativeToolCalls.delete(callId);
-            } catch {
-              // Structural check passed but JSON.parse failed — rare edge case
-              debugLog(
-                "processOpenAIStream",
-                "Json parse failed despite structural completeness check",
-              );
-            }
           }
         }
       }
 
       // Flush remaining buffered tool calls at stream end
-      for (const [callId, buf] of Array.from(state.nativeToolCalls.entries())) {
-        if (state.completedNativeCallIds.has(callId)) continue;
-        try {
-          const args = buf.args ? JSON.parse(buf.args) : {};
-          if (buf.id && buf.name && isToolCallInput(args)) {
-            state.tryEmitNativeToolCall(buf.id, buf.name, args);
-          }
-          state.nativeToolCalls.delete(callId);
-        } catch {
-          debugLog("processOpenAIStream", "Failed to parse incomplete JSON at stream end");
-        }
-      }
+      emitPendingToolCalls(state);
 
       // Check if retry is needed
       const hasVisibleOutput = state.hasVisibleOutput();

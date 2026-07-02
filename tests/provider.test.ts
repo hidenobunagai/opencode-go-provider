@@ -947,9 +947,9 @@ describe("OcGoChatModelProvider", () => {
     };
 
     await provider.provideLanguageModelChatResponse(
-      { id: "deepseek-v4-pro:max", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      { id: "deepseek-v4-pro", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
       [{ role: 1, content: [{ value: "Hi" }] }] as any,
-      { modelOptions: {} } as any,
+      { modelOptions: {}, modelConfiguration: { reasoningEffort: "max" } } as any,
       progress,
       token as any,
     );
@@ -963,7 +963,7 @@ describe("OcGoChatModelProvider", () => {
     );
   });
 
-  it("reduces DeepSeek Flash reasoning_effort across retries without emitting retry text", async () => {
+  it("reduces DeepSeek Flash reasoning_effort across retries and emits retry progress text", async () => {
     (secrets.get as jest.Mock).mockResolvedValue("test-key");
 
     let attempt = 0;
@@ -986,9 +986,9 @@ describe("OcGoChatModelProvider", () => {
     };
 
     await provider.provideLanguageModelChatResponse(
-      { id: "deepseek-v4-flash:max", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      { id: "deepseek-v4-flash", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
       [{ role: 1, content: [{ value: "Hi" }] }] as any,
-      { modelOptions: {} } as any,
+      { modelOptions: {}, modelConfiguration: { reasoningEffort: "max" } } as any,
       progress,
       token as any,
     );
@@ -1006,9 +1006,11 @@ describe("OcGoChatModelProvider", () => {
       "\n> **[思考プロセス (Thinking Process)]**\n> ",
       "thinking",
       "\n\n---\n\n",
+      "\n\n(Retrying...)\n\n",
       "\n> **[思考プロセス (Thinking Process)]**\n> ",
       "thinking",
       "\n\n---\n\n",
+      "\n\n(Retrying...)\n\n",
       "done",
     ]);
   });
@@ -1030,9 +1032,9 @@ describe("OcGoChatModelProvider", () => {
     };
 
     await provider.provideLanguageModelChatResponse(
-      { id: "deepseek-v4-flash:max", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      { id: "deepseek-v4-flash", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
       [{ role: 1, content: [{ value: "Hi" }] }] as any,
-      { modelOptions: {} } as any,
+      { modelOptions: {}, modelConfiguration: { reasoningEffort: "max" } } as any,
       progress,
       token as any,
     );
@@ -1047,12 +1049,15 @@ describe("OcGoChatModelProvider", () => {
       "\n> **[思考プロセス (Thinking Process)]**\n> ",
       "thinking",
       "\n\n---\n\n",
+      "\n\n(Retrying...)\n\n",
       "\n> **[思考プロセス (Thinking Process)]**\n> ",
       "thinking",
       "\n\n---\n\n",
+      "\n\n(Retrying...)\n\n",
       "\n> **[思考プロセス (Thinking Process)]**\n> ",
       "thinking",
       "\n\n---\n\n",
+      "\n\n(Retrying...)\n\n",
       "\n> **[思考プロセス (Thinking Process)]**\n> ",
       "thinking",
       "\n\n---\n\n",
@@ -1109,7 +1114,12 @@ describe("OcGoChatModelProvider", () => {
       .map((call: any[]) => call[0]?.value)
       .filter((value: unknown): value is string => typeof value === "string");
 
-    expect(emittedText).toEqual(["The model returned no visible response. Please retry."]);
+    expect(emittedText).toEqual([
+      "\n\n(Retrying...)\n\n",
+      "\n\n(Retrying...)\n\n",
+      "\n\n(Retrying...)\n\n",
+      "The model returned no visible response. Please retry.",
+    ]);
   });
 
   it("retries silent DeepSeek responses before succeeding", async () => {
@@ -1134,9 +1144,9 @@ describe("OcGoChatModelProvider", () => {
     };
 
     await provider.provideLanguageModelChatResponse(
-      { id: "deepseek-v4-flash:max", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      { id: "deepseek-v4-flash", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
       [{ role: 1, content: [{ value: "Hi" }] }] as any,
-      { modelOptions: {} } as any,
+      { modelOptions: {}, modelConfiguration: { reasoningEffort: "max" } } as any,
       progress,
       token as any,
     );
@@ -1150,7 +1160,11 @@ describe("OcGoChatModelProvider", () => {
       .map((call: any[]) => call[0]?.value)
       .filter((value: unknown): value is string => typeof value === "string");
 
-    expect(emittedText).toEqual(["done"]);
+    expect(emittedText).toEqual([
+      "\n\n(Retrying...)\n\n",
+      "\n\n(Retrying...)\n\n",
+      "done",
+    ]);
   });
 
   it("does not retry when visible text is buffered alongside reasoning output", async () => {
@@ -1169,9 +1183,9 @@ describe("OcGoChatModelProvider", () => {
     };
 
     await provider.provideLanguageModelChatResponse(
-      { id: "deepseek-v4-flash:max", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      { id: "deepseek-v4-flash", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
       [{ role: 1, content: [{ value: "Hi" }] }] as any,
-      { modelOptions: {} } as any,
+      { modelOptions: {}, modelConfiguration: { reasoningEffort: "max" } } as any,
       progress,
       token as any,
     );
