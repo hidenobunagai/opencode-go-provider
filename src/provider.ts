@@ -318,7 +318,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     try {
       const [apiKey, inputTokenCount] = await Promise.all([
         this.ensureApiKey(options, false),
-        Promise.resolve(estimateMessagesTokens(messages as never, model.id)),
+        Promise.resolve(estimateMessagesTokens(messages as never)),
       ]);
       if (!apiKey) {
         progress.report(
