@@ -92,6 +92,7 @@
     "compile": "tsc -p ./",
     "watch": "tsc -w -p ./",
     "test": "jest",
+    "test:coverage": "jest --coverage",
     "test:watch": "jest --watch",
     "lint": "eslint src/ tests/",
     "lint:fix": "eslint src/ tests/ --fix",
