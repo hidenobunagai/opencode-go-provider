@@ -59,7 +59,9 @@ function parseEmbeddedToolParameterValue(rawValue: string): unknown {
   ) {
     try {
       return JSON.parse(trimmed);
-    } catch {}
+    } catch {
+      /* ignored: non-JSON value (plain text, unquoted string, etc.), treat as-is */
+    }
   }
   return trimmed;
 }
@@ -229,6 +231,7 @@ export function parseTextEmbeddedToolCallsFrom(
         toolCall: { name, args: argsText ? JSON.parse(argsText) : {} },
       });
     } catch {
+      /* unparseable tool-call args — emit the raw text instead */
       appendText(`${beginToken}${name}${argBeginToken}${argsText}${endToken}`);
     }
   }
@@ -351,6 +354,7 @@ export class ToolCallScanner {
           toolCall: { name, args: argsText ? JSON.parse(argsText) : {} },
         });
       } catch {
+        /* unparseable tool-call args in incremental feed — emit as raw text */
         appendText(`${this.beginToken}${name}${this.argBeginToken}${argsText}${this.endToken}`);
       }
     }
