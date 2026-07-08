@@ -1,21 +1,21 @@
 import * as vscode from "vscode";
 import {
-  CancellationToken,
-  Event,
-  EventEmitter,
-  LanguageModelChatInformation,
-  LanguageModelChatMessage,
-  LanguageModelChatProvider,
-  LanguageModelChatRequestMessage,
-  LanguageModelResponsePart,
-  PrepareLanguageModelChatModelOptions,
-  Progress,
-  ProvideLanguageModelChatResponseOptions,
+    CancellationToken,
+    Event,
+    EventEmitter,
+    LanguageModelChatInformation,
+    LanguageModelChatMessage,
+    LanguageModelChatProvider,
+    LanguageModelChatRequestMessage,
+    LanguageModelResponsePart,
+    PrepareLanguageModelChatModelOptions,
+    Progress,
+    ProvideLanguageModelChatResponseOptions,
 } from "vscode";
 import {
-  DEFAULT_MAX_OUTPUT_TOKENS,
-  REASONING_CONTENT_WORKAROUND_MODELS,
-  getContextWindowSafetyMargin,
+    DEFAULT_MAX_OUTPUT_TOKENS,
+    REASONING_CONTENT_WORKAROUND_MODELS,
+    getContextWindowSafetyMargin,
 } from "./constants";
 import { OcGoMcpClient } from "./mcp";
 import { debugLog } from "./output-channel";

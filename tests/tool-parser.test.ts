@@ -1,10 +1,10 @@
 import {
-  findTrailingTokenPrefixStart,
-  findTrailingTokenPrefixStartAny,
-  parseXmlStyleToolCall,
-  parseTextEmbeddedToolCalls,
-  parseTextEmbeddedToolCallsFrom,
-  ToolCallScanner,
+    findTrailingTokenPrefixStart,
+    findTrailingTokenPrefixStartAny,
+    parseTextEmbeddedToolCalls,
+    parseTextEmbeddedToolCallsFrom,
+    parseXmlStyleToolCall,
+    ToolCallScanner,
 } from "../src/tool-parser";
 
 describe("findTrailingTokenPrefixStart", () => {

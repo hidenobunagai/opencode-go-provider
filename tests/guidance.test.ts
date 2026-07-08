@@ -1,9 +1,9 @@
 import {
-  applyOpenAiSystemPromptGuidance,
-  buildProviderIdentityGuidance,
-  buildToolUseGroundingGuidance,
-  calculateMaxToolResultChars,
-  sanitizeSystemPromptForModel,
+    applyOpenAiSystemPromptGuidance,
+    buildProviderIdentityGuidance,
+    buildToolUseGroundingGuidance,
+    calculateMaxToolResultChars,
+    sanitizeSystemPromptForModel,
 } from "../src/guidance";
 import { OcGoChatMessage, OcGoModelInfo } from "../src/types";
 
