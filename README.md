@@ -47,6 +47,12 @@ The extension uses the source-controlled `FALLBACK_MODELS` list bundled in this 
 2. Select **OpenCode Go** from the provider selector.
 3. Choose a model (e.g., Kimi K2.6) and start chatting.
 
+## Documentation
+
+- [Architecture](docs/architecture.md) — Module map, data flow, API formats, and design decisions
+- [Contributing](docs/contributing.md) — Development setup, code style, adding models, and debugging
+- [Supported Models](docs/models.md) — Full model list, capabilities, and context window details
+
 ## Development
 
 ```bash
