@@ -1,6 +1,20 @@
 # Change Log
 
-## [0.1.55] - 2026-07-02
+## [0.1.55] - 2026-07-13
+
+### Added
+
+- **Added unit tests for `guidance`, `tool-parser`, and `incremental-json` modules.** Test coverage improved with 28+18+27 test cases respectively.
+- **Added project documentation** (`docs/architecture.md`, `docs/contributing.md`, `docs/models.md`) with architecture overview, setup guide, and complete model reference.
+- **Added type guard functions** (`hasTextValue`, `isToolResultPart`, `isToolCallPart`) in `message-parts.ts` for safer type narrowing.
+- **Added coverage measurement** with 50% threshold and CI artifact upload.
+
+### Changed
+
+- **Replaced `as` casts with type guard functions** in `tool-repair.ts` for improved type safety.
+- **Added clarifying comments** to empty catch blocks.
+- **Replaced `globalThis` output channel** with module-private output channel variable.
+- **Removed dead `MODEL_TOKENIZER_MAP`** and unused `modelId` params from tokenizer.
 
 ### Fixed
 
