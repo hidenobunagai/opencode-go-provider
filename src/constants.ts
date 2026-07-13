@@ -38,10 +38,28 @@ export const STREAM_READ_TIMEOUT_MS = 60000;
 export const ANTHROPIC_MAX_TOOL_RESULT_CHARS = 20000;
 
 /** Models that require the reasoning_content workaround */
-export const REASONING_CONTENT_WORKAROUND_MODELS = new Set([
-  "kimi-k2.6",
-  "kimi-k2.7-code",
-  "deepseek-v4-pro",
-  "deepseek-v4-flash",
-]);
-
+export const REASONING_CONTENT_WORKAROUND_MODELS = {
+  has(modelId: string): boolean {
+    const staticSet = new Set([
+      "kimi-k2.6",
+      "kimi-k2.7-code",
+      "deepseek-v4-pro",
+      "deepseek-v4-flash",
+    ]);
+    if (staticSet.has(modelId)) {
+      return true;
+    }
+    if (modelId.startsWith("kimi-")) {
+      return !modelId.includes("k2.5");
+    }
+    if (modelId.startsWith("deepseek-")) {
+      const match = modelId.match(/deepseek-v(\d+)/);
+      if (match) {
+        const version = parseInt(match[1], 10);
+        return version >= 4;
+      }
+      return modelId.includes("-r1") || modelId.includes("-r2");
+    }
+    return false;
+  }
+};

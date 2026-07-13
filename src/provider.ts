@@ -1,28 +1,29 @@
 import * as vscode from "vscode";
 import {
-    CancellationToken,
-    Event,
-    EventEmitter,
-    LanguageModelChatInformation,
-    LanguageModelChatMessage,
-    LanguageModelChatProvider,
-    LanguageModelChatRequestMessage,
-    LanguageModelResponsePart,
-    PrepareLanguageModelChatModelOptions,
-    Progress,
-    ProvideLanguageModelChatResponseOptions,
+  CancellationToken,
+  Event,
+  EventEmitter,
+  LanguageModelChatInformation,
+  LanguageModelChatMessage,
+  LanguageModelChatProvider,
+  LanguageModelChatRequestMessage,
+  LanguageModelResponsePart,
+  PrepareLanguageModelChatModelOptions,
+  Progress,
+  ProvideLanguageModelChatResponseOptions,
 } from "vscode";
 import {
-    DEFAULT_MAX_OUTPUT_TOKENS,
-    REASONING_CONTENT_WORKAROUND_MODELS,
-    getContextWindowSafetyMargin,
+  BASE_URL,
+  DEFAULT_MAX_OUTPUT_TOKENS,
+  REASONING_CONTENT_WORKAROUND_MODELS,
+  getContextWindowSafetyMargin,
 } from "./constants";
 import { OcGoMcpClient } from "./mcp";
 import { debugLog } from "./output-channel";
 import { handleAnthropicRequest } from "./streaming/anthropic";
 import { processOpenAIStream, type OpenAIModelInfo } from "./streaming/openai";
 import { estimateMessagesTokens, estimateTokens } from "./tokenizer";
-import { FALLBACK_MODELS, OcGoModelInfo } from "./types";
+import { FALLBACK_MODELS, OcGoModelInfo, inferModelInfo } from "./types";
 
 export class OcGoChatModelProvider implements LanguageModelChatProvider {
   private readonly _onDidChangeLanguageModelChatInformation = new EventEmitter<void>();
@@ -30,18 +31,63 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     this._onDidChangeLanguageModelChatInformation.event;
 
   private readonly _mcpClient: OcGoMcpClient;
-  private readonly _modelMap: Map<string, OcGoModelInfo>;
+  private readonly _modelMap = new Map<string, OcGoModelInfo>();
+  private _models: OcGoModelInfo[] = FALLBACK_MODELS;
+  private _modelsFetched = false;
 
   constructor(
     private readonly secrets: vscode.SecretStorage,
     private readonly userAgent: string,
   ) {
     this._mcpClient = new OcGoMcpClient(secrets, userAgent);
-    this._modelMap = new Map(FALLBACK_MODELS.map((m) => [m.id, m]));
+    for (const m of FALLBACK_MODELS) {
+      this._modelMap.set(m.id, m);
+    }
+    void this.fetchModels();
   }
 
   fireModelInfoChanged(): void {
-    this._onDidChangeLanguageModelChatInformation.fire();
+    void this.fetchModels().then(() => {
+      this._onDidChangeLanguageModelChatInformation.fire();
+    });
+  }
+
+  private async fetchModels(): Promise<void> {
+    const apiKey = await this.ensureApiKey({}, true);
+    if (!apiKey) {
+      debugLog("fetchModels", "No API key available, skipping dynamic model fetch.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${BASE_URL}/models`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "User-Agent": this.userAgent,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} ${response.statusText}`);
+      }
+
+      const body = (await response.json()) as { data: Array<{ id: string }> };
+      if (!body.data || !Array.isArray(body.data)) {
+        throw new Error("Invalid response format");
+      }
+
+      const fetchedModels: OcGoModelInfo[] = body.data.map((item) => inferModelInfo(item.id));
+      this._models = fetchedModels;
+      this._modelMap.clear();
+      for (const m of fetchedModels) {
+        this._modelMap.set(m.id, m);
+      }
+      this._modelsFetched = true;
+      debugLog("fetchModels", `Successfully fetched ${fetchedModels.length} models dynamically.`);
+    } catch (error) {
+      debugLog("fetchModelsError", `Failed to fetch dynamic models: ${error}. Using fallbacks.`);
+    }
   }
 
   private getConfiguredApiKeyState(configuration: unknown): {
@@ -215,7 +261,10 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     if (token.isCancellationRequested) return [];
     try {
       await this.syncConfiguredApiKey(options);
-      const models = this._mapToChatInformation(FALLBACK_MODELS);
+      if (!this._modelsFetched) {
+        await this.fetchModels();
+      }
+      const models = this._mapToChatInformation(this._models);
       debugLog("provideLanguageModelChatInformation", {
         silent: options.silent,
         modelCount: models.length,
@@ -223,7 +272,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
       return models;
     } catch (error) {
       debugLog("provideLanguageModelChatInformationError", error);
-      const models = this._mapToChatInformation(FALLBACK_MODELS);
+      const models = this._mapToChatInformation(this._models);
       debugLog("provideLanguageModelChatInformationFallback", {
         modelCount: models.length,
       });

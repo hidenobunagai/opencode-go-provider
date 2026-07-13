@@ -321,6 +321,81 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
   },
 ];
 
+export function inferModelInfo(id: string): OcGoModelInfo {
+  const known = FALLBACK_MODELS.find((m) => m.id === id);
+  if (known) {
+    return known;
+  }
+
+  const isKimi = id.startsWith("kimi-");
+  const isGlm = id.startsWith("glm-");
+  const isMinimax = id.startsWith("minimax-");
+  const isDeepseek = id.startsWith("deepseek-");
+  const isQwen = id.startsWith("qwen");
+  const isMimo = id.startsWith("mimo-");
+  const isHy3 = id.startsWith("hy3-");
+
+  let contextWindow = 262144;
+  let maxOutput = 65536;
+  let supportsTools = true;
+  let supportsVision = false;
+  let apiFormat: OcGoApiFormat = "openai";
+  let fixedTemperature: number | undefined = undefined;
+  let supportsThinking = false;
+
+  if (isMinimax) {
+    apiFormat = "anthropic";
+    contextWindow = 196608;
+    maxOutput = 131072;
+  } else if (isKimi) {
+    fixedTemperature = 1;
+    supportsVision = true;
+    supportsThinking = true;
+    contextWindow = 262144;
+    maxOutput = id.includes("k2.5") ? 65536 : 262144;
+  } else if (isGlm) {
+    supportsThinking = true;
+    contextWindow = 202752;
+    maxOutput = 131072;
+  } else if (isDeepseek) {
+    supportsThinking = true;
+    contextWindow = 262144;
+    maxOutput = 65536;
+  } else if (isQwen) {
+    supportsVision = true;
+    supportsThinking = true;
+    contextWindow = 1000000;
+    maxOutput = 65536;
+  } else if (isMimo) {
+    supportsThinking = true;
+    supportsVision = !id.includes("pro");
+    contextWindow = id.includes("pro") ? 1048576 : 262144;
+    maxOutput = id.includes("pro") ? 131072 : 65536;
+  } else if (isHy3) {
+    supportsThinking = true;
+    contextWindow = 262144;
+    maxOutput = 65536;
+  }
+
+  const displayName = id
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
+  return {
+    id,
+    name: displayName,
+    displayName,
+    contextWindow,
+    maxOutput,
+    supportsTools,
+    supportsVision,
+    apiFormat,
+    fixedTemperature,
+    supportsThinking,
+  };
+}
+
 // ============================================================================
 // Anthropic Messages API types
 // Used by MiniMax M2.5 and M2.7 via OpenCode Go proxy

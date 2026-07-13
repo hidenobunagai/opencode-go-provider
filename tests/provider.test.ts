@@ -161,6 +161,77 @@ describe("OcGoChatModelProvider", () => {
     expect(infos).toEqual([]);
   });
 
+  it("dynamically fetches models and infers capabilities", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+    const mockModelsResponse = {
+      data: [
+        { id: "kimi-k3-vision" },
+        { id: "deepseek-v5-pro" },
+        { id: "minimax-m4" }
+      ]
+    };
+    const savedFetch = global.fetch;
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => mockModelsResponse
+    } as any);
+
+    try {
+      const token = {
+        isCancellationRequested: false,
+        onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+      };
+      
+      const infos = await provider.provideLanguageModelChatInformation(
+        { silent: true } as any,
+        token as any,
+      );
+
+      expect(global.fetch).toHaveBeenCalled();
+      expect(infos.length).toBe(3);
+
+      const kimi = infos.find((i: any) => i.id === "kimi-k3-vision");
+      expect(kimi).toBeDefined();
+      expect(kimi?.capabilities?.imageInput).toBe(true); // kimi starts with kimi- is inferred as vision
+
+      const deepseek = infos.find((i: any) => i.id === "deepseek-v5-pro");
+      expect(deepseek).toBeDefined();
+      expect(deepseek?.maxOutputTokens).toBe(65536);
+
+      const minimax = infos.find((i: any) => i.id === "minimax-m4");
+      expect(minimax).toBeDefined();
+      expect(minimax?.maxOutputTokens).toBe(131072);
+      expect(minimax?.tooltip).toContain("Anthropic format");
+    } finally {
+      global.fetch = savedFetch;
+    }
+  });
+
+  it("falls back to static models if dynamic fetch fails", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+    const savedFetch = global.fetch;
+    global.fetch = jest.fn().mockRejectedValue(new Error("Network error"));
+
+    try {
+      const token = {
+        isCancellationRequested: false,
+        onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+      };
+
+      const infos = await provider.provideLanguageModelChatInformation(
+        { silent: true } as any,
+        token as any,
+      );
+
+      expect(infos.length).toBeGreaterThan(0);
+      // GLM-5 is in fallback models
+      const glm = infos.find((i: any) => i.id === "glm-5");
+      expect(glm).toBeDefined();
+    } finally {
+      global.fetch = savedFetch;
+    }
+  });
+
   it("provideLanguageModelChatResponse streams text parts", async () => {
     (secrets.get as jest.Mock).mockResolvedValue("test-key");
 
