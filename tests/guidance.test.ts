@@ -1,9 +1,9 @@
 import {
-    applyOpenAiSystemPromptGuidance,
-    buildProviderIdentityGuidance,
-    buildToolUseGroundingGuidance,
-    calculateMaxToolResultChars,
-    sanitizeSystemPromptForModel,
+  applyOpenAiSystemPromptGuidance,
+  buildProviderIdentityGuidance,
+  buildToolUseGroundingGuidance,
+  calculateMaxToolResultChars,
+  sanitizeSystemPromptForModel,
 } from "../src/guidance";
 import { OcGoChatMessage, OcGoModelInfo } from "../src/types";
 
@@ -147,7 +147,9 @@ describe("applyOpenAiSystemPromptGuidance", () => {
       MOCK_MODELS,
     );
     expect(result[0].content).toContain("GitHub Copilot");
-    expect((result[0].content as string).length).toBeGreaterThan((messages[0].content as string).length);
+    expect((result[0].content as string).length).toBeGreaterThan(
+      (messages[0].content as string).length,
+    );
   });
 
   it("appends tool guidance when tools are present", () => {
@@ -175,16 +177,16 @@ describe("applyOpenAiSystemPromptGuidance", () => {
 });
 
 describe("calculateMaxToolResultChars", () => {
-  it('returns 50000 for models with context >= 500000', () => {
+  it("returns 50000 for models with context >= 500000", () => {
     expect(calculateMaxToolResultChars("minimax-m3", MOCK_MODELS)).toBe(50000);
   });
 
-  it('returns 30000 for models with context >= 200000 but < 500000', () => {
+  it("returns 30000 for models with context >= 200000 but < 500000", () => {
     expect(calculateMaxToolResultChars("glm-5", MOCK_MODELS)).toBe(30000);
     expect(calculateMaxToolResultChars("deepseek-v4-pro", MOCK_MODELS)).toBe(30000);
   });
 
-  it('returns 10000 for unknown models (fallback to 262144)', () => {
+  it("returns 10000 for unknown models (fallback to 262144)", () => {
     expect(calculateMaxToolResultChars("unknown", MOCK_MODELS)).toBe(30000);
   });
 

@@ -1,10 +1,10 @@
 import {
-    findTrailingTokenPrefixStart,
-    findTrailingTokenPrefixStartAny,
-    parseTextEmbeddedToolCalls,
-    parseTextEmbeddedToolCallsFrom,
-    parseXmlStyleToolCall,
-    ToolCallScanner,
+  findTrailingTokenPrefixStart,
+  findTrailingTokenPrefixStartAny,
+  parseTextEmbeddedToolCalls,
+  parseTextEmbeddedToolCallsFrom,
+  parseXmlStyleToolCall,
+  ToolCallScanner,
 } from "../src/tool-parser";
 
 describe("findTrailingTokenPrefixStart", () => {
@@ -49,10 +49,10 @@ describe("findTrailingTokenPrefixStartAny", () => {
   });
 
   it("returns match from any of the tokens", () => {
-    const result = findTrailingTokenPrefixStartAny(
-      "text<|tool_call_en",
-      ["<|tool_call_end|>", "</tool_call>"],
-    );
+    const result = findTrailingTokenPrefixStartAny("text<|tool_call_en", [
+      "<|tool_call_end|>",
+      "</tool_call>",
+    ]);
     expect(result).toBeGreaterThanOrEqual(0);
   });
 });
@@ -78,8 +78,7 @@ describe("parseXmlStyleToolCall", () => {
   });
 
   it("parses tool call with empty args", () => {
-    const text =
-      '<tool_calls><tool_call name="noop"></tool_call></tool_calls>';
+    const text = '<tool_calls><tool_call name="noop"></tool_call></tool_calls>';
     const result = parseXmlStyleToolCall(text);
     expect(result.toolCall?.name).toBe("noop");
     expect(result.toolCall?.args).toEqual({});
@@ -101,8 +100,7 @@ describe("parseXmlStyleToolCall", () => {
 
   it("skips text before <tool_calls> if starts with tool_calls token", () => {
     // parseXmlStyleToolCall only processes text that starts with <tool_calls> or <tool_call >
-    const text =
-      'some preamble <tool_calls><tool_call name="test"></tool_call></tool_calls>';
+    const text = 'some preamble <tool_calls><tool_call name="test"></tool_call></tool_calls>';
     const result = parseXmlStyleToolCall(text);
     // Doesn't scan past preamble - returns incomplete
     expect(result.consumed).toBe(0);
@@ -117,7 +115,8 @@ describe("parseTextEmbeddedToolCalls", () => {
   });
 
   it("parses single tool call", () => {
-    const text = '<|tool_call_begin|>read_file<|tool_call_argument_begin|>{"filePath":"/x.txt"}<|tool_call_end|>';
+    const text =
+      '<|tool_call_begin|>read_file<|tool_call_argument_begin|>{"filePath":"/x.txt"}<|tool_call_end|>';
     const result = parseTextEmbeddedToolCalls(text);
     expect(result.segments.length).toBe(1);
     expect(result.segments[0].type).toBe("toolCall");
@@ -128,7 +127,8 @@ describe("parseTextEmbeddedToolCalls", () => {
   });
 
   it("parses text before and after tool call as text segments", () => {
-    const text = 'prefix<|tool_call_begin|>tool<|tool_call_argument_begin|>{}<|tool_call_end|>suffix';
+    const text =
+      "prefix<|tool_call_begin|>tool<|tool_call_argument_begin|>{}<|tool_call_end|>suffix";
     const result = parseTextEmbeddedToolCalls(text);
     const types = result.segments.map((s) => s.type);
     expect(types).toEqual(["text", "toolCall", "text"]);
@@ -201,7 +201,7 @@ describe("ToolCallScanner", () => {
 
   it("returns text segments between tool calls", () => {
     const text =
-      'before<|tool_call_begin|>t1<|tool_call_argument_begin|>{}<|tool_call_end|>middle<|tool_call_begin|>t2<|tool_call_argument_begin|>{}<|tool_call_end|>after';
+      "before<|tool_call_begin|>t1<|tool_call_argument_begin|>{}<|tool_call_end|>middle<|tool_call_begin|>t2<|tool_call_argument_begin|>{}<|tool_call_end|>after";
     const result = scanner.feed(text);
     const types = result.map((s) => s.type);
     expect(types).toEqual(["text", "toolCall", "text", "toolCall", "text"]);

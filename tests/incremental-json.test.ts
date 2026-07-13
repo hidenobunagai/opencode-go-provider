@@ -53,7 +53,7 @@ describe("isProbablyCompleteJson", () => {
   });
 
   it("returns true for simple array", () => {
-    expect(isProbablyCompleteJson('[1,2,3]')).toBe(true);
+    expect(isProbablyCompleteJson("[1,2,3]")).toBe(true);
   });
 
   it("returns true for array of objects", () => {
