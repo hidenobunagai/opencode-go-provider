@@ -1,6 +1,6 @@
 # Change Log
 
-## [0.1.55] - 2026-07-13
+## [0.1.56] - 2026-07-13
 
 ### Added
 
@@ -15,6 +15,8 @@
 - **Added clarifying comments** to empty catch blocks.
 - **Replaced `globalThis` output channel** with module-private output channel variable.
 - **Removed dead `MODEL_TOKENIZER_MAP`** and unused `modelId` params from tokenizer.
+
+## [0.1.55] - 2026-07-02
 
 ### Fixed
 
