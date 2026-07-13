@@ -61,5 +61,5 @@ export const REASONING_CONTENT_WORKAROUND_MODELS = {
       return modelId.includes("-r1") || modelId.includes("-r2");
     }
     return false;
-  }
+  },
 };

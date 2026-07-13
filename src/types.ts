@@ -337,7 +337,7 @@ export function inferModelInfo(id: string): OcGoModelInfo {
 
   let contextWindow = 262144;
   let maxOutput = 65536;
-  let supportsTools = true;
+  const supportsTools = true;
   let supportsVision = false;
   let apiFormat: OcGoApiFormat = "openai";
   let fixedTemperature: number | undefined = undefined;

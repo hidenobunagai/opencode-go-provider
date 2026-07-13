@@ -164,16 +164,12 @@ describe("OcGoChatModelProvider", () => {
   it("dynamically fetches models and infers capabilities", async () => {
     (secrets.get as jest.Mock).mockResolvedValue("test-key");
     const mockModelsResponse = {
-      data: [
-        { id: "kimi-k3-vision" },
-        { id: "deepseek-v5-pro" },
-        { id: "minimax-m4" }
-      ]
+      data: [{ id: "kimi-k3-vision" }, { id: "deepseek-v5-pro" }, { id: "minimax-m4" }],
     };
     const savedFetch = global.fetch;
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      json: async () => mockModelsResponse
+      json: async () => mockModelsResponse,
     } as any);
 
     try {
@@ -181,7 +177,7 @@ describe("OcGoChatModelProvider", () => {
         isCancellationRequested: false,
         onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
       };
-      
+
       const infos = await provider.provideLanguageModelChatInformation(
         { silent: true } as any,
         token as any,
