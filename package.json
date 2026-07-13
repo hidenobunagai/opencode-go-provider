@@ -106,6 +106,7 @@
     "measure:deepseek:json": "bun scripts/measure-deepseek-chat-completions.mjs --json"
   },
   "devDependencies": {
+    "@dotenvx/dotenvx": "^2.1.4",
     "@types/jest": "^29.0.0",
     "@types/node": "^22.0.0",
     "@types/vscode": "1.104.0",
