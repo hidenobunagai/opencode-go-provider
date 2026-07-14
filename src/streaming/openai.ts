@@ -151,11 +151,9 @@ export async function processOpenAIStream(
       temperature: temperatureVal,
     };
 
-    // NEVER send max_tokens or max_completion_tokens for thinking models.
-    // The OpenCode Go API knows how to allocate the budget between reasoning
-    // and visible output — overriding this causes the model to exhaust the
-    // entire budget on thinking and produce no visible response.
-    if (!isThinkingModel) {
+    if (isThinkingModel) {
+      requestBody.max_completion_tokens = Math.max(currentMaxTokens, 16384);
+    } else {
       requestBody.max_tokens = currentMaxTokens;
     }
 
