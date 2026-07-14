@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.57] - 2026-07-14
+
+### Fixed
+
+- **Fixed reasoning-only retry loop and truncation errors on thinking models (DeepSeek V4, Kimi K2.6, etc.).** Previously, the extension completely omitted `max_tokens` and `max_completion_tokens` parameters for reasoning models. This fallback caused the API to use its server-side default limit (typically 4096 tokens), which was easily exhausted during long reasoning steps and truncated responses midway (0 visible content). We now pass the standard `max_completion_tokens` parameter for thinking models (ensuring it is at least 16K and capped at the model's maximum output limit), giving the model plenty of budget to reason and produce answers without getting cut off.
+
 ## [0.1.56] - 2026-07-13
 
 ### Added
