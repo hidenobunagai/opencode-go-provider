@@ -152,7 +152,10 @@ export async function processOpenAIStream(
     };
 
     if (isThinkingModel) {
-      requestBody.max_completion_tokens = Math.max(currentMaxTokens, 16384);
+      requestBody.max_completion_tokens = Math.min(
+        Math.max(currentMaxTokens, 16384),
+        model.maxOutputTokens,
+      );
     } else {
       requestBody.max_tokens = currentMaxTokens;
     }
