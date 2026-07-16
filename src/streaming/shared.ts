@@ -205,13 +205,17 @@ export class StreamState {
   }
 
   hasVisibleOutput(): boolean {
-    return this.hasEmittedNormalOutput || this.pendingText.trim().length > 0;
+    return (
+      this.hasEmittedNormalOutput ||
+      (this.pendingText.trim().length > 0 && !this.hasIncompleteToolCall())
+    );
   }
 
   hasIncompleteToolCall(): boolean {
     return (
       this.nativeToolCalls.size > 0 ||
-      (this.sawToolCall && !this.emittedToolCall && this.skippedToolCalls.length === 0)
+      (this.sawToolCall && !this.emittedToolCall && this.skippedToolCalls.length === 0) ||
+      this.toolCallScanner.buffer.trim().length > 0
     );
   }
 
