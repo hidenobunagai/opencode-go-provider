@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.58] - 2026-07-16
+
+### Fixed
+
+- **Fixed missing retries and silent failures for truncated/incomplete text-embedded tool calls.** Previously, `hasVisibleOutput` mistakenly considered buffered text that had not yet been reported to the user as "visible output". This prevented the extension from retrying when a response got cut off in the middle of outputting a text-embedded tool call (e.g. XML-style tool calls used by Cline/Roo Code). Furthermore, `hasIncompleteToolCall` did not scan the scanner's internal buffer for unclosed tags/delimiters. We now correctly track only *actually emitted* user-visible output and inspect the scanner buffer, ensuring that any cut-off or incomplete tool calls are reliably retried with a larger budget.
+
 ## [0.1.57] - 2026-07-14
 
 ### Fixed
