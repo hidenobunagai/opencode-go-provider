@@ -1,5 +1,6 @@
 // streaming/anthropic.ts — Anthropic-format SSE streaming for /messages endpoint
 import * as vscode from "vscode";
+import { buildMissingToolCallNudge, looksLikeActionAnnouncement } from "../announcement";
 import { convertMessagesToAnthropic, convertToolsToAnthropic } from "../anthropic-conversion";
 import { fetchWithRetry } from "../api";
 import { BASE_URL, REQUEST_TIMEOUT_MS, STREAM_READ_TIMEOUT_MS } from "../constants";
@@ -74,12 +75,22 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
   // Reasoning models may consume the entire output budget on internal thinking
   // before producing any visible text/tool calls.  Allow multiple retries with
   // exponentially increasing budgets so the model has room to reason AND respond.
-  // The API manages the budget internally for DeepSeek models (no max_tokens is
-  // sent), but retries still help when the model produces only reasoning content.
+  // Retries are silent: visible "(Retrying...)" markers would be persisted in
+  // the conversation history and confuse the model on later turns, and VS Code
+  // already shows its own progress indicator while the request is in flight.
   const MAX_RETRIES = 3;
   let currentMaxTokens = requestedMaxTokens;
   let prevEmittedKeys: Set<string> | undefined;
-  let retryReason: "reasoning-only" | "mid-response-stop" | "truncated" | undefined;
+  let retryReason:
+    | "reasoning-only"
+    | "mid-response-stop"
+    | "truncated"
+    | "missing-tool-call"
+    | undefined;
+  // Messages sent on the next attempt.  The missing-tool-call retry appends
+  // the model's action announcement plus a nudge so the model can emit the
+  // tool call it announced.
+  let requestMessages = apiMessages;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (token.isCancellationRequested) throw new vscode.CancellationError();
@@ -97,9 +108,7 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
             currentMaxTokens * 2,
             fallbackModels.find((m) => m.id === modelId)?.maxOutput ?? currentMaxTokens * 2,
           );
-      const retryLabel =
-        retryReason === "mid-response-stop" ? "Retrying after mid-response stop..." : "Retrying...";
-      progress.report(new vscode.LanguageModelTextPart(`\n\n(${retryLabel})\n\n`));
+      debugLog("handleAnthropicRequest retry", { attempt, retryReason });
     }
 
     const requestBody: {
@@ -113,7 +122,7 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
       tool_choice?: unknown;
     } = {
       model: modelId,
-      messages: apiMessages,
+      messages: requestMessages,
       stream: true,
     };
 
@@ -241,6 +250,30 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
       // Retry with larger budget for a complete response.
       shouldRetry = true;
       retryReason = "truncated";
+    } else if (
+      !streamState.sawToolCall &&
+      (streamState.stopReason === null || streamState.stopReason === "end_turn") &&
+      (toolConfig.tools?.length ?? 0) > 0 &&
+      streamState.pendingText.trim().length > 0 &&
+      looksLikeActionAnnouncement(streamState.pendingText) &&
+      attempt < MAX_RETRIES &&
+      !token.isCancellationRequested
+    ) {
+      // The model ended its turn by announcing an action (e.g.
+      // "テストを実行します。" / "I will run the tests.") without emitting the
+      // tool call, which would silently end the agentic loop before the
+      // announced action ever happens.  The announcement text is still
+      // buffered (never shown to the user), so silently replay it as an
+      // assistant message and nudge the model to emit the tool call it
+      // announced.
+      shouldRetry = true;
+      retryReason = "missing-tool-call";
+      const announcement = streamState.pendingText.trim();
+      requestMessages = [
+        ...requestMessages,
+        { role: "assistant", content: announcement },
+        { role: "user", content: buildMissingToolCallNudge() },
+      ];
     }
 
     if (shouldRetry) {

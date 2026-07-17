@@ -32,6 +32,7 @@ export function buildToolUseGroundingGuidance(
     "For read_file, always provide filePath and line ranges from editor context. If unknown, ask.",
     "Do not treat planning output as evidence about workspace structure or file contents.",
     "Prefer emitting all independent tool calls in parallel within a single response (e.g., editing multiple sections/files or reading multiple files) instead of sequentially across multiple turns, to minimize user prompts and round-trips.",
+    'Never end your response by announcing an action you are about to take (e.g. "I will run the tests"). When you intend to act, emit the tool call immediately in the same response; end your turn without a tool call only when the task is complete or you need user input.',
   ].join(" ");
 }
 

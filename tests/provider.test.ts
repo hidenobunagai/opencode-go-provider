@@ -1053,7 +1053,7 @@ describe("OcGoChatModelProvider", () => {
     );
   });
 
-  it("reduces DeepSeek Flash reasoning_effort across retries and emits retry progress text", async () => {
+  it("reduces DeepSeek Flash reasoning_effort across retries without emitting retry progress text", async () => {
     (secrets.get as jest.Mock).mockResolvedValue("test-key");
 
     let attempt = 0;
@@ -1096,11 +1096,9 @@ describe("OcGoChatModelProvider", () => {
       "\n> **[思考プロセス (Thinking Process)]**\n> ",
       "thinking",
       "\n\n---\n\n",
-      "\n\n(Retrying...)\n\n",
       "\n> **[思考プロセス (Thinking Process)]**\n> ",
       "thinking",
       "\n\n---\n\n",
-      "\n\n(Retrying...)\n\n",
       "done",
     ]);
   });
@@ -1139,15 +1137,12 @@ describe("OcGoChatModelProvider", () => {
       "\n> **[思考プロセス (Thinking Process)]**\n> ",
       "thinking",
       "\n\n---\n\n",
-      "\n\n(Retrying...)\n\n",
       "\n> **[思考プロセス (Thinking Process)]**\n> ",
       "thinking",
       "\n\n---\n\n",
-      "\n\n(Retrying...)\n\n",
       "\n> **[思考プロセス (Thinking Process)]**\n> ",
       "thinking",
       "\n\n---\n\n",
-      "\n\n(Retrying...)\n\n",
       "\n> **[思考プロセス (Thinking Process)]**\n> ",
       "thinking",
       "\n\n---\n\n",
@@ -1204,12 +1199,7 @@ describe("OcGoChatModelProvider", () => {
       .map((call: any[]) => call[0]?.value)
       .filter((value: unknown): value is string => typeof value === "string");
 
-    expect(emittedText).toEqual([
-      "\n\n(Retrying...)\n\n",
-      "\n\n(Retrying...)\n\n",
-      "\n\n(Retrying...)\n\n",
-      "The model returned no visible response. Please retry.",
-    ]);
+    expect(emittedText).toEqual(["The model returned no visible response. Please retry."]);
   });
 
   it("retries silent DeepSeek responses before succeeding", async () => {
@@ -1250,7 +1240,7 @@ describe("OcGoChatModelProvider", () => {
       .map((call: any[]) => call[0]?.value)
       .filter((value: unknown): value is string => typeof value === "string");
 
-    expect(emittedText).toEqual(["\n\n(Retrying...)\n\n", "\n\n(Retrying...)\n\n", "done"]);
+    expect(emittedText).toEqual(["done"]);
   });
 
   it("does not retry when visible text is buffered alongside reasoning output", async () => {
@@ -1288,6 +1278,160 @@ describe("OcGoChatModelProvider", () => {
       "\n\n---\n\n",
       "done",
     ]);
+  });
+
+  it("nudges the model when it ends with an action announcement but no tool call", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    let attempt = 0;
+    (streamChatCompletion as jest.Mock).mockImplementation(() => {
+      attempt += 1;
+      return (async function* () {
+        if (attempt === 1) {
+          yield { choices: [{ delta: { content: "テストを実行します。" } }] };
+          yield { choices: [{ delta: {}, finish_reason: "stop" }] };
+          return;
+        }
+        yield {
+          choices: [
+            {
+              delta: {
+                tool_calls: [
+                  {
+                    index: 0,
+                    id: "call_1",
+                    type: "function",
+                    function: { name: "run_tests", arguments: '{"suite":"all"}' },
+                  },
+                ],
+              },
+            },
+          ],
+        };
+      })();
+    });
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "kimi-k3", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "Hi" }] }] as any,
+      {
+        modelOptions: {},
+        tools: [
+          {
+            name: "run_tests",
+            description: "Run tests",
+            inputSchema: {
+              type: "object",
+              properties: { suite: { type: "string" } },
+              required: ["suite"],
+            },
+          },
+        ],
+      } as any,
+      progress,
+      token as any,
+    );
+
+    expect(streamChatCompletion).toHaveBeenCalledTimes(2);
+
+    // The retry replays the announcement as an assistant message (with the
+    // reasoning_content workaround for thinking models) and appends a nudge.
+    const retryMessages = (streamChatCompletion as jest.Mock).mock.calls.at(-1)?.[1]?.messages;
+    expect(retryMessages.at(-2)).toEqual({
+      role: "assistant",
+      content: "テストを実行します。",
+      reasoning_content: " ",
+    });
+    expect(retryMessages.at(-1).role).toBe("user");
+    expect(retryMessages.at(-1).content).toContain("no tool call was emitted");
+
+    // The tool call announced in the first attempt is emitted on the retry.
+    const toolCallPart = progress.report.mock.calls
+      .map((call: any[]) => call[0])
+      .find((part: any) => part?.name === "run_tests");
+    expect(toolCallPart).toBeDefined();
+    expect(toolCallPart.input).toEqual({ suite: "all" });
+
+    // The announcement text itself is never shown to the user.
+    const emittedText = progress.report.mock.calls
+      .map((call: any[]) => call[0]?.value)
+      .filter((value: unknown): value is string => typeof value === "string");
+    expect(emittedText.some((text) => text.includes("実行します"))).toBe(false);
+  });
+
+  it("does not nudge when the response is a normal final answer", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const mockStream = async function* () {
+      yield { choices: [{ delta: { content: "修正が完了しました。" } }] };
+      yield { choices: [{ delta: {}, finish_reason: "stop" }] };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "glm-5", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "Hi" }] }] as any,
+      {
+        modelOptions: {},
+        tools: [{ name: "run_tests", description: "Run tests", inputSchema: {} }],
+      } as any,
+      progress,
+      token as any,
+    );
+
+    expect(streamChatCompletion).toHaveBeenCalledTimes(1);
+
+    const emittedText = progress.report.mock.calls
+      .map((call: any[]) => call[0]?.value)
+      .filter((value: unknown): value is string => typeof value === "string");
+    expect(emittedText).toEqual(["修正が完了しました。"]);
+  });
+
+  it("forces low reasoning effort on retry when Thinking Effort is left at default", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    let attempt = 0;
+    (streamChatCompletion as jest.Mock).mockImplementation(() => {
+      attempt += 1;
+      return (async function* () {
+        if (attempt === 1) {
+          yield { choices: [{ delta: { reasoning_content: "thinking" } }] };
+          return;
+        }
+        yield { choices: [{ delta: { content: "done" } }] };
+      })();
+    });
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "deepseek-v4-flash", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "Hi" }] }] as any,
+      { modelOptions: {} } as any,
+      progress,
+      token as any,
+    );
+
+    expect(streamChatCompletion).toHaveBeenCalledTimes(2);
+    expect(
+      (streamChatCompletion as jest.Mock).mock.calls.map((call) => call[1]?.reasoning_effort),
+    ).toEqual([undefined, "low"]);
   });
 
   it("retries incomplete tool calls even when no reasoning content is emitted", async () => {

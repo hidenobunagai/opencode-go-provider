@@ -33,6 +33,7 @@ Copilot Chat
 | `message-parts.ts` | Type guards (`hasTextValue`, `isToolCallPart`, `isToolResultPart`) and extraction helpers for `LanguageModelInputPart` and legacy parts. |
 | `tokenizer.ts` | Lightweight token estimator (characters ÷ 2). No WASM/tiktoken dependency. |
 | `tool-parser.ts` | Parses text-embedded and XML-style tool calls from streaming model output. Includes `ToolCallScanner` for incremental parsing. |
+| `announcement.ts` | Detects responses that end by announcing an action (JA/EN/ZH) without emitting the tool call, and builds the nudge message used to continue the turn. |
 | `tool-repair.ts` | Deduplicates tool calls, repairs missing arguments from chat context, and coerces argument types using `inputSchema`. |
 | `tools.ts` | Registers the `opencode_go_analyze_image` language model tool for vision requests. |
 | `mcp.ts` | MCP (Model Context Protocol) client for optional server integration. |
@@ -72,6 +73,8 @@ Copilot Chat
 - Respects `Retry-After` headers
 - Per-read SSE timeout (60s) to detect silent connection drops
 - Request-level timeout (120s)
+
+The streaming handlers (`streaming/openai.ts`, `streaming/anthropic.ts`) additionally retry a single user-visible request up to 3 times when an attempt yields no usable output: reasoning-only output, empty responses, mid-response stops, truncation (`finish_reason: "length"` / `stop_reason: "max_tokens"`), or an **action announcement without a tool call** (`announcement.ts` detects endings like "テストを実行します。" / "I will run the tests."; the buffered announcement is replayed as an assistant message followed by a nudge so the model emits the tool call it announced). These retries are silent — no `(Retrying...)` text is written to the chat, because such text would persist in the conversation history and confuse the model on later turns. When Thinking Effort is left at "default", retries also force `reasoning_effort: "low"` for thinking models so a reasoning-only storm cannot repeat.
 
 ## API Formats
 

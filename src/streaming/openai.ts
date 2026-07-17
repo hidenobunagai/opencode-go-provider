@@ -1,5 +1,6 @@
 // streaming/openai.ts — OpenAI-format SSE streaming + tool call assembly
 import * as vscode from "vscode";
+import { buildMissingToolCallNudge, looksLikeActionAnnouncement } from "../announcement";
 import { streamChatCompletion } from "../api";
 import { REASONING_CONTENT_WORKAROUND_MODELS } from "../constants";
 import { applyOpenAiSystemPromptGuidance, calculateMaxToolResultChars } from "../guidance";
@@ -100,8 +101,9 @@ export async function processOpenAIStream(
   // Reasoning models may consume the entire output budget on internal thinking
   // before producing any visible text/tool calls.  Allow multiple retries with
   // exponentially increasing budgets so the model has room to reason AND respond.
-  // The API manages the budget internally for thinking models (no max_tokens is
-  // sent), but retries still help when the model produces only reasoning content.
+  // Retries are silent: visible "(Retrying...)" markers would be persisted in
+  // the conversation history and confuse the model on later turns, and VS Code
+  // already shows its own progress indicator while the request is in flight.
   const MAX_RETRIES = 3;
   let currentMaxTokens = requestedMaxTokens;
   let prevEmittedKeys: Set<string> | undefined;
@@ -110,33 +112,36 @@ export async function processOpenAIStream(
     | "mid-response-stop"
     | "empty-response"
     | "truncated"
+    | "missing-tool-call"
     | undefined;
+  // Messages sent on the next attempt.  Usually identical to convertedMessages,
+  // but the missing-tool-call retry appends the model's action announcement
+  // plus a nudge so the model can emit the tool call it announced.
+  let requestMessages = convertedMessages;
   const attemptSnapshots: Array<Record<string, unknown>> = [];
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (token.isCancellationRequested) throw new vscode.CancellationError();
     let fullContent = "";
 
-    const attemptReasoningEffort = getRetryReasoningEffort(normalizedEffort, attempt);
+    // When the user left Thinking Effort at "default", retries force "low" so a
+    // thinking model cannot burn the whole budget on reasoning again — this is
+    // what breaks reasoning-only retry storms.  An explicitly configured effort
+    // keeps its step-down schedule (xhigh → high → medium → low).
+    const attemptReasoningEffort =
+      normalizedEffort !== undefined
+        ? getRetryReasoningEffort(normalizedEffort, attempt)
+        : attempt > 0 && isThinkingModel
+          ? "low"
+          : undefined;
 
     if (attempt > 0) {
-      // Reasoning-only retry: model produced thinking but no text/tool calls.
-      // The reasoning likely consumed the output budget.  Increase output tokens
-      // significantly so the model has room to reason AND respond.
-      // For thinking models max_tokens is not sent to the API (budget is
-      // managed internally), but we still track the budget for non-thinking
-      // models where doubling against the cap would be a no-op when already
-      // at limit.
+      // Reasoning-only retry: the model produced thinking but no text/tool
+      // calls, so the reasoning likely consumed the output budget.  Increase
+      // output tokens significantly so the model has room to reason AND respond.
       currentMaxTokens = isThinkingModel
         ? currentMaxTokens * 2
         : Math.min(currentMaxTokens * 2, model.maxOutputTokens);
-      const retryLabel =
-        retryReason === "mid-response-stop"
-          ? "Retrying after mid-response stop..."
-          : retryReason === "truncated"
-            ? "Response was truncated, retrying with larger budget..."
-            : "Retrying...";
-      progress.report(new vscode.LanguageModelTextPart(`\n\n(${retryLabel})\n\n`));
       debugLog("processOpenAIStream retry", {
         attempt,
         retryReason,
@@ -146,7 +151,7 @@ export async function processOpenAIStream(
 
     const requestBody: OcGoChatRequest = {
       model: model.id,
-      messages: convertedMessages,
+      messages: requestMessages,
       stream: true,
       temperature: temperatureVal,
     };
@@ -283,6 +288,34 @@ export async function processOpenAIStream(
         // conditions above would all skip.
         shouldRetry = true;
         retryReason = "truncated";
+      } else if (
+        !state.sawToolCall &&
+        (finishReason === null || finishReason === "stop") &&
+        (toolConfig.tools?.length ?? 0) > 0 &&
+        state.pendingText.trim().length > 0 &&
+        looksLikeActionAnnouncement(state.pendingText) &&
+        attempt < MAX_RETRIES &&
+        !token.isCancellationRequested
+      ) {
+        // The model ended its turn by announcing an action (e.g.
+        // "テストを実行します。" / "I will run the tests.") without emitting the
+        // tool call, which would silently end the agentic loop before the
+        // announced action ever happens.  The announcement text is still
+        // buffered (never shown to the user), so silently replay it as an
+        // assistant message and nudge the model to emit the tool call it
+        // announced.
+        shouldRetry = true;
+        retryReason = "missing-tool-call";
+        const announcement = state.pendingText.trim();
+        requestMessages = [
+          ...requestMessages,
+          {
+            role: "assistant",
+            content: announcement,
+            ...(isThinkingModel ? { reasoning_content: " " } : {}),
+          },
+          { role: "user", content: buildMissingToolCallNudge() },
+        ];
       }
 
       attemptSnapshots.push({

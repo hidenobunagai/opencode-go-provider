@@ -1,5 +1,17 @@
 # Change Log
 
+## [0.1.60] - 2026-07-17
+
+### Fixed
+
+- **Fixed turns ending with an action announcement but no tool execution (e.g. Kimi K3).** Previously, when a model ended its turn with text like "テストを実行します。" ("I will run the tests.") without emitting the corresponding tool call, the agentic loop silently ended before the announced action ever happened. The streaming handlers now detect such action announcements (Japanese, English, and Chinese endings) while the announcement text is still buffered and unseen, replay it as an assistant message, and append a nudge asking the model to emit the tool call it announced — within the existing retry budget, so behavior stays bounded. If the model still does not emit a tool call, the announcement is shown as a normal final answer.
+- **Fixed reasoning-only retry storms when Thinking Effort is left at "Default".** Previously, retries for thinking models repeated the request with the same (unset) reasoning effort, so the model could burn the entire output budget on internal reasoning again and again. Retries now force `reasoning_effort: "low"` for thinking models when no explicit effort is configured, letting the model produce visible output on the first retry in the common case. Explicitly configured efforts keep their step-down schedule (xhigh → high → medium → low).
+
+### Changed
+
+- **Retries no longer write `(Retrying...)` text into the chat.** These markers were persisted in the conversation history, spammed the user on flaky models, and could confuse the model on later turns. Retries are now silent (details remain in the debug log); VS Code's own progress indicator covers the wait. Final-attempt fallbacks (truncation warning, "no visible response" message) are unchanged.
+- **Strengthened tool-use grounding guidance.** The system prompt now explicitly tells models never to end a response by announcing a future action, and to emit the tool call immediately in the same response instead.
+
 ## [0.1.59] - 2026-07-17
 
 ### Added
