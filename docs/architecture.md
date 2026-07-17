@@ -45,7 +45,7 @@ Copilot Chat
 
 ### 1. Model Discovery
 
-`prepareLanguageModelChatModel()` reads the bundled `FALLBACK_MODELS` list and returns model metadata (name, context window, capabilities) to Copilot Chat. Models are identified by `{ vendor: "opencode-go", family: "<model-id>" }`.
+The provider fetches the current model list from the OpenCode Go API (`GET /models`) and infers each model's capabilities with `inferModelInfo()`. When the fetch fails or no API key is configured yet, the bundled `FALLBACK_MODELS` list in `types.ts` is used instead. Model metadata (name, context window, capabilities) is returned to Copilot Chat, and models are identified by `{ vendor: "opencode-go", family: "<model-id>" }`.
 
 ### 2. Request Lifecycle
 
@@ -90,6 +90,6 @@ Used by MiniMax M2.5, M2.7, M3. Endpoint: `POST /v1/messages`. Uses Anthropic co
 
 - **Zero runtime dependencies**: All HTTP, streaming, and parsing logic is built on Node.js/VS Code APIs.
 - **Two API formats, single provider**: The provider selects the conversion path based on `modelInfo.apiFormat`.
-- **Fallback model list**: Models are bundled in `types.ts` rather than fetched dynamically. This ensures offline availability and deterministic behavior.
+- **Dynamic model discovery with bundled fallback**: The model list is fetched from the API at runtime, with the bundled `FALLBACK_MODELS` list in `types.ts` as a deterministic offline fallback. New models usually work without an extension update.
 - **Lightweight tokenizer**: Token estimation uses `Math.ceil(text.length / 2)` instead of loading a full tokenizer (tiktoken/WASM). This sacrifices precision for zero binary dependencies and fast startup.
 - **Reasoning content workaround**: Kimi K2.6+, DeepSeek V4 Pro/Flash models require special handling of `reasoning_content` fields in streaming deltas (`REASONING_CONTENT_WORKAROUND_MODELS`).

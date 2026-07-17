@@ -1,6 +1,6 @@
 # Supported Models
 
-Models are defined in `src/types.ts` as the `FALLBACK_MODELS` array. Each model has an `OcGoModelInfo` entry specifying capabilities, context window, and API format.
+At runtime the extension fetches the available models from the OpenCode Go API (`GET /models`) and infers capabilities for each model ID (`inferModelInfo` in `src/types.ts`). When the fetch fails or no API key is configured yet, the bundled `FALLBACK_MODELS` array in `src/types.ts` is used instead. Each model has an `OcGoModelInfo` entry specifying capabilities, context window, and API format.
 
 ## Model List
 
@@ -19,9 +19,10 @@ Models are defined in `src/types.ts` as the `FALLBACK_MODELS` array. Each model 
 | Kimi K2.5 | 262,144 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
 | Kimi K2.6 | 262,144 | 262,144 | ✓ | ✓ | ✓ | OpenAI |
 | Kimi K2.7 Code | 262,144 | 262,144 | ✓ | ✓ | ✓ | OpenAI |
+| Kimi K3 | 1,000,000 | 262,144 | ✓ | ✓ | ✓ | OpenAI |
 
 > **Note**: Kimi models use `fixedTemperature: 1` for optimal performance.
-> Kimi K2.6 and K2.7 Code require `REASONING_CONTENT_WORKAROUND_MODELS` for correct streaming output.
+> Kimi models other than K2.5 (K2.6, K2.7 Code, K3, ...) require `REASONING_CONTENT_WORKAROUND_MODELS` for correct streaming output.
 
 ### MiMo Series
 
@@ -62,6 +63,12 @@ Models are defined in `src/types.ts` as the `FALLBACK_MODELS` array. Each model 
 
 > **Note**: DeepSeek models require `REASONING_CONTENT_WORKAROUND_MODELS` for correct streaming output. System prompts are sanitized to replace "Claude"/"Anthropic" references.
 
+### Grok Series (xAI)
+
+| Model | Context | Max Output | Vision | Tools | Thinking | API |
+|-------|---------|------------|--------|-------|----------|-----|
+| Grok 4.5 | 500,000 | 65,536 | ✓ | ✓ | ✗ | OpenAI |
+
 ### HY3 Preview
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
@@ -81,7 +88,7 @@ Models with `supportsThinking: true` show a **Thinking Effort** dropdown in the 
 - `minimal` — Minimal reasoning
 - `none` — No reasoning
 
-All models in the current lineup support thinking except MiniMax models.
+All models in the current lineup support thinking except MiniMax models and Grok 4.5.
 
 ### Vision
 
