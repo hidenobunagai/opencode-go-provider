@@ -34,7 +34,8 @@ bun run test:coverage     # Run tests with coverage report
 
 Test files live in `tests/` and mirror the `src/` structure:
 - `tests/api.test.ts` — API client and retry logic
-- `tests/provider.test.ts` — Provider lifecycle and model discovery
+- `tests/provider.test.ts` — Provider lifecycle, model discovery, and streaming (OpenAI + Anthropic paths)
+- `tests/announcement.test.ts` — Action-announcement detection and nudge text
 - `tests/tool-repair.test.ts` — Tool argument repair and dedup
 - `tests/tool-parser.test.ts` — Tool call parsing from streaming output
 - `tests/guidance.test.ts` — System prompt sanitization and guidance
@@ -64,6 +65,22 @@ bun run format     # Prettier formatting
 ```bash
 bun run package:vsix   # Creates opencode-go-provider-<version>.vsix
 ```
+
+### Releasing & Publishing
+
+1. Bump `version` in `package.json` and add a matching `## [x.y.z]` entry to `CHANGELOG.md` (enforced by `bun run check-changelog`, which also runs as part of `package:vsix`).
+2. Commit the changes and push to `main` (CI runs lint, compile, tests with coverage, and VSIX packaging).
+3. Build the release package:
+   ```bash
+   bun run package:vsix
+   ```
+4. Publish to the VS Code Marketplace using a publisher PAT (an Azure DevOps personal access token with the Marketplace **Manage** scope):
+   ```bash
+   export VSCE_PAT="your-publisher-pat"
+   bunx vsce publish --packagePath opencode-go-provider-<version>.vsix
+   ```
+   Alternatives: `bunx vsce publish` packages and publishes in one step; `bunx vsce login HidenobuNagai` stores the PAT in the OS credential store so `VSCE_PAT` is not needed.
+5. Verify the new version on the [Marketplace page](https://marketplace.visualstudio.com/items?itemName=HidenobuNagai.opencode-go-provider) (may take a few minutes to appear).
 
 ## Code Style
 
@@ -149,9 +166,11 @@ opencode-go-provider/
 │   ├── openai-conversion.ts  # OpenAI message conversion
 │   ├── anthropic-conversion.ts # Anthropic message conversion
 │   ├── streaming/
+│   │   ├── sse.ts            # Shared SSE line reader
 │   │   ├── openai.ts         # OpenAI SSE parser
 │   │   ├── anthropic.ts      # Anthropic SSE parser
 │   │   └── shared.ts         # Shared streaming utilities
+│   ├── announcement.ts       # Action-announcement detection + nudge
 │   ├── message-parts.ts      # Type guards + part extractors
 │   ├── tokenizer.ts          # Token estimator
 │   ├── tool-parser.ts        # Text-embedded tool call parser
