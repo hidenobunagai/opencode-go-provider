@@ -3,13 +3,14 @@ import * as vscode from "vscode";
 import { buildMissingToolCallNudge, looksLikeActionAnnouncement } from "../announcement";
 import { convertMessagesToAnthropic, convertToolsToAnthropic } from "../anthropic-conversion";
 import { fetchWithRetry } from "../api";
-import { BASE_URL, REQUEST_TIMEOUT_MS, STREAM_READ_TIMEOUT_MS } from "../constants";
+import { BASE_URL, REQUEST_TIMEOUT_MS } from "../constants";
 import { buildProviderIdentityGuidance, sanitizeSystemPromptForModel } from "../guidance";
 import { isProbablyCompleteJson } from "../incremental-json";
 import { convertTools } from "../openai-conversion";
 import { debugLog } from "../output-channel";
 import { extractChatRequestContext, getToolSchemaMap, isToolCallInput } from "../tool-repair";
 import { AnthropicMessage, AnthropicSSEEvent, OcGoModelInfo, type Json } from "../types";
+import { readSseLines } from "./sse";
 import { setupStreamState, type StreamState } from "./shared";
 
 export interface AnthropicRequestParams {
@@ -316,145 +317,114 @@ async function processAnthropicStreamingResponse(
     }
   }
 
-  const reader = body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  const MAX_SSE_BUFFER_SIZE = 1024 * 1024; // 1 MB safety cap
-
   try {
-    while (!token.isCancellationRequested) {
-      let readTimedOut = false;
-      const readPromise = reader.read();
-      const timeoutId = setTimeout(() => {
-        readTimedOut = true;
-        reader.cancel().catch(() => {});
-      }, STREAM_READ_TIMEOUT_MS);
+    for await (const line of readSseLines(body)) {
+      if (token.isCancellationRequested) break;
 
-      const { done, value } = await readPromise;
-      clearTimeout(timeoutId);
+      const trimmed = line.trim();
+      if (!trimmed || trimmed === "{}" || trimmed.startsWith("event:")) continue;
 
-      if (readTimedOut) {
-        debugLog("processAnthropicStreamingResponse", "Stream read timed out — cancelling");
-        return state;
+      const jsonStr = trimmed.startsWith("data:") ? trimmed.slice(5).trim() : trimmed;
+      if (!jsonStr || jsonStr === "{}" || jsonStr === "[DONE]") continue;
+      if (!jsonStr.startsWith("{")) continue;
+
+      let event: AnthropicSSEEvent;
+      try {
+        event = JSON.parse(jsonStr) as AnthropicSSEEvent;
+      } catch {
+        debugLog(
+          "processAnthropicStreamingResponse",
+          `Failed to parse event JSON: ${jsonStr.slice(0, 200)}`,
+        );
+        continue;
       }
 
-      if (done) break;
+      switch (event.type) {
+        case "message_start":
+          break;
 
-      const text = decoder.decode(value, { stream: true });
-      if (buffer.length + text.length > MAX_SSE_BUFFER_SIZE) {
-        debugLog("processAnthropicStreamingResponse", "SSE buffer exceeded 1 MB — flushing");
-        buffer = "";
-      }
-      buffer += text;
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed === "{}" || trimmed.startsWith("event:")) continue;
-
-        const jsonStr = trimmed.startsWith("data:") ? trimmed.slice(5).trim() : trimmed;
-        if (!jsonStr || jsonStr === "{}" || jsonStr === "[DONE]") continue;
-        if (!jsonStr.startsWith("{")) continue;
-
-        let event: AnthropicSSEEvent;
-        try {
-          event = JSON.parse(jsonStr) as AnthropicSSEEvent;
-        } catch {
-          debugLog(
-            "processAnthropicStreamingResponse",
-            `Failed to parse event JSON: ${jsonStr.slice(0, 200)}`,
-          );
-          continue;
+        case "content_block_start": {
+          const cb = (event as { content_block?: { type?: string; id?: string; name?: string } })
+            .content_block;
+          if (cb?.type === "tool_use") {
+            const idx = (event as { index: number }).index;
+            const toolId = cb.id ?? `tu_${Math.random().toString(36).slice(2, 10)}`;
+            const toolName = cb.name ?? "unknown_tool";
+            state.nativeToolCalls.set(String(idx), {
+              id: toolId,
+              name: toolName,
+              args: "",
+            });
+          }
+          break;
         }
 
-        switch (event.type) {
-          case "message_start":
-            break;
-
-          case "content_block_start": {
-            const cb = (event as { content_block?: { type?: string; id?: string; name?: string } })
-              .content_block;
-            if (cb?.type === "tool_use") {
-              const idx = (event as { index: number }).index;
-              const toolId = cb.id ?? `tu_${Math.random().toString(36).slice(2, 10)}`;
-              const toolName = cb.name ?? "unknown_tool";
-              state.nativeToolCalls.set(String(idx), {
-                id: toolId,
-                name: toolName,
-                args: "",
-              });
+        case "content_block_delta": {
+          const deltaEvt = event as {
+            index: number;
+            delta?: { type?: string; text?: string; partial_json?: string; thinking?: string };
+          };
+          if (deltaEvt.delta?.type === "text_delta") {
+            const text = deltaEvt.delta.text ?? "";
+            if (text) {
+              state.handleTextDelta(text);
             }
-            break;
-          }
-
-          case "content_block_delta": {
-            const deltaEvt = event as {
-              index: number;
-              delta?: { type?: string; text?: string; partial_json?: string; thinking?: string };
-            };
-            if (deltaEvt.delta?.type === "text_delta") {
-              const text = deltaEvt.delta.text ?? "";
-              if (text) {
-                state.handleTextDelta(text);
-              }
-            } else if (deltaEvt.delta?.type === "input_json_delta") {
-              const partialJson = deltaEvt.delta.partial_json ?? "";
-              const tc = state.nativeToolCalls.get(String(deltaEvt.index));
-              if (tc) tc.args += partialJson;
-            } else if (deltaEvt.delta?.type === "thinking_delta") {
-              const thinking = deltaEvt.delta.thinking ?? "";
-              if (thinking) {
-                // Surface thinking output to the user (ThinkingPart or the
-                // blockquote fallback), matching the OpenAI streaming path.
-                state.handleReasoningDelta(thinking);
-              }
+          } else if (deltaEvt.delta?.type === "input_json_delta") {
+            const partialJson = deltaEvt.delta.partial_json ?? "";
+            const tc = state.nativeToolCalls.get(String(deltaEvt.index));
+            if (tc) tc.args += partialJson;
+          } else if (deltaEvt.delta?.type === "thinking_delta") {
+            const thinking = deltaEvt.delta.thinking ?? "";
+            if (thinking) {
+              // Surface thinking output to the user (ThinkingPart or the
+              // blockquote fallback), matching the OpenAI streaming path.
+              state.handleReasoningDelta(thinking);
             }
-            break;
           }
-
-          case "content_block_stop": {
-            const idx = String((event as { index: number }).index);
-            const tc = state.nativeToolCalls.get(idx);
-            if (tc) {
-              let input: unknown = {};
-              if (tc.args.trim() && isProbablyCompleteJson(tc.args)) {
-                try {
-                  input = JSON.parse(tc.args) as Record<string, Json>;
-                } catch {
-                  debugLog(
-                    "processAnthropicStreamingResponse",
-                    "Failed to parse tool call input JSON at block_stop",
-                  );
-                }
-              }
-              if (tc.id && tc.name && isToolCallInput(input)) {
-                state.tryEmitNativeToolCall(tc.id, tc.name, input);
-              }
-              state.nativeToolCalls.delete(idx);
-            }
-            break;
-          }
-
-          case "message_delta": {
-            const deltaEvt = event as {
-              delta?: { stop_reason?: string; stop_sequence?: string | null };
-              usage?: { output_tokens?: number };
-            };
-            if (deltaEvt.delta?.stop_reason) {
-              state.stopReason = deltaEvt.delta.stop_reason;
-            }
-            break;
-          }
-          case "message_stop":
-            break;
-
-          default:
-            // Unknown event type — skip silently.  The Anthropic endpoint only
-            // emits the event types handled above; anything else is either a
-            // protocol extension or noise.
-            break;
+          break;
         }
+
+        case "content_block_stop": {
+          const idx = String((event as { index: number }).index);
+          const tc = state.nativeToolCalls.get(idx);
+          if (tc) {
+            let input: unknown = {};
+            if (tc.args.trim() && isProbablyCompleteJson(tc.args)) {
+              try {
+                input = JSON.parse(tc.args) as Record<string, Json>;
+              } catch {
+                debugLog(
+                  "processAnthropicStreamingResponse",
+                  "Failed to parse tool call input JSON at block_stop",
+                );
+              }
+            }
+            if (tc.id && tc.name && isToolCallInput(input)) {
+              state.tryEmitNativeToolCall(tc.id, tc.name, input);
+            }
+            state.nativeToolCalls.delete(idx);
+          }
+          break;
+        }
+
+        case "message_delta": {
+          const deltaEvt = event as {
+            delta?: { stop_reason?: string; stop_sequence?: string | null };
+            usage?: { output_tokens?: number };
+          };
+          if (deltaEvt.delta?.stop_reason) {
+            state.stopReason = deltaEvt.delta.stop_reason;
+          }
+          break;
+        }
+        case "message_stop":
+          break;
+
+        default:
+          // Unknown event type — skip silently.  The Anthropic endpoint only
+          // emits the event types handled above; anything else is either a
+          // protocol extension or noise.
+          break;
       }
     }
 
@@ -464,7 +434,5 @@ async function processAnthropicStreamingResponse(
       throw new vscode.CancellationError();
     }
     throw err;
-  } finally {
-    reader.releaseLock();
   }
 }

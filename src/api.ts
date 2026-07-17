@@ -1,11 +1,6 @@
-import {
-  BASE_RETRY_DELAY_MS,
-  BASE_URL,
-  MAX_RETRY_DELAY_MS,
-  REQUEST_TIMEOUT_MS,
-  STREAM_READ_TIMEOUT_MS,
-} from "./constants";
+import { BASE_RETRY_DELAY_MS, BASE_URL, MAX_RETRY_DELAY_MS, REQUEST_TIMEOUT_MS } from "./constants";
 import { debugLog } from "./output-channel";
+import { readSseLines } from "./streaming/sse";
 import { OcGoChatCompletionResponse, OcGoChatRequest, OcGoStreamResponse } from "./types";
 
 /**
@@ -220,83 +215,27 @@ export async function* streamChatCompletion(
     throw new Error("No response body from OpenCode Go API");
   }
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
   let malformedSseCount = 0;
   const MALFORMED_SSE_WARN_THRESHOLD = 10;
-  const MAX_SSE_BUFFER_SIZE = 1024 * 1024; // 1 MB safety cap
 
-  try {
-    while (true) {
-      // Race reader.read() against a per-read timeout so the generator
-      // never hangs indefinitely on a stalled connection.
-      let readTimedOut = false;
-      const readPromise = reader.read();
-      const timeoutId = setTimeout(() => {
-        readTimedOut = true;
-        reader.cancel().catch(() => {});
-      }, STREAM_READ_TIMEOUT_MS);
-
-      const { done, value } = await readPromise;
-      clearTimeout(timeoutId);
-
-      if (readTimedOut) {
-        debugLog("streamChatCompletion", "Stream read timed out — cancelling");
-        return;
-      }
-
-      if (done) break;
-
-      const text = decoder.decode(value, { stream: true });
-      if (buffer.length + text.length > MAX_SSE_BUFFER_SIZE) {
-        debugLog("streamChatCompletion", "SSE buffer exceeded 1 MB — flushing");
-        buffer = "";
-      }
-      buffer += text;
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data: ")) continue;
-        const data = trimmed.slice(6);
-        if (data === "[DONE]") continue;
-        try {
-          const parsed = JSON.parse(data) as OcGoStreamResponse;
-          yield parsed;
-        } catch {
-          malformedSseCount++;
-          debugLog("streamChatCompletion", `Malformed SSE line: ${data.slice(0, 200)}`);
-        }
-      }
+  for await (const line of readSseLines(response.body)) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith("data: ")) continue;
+    const data = trimmed.slice(6);
+    if (data === "[DONE]") continue;
+    try {
+      const parsed = JSON.parse(data) as OcGoStreamResponse;
+      yield parsed;
+    } catch {
+      malformedSseCount++;
+      debugLog("streamChatCompletion", `Malformed SSE line: ${data.slice(0, 200)}`);
     }
+  }
 
-    // Flush decoder internal state and process any remaining lines
-    const remaining = decoder.decode();
-    buffer += remaining;
-    const finalLines = buffer.split("\n");
-    for (const line of finalLines) {
-      const trimmed = line.trim();
-      if (!trimmed.startsWith("data: ")) continue;
-      const data = trimmed.slice(6);
-      if (data === "[DONE]") continue;
-      try {
-        const parsed = JSON.parse(data) as OcGoStreamResponse;
-        yield parsed;
-      } catch {
-        malformedSseCount++;
-        debugLog("streamChatCompletion", `Malformed SSE line: ${data.slice(0, 200)}`);
-      }
-    }
-
-    if (malformedSseCount >= MALFORMED_SSE_WARN_THRESHOLD) {
-      debugLog(
-        "streamChatCompletion",
-        `Received ${malformedSseCount} malformed SSE lines (threshold: ${MALFORMED_SSE_WARN_THRESHOLD})`,
-      );
-    }
-  } finally {
-    reader.releaseLock();
+  if (malformedSseCount >= MALFORMED_SSE_WARN_THRESHOLD) {
+    debugLog(
+      "streamChatCompletion",
+      `Received ${malformedSseCount} malformed SSE lines (threshold: ${MALFORMED_SSE_WARN_THRESHOLD})`,
+    );
   }
 }

@@ -27,6 +27,7 @@ Copilot Chat
 | `types.ts` | Shared types (`OcGoModelInfo`, `OcGoChatMessage`, `OcGoToolCall`) and the `FALLBACK_MODELS` list. |
 | `api.ts` | HTTP client with retry logic. Handles `fetch`, status codes, rate limiting (`Retry-After`), and SSE streaming via `ReadableStream`. |
 | `openai-conversion.ts` | Converts Copilot Chat `LanguageModelChatMessage[]` → OpenAI `/chat/completions` request format. |
+| `streaming/sse.ts` | Shared SSE response body reader (`readSseLines`): per-read timeout, 1 MB buffer cap, final-buffer flush. Used by both streaming paths and `api.ts`. |
 | `streaming/openai.ts` | Parses OpenAI-compatible SSE streams into `LanguageModelResponsePart[]`. |
 | `anthropic-conversion.ts` | Converts Copilot Chat messages → Anthropic `/messages` request format (used by MiniMax models). |
 | `streaming/anthropic.ts` | Parses Anthropic-compatible SSE streams. |
