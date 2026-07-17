@@ -422,10 +422,12 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
           effectiveModelId = this.resolveApiModelId(visionFallback);
           effectiveModelInfo = this._modelMap.get(visionFallback);
           const selectedModelInfo = this.getModelInfo(model.id);
-          progress.report(
-            new vscode.LanguageModelTextPart(
-              `Switching to ${effectiveModelInfo?.displayName ?? visionFallback} for image analysis (${selectedModelInfo?.displayName ?? model.id} does not support vision).\n\n`,
-            ),
+          // Silent like retries: operational notices written into the chat
+          // would persist in the conversation history and confuse the model
+          // on later turns.
+          debugLog(
+            "provideLanguageModelChatResponse",
+            `Switching to ${effectiveModelInfo?.displayName ?? visionFallback} for image analysis (${selectedModelInfo?.displayName ?? model.id} does not support vision).`,
           );
         } else {
           try {
