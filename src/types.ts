@@ -169,6 +169,18 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsThinking: true,
   },
   {
+    id: "kimi-k3",
+    name: "Kimi K3",
+    displayName: "Kimi K3",
+    contextWindow: 1000000,
+    maxOutput: 262144,
+    supportsTools: true,
+    supportsVision: true,
+    apiFormat: "openai",
+    fixedTemperature: 1,
+    supportsThinking: true,
+  },
+  {
     id: "mimo-v2-pro",
     name: "MiMo-V2-Pro",
     displayName: "MiMo-V2-Pro",
@@ -319,6 +331,16 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     apiFormat: "openai",
     supportsThinking: true,
   },
+  {
+    id: "grok-4.5",
+    name: "Grok 4.5",
+    displayName: "Grok 4.5",
+    contextWindow: 500000,
+    maxOutput: 65536,
+    supportsTools: true,
+    supportsVision: true,
+    apiFormat: "openai",
+  },
 ];
 
 export function inferModelInfo(id: string): OcGoModelInfo {
@@ -334,6 +356,7 @@ export function inferModelInfo(id: string): OcGoModelInfo {
   const isQwen = id.startsWith("qwen");
   const isMimo = id.startsWith("mimo-");
   const isHy3 = id.startsWith("hy3-");
+  const isGrok = id.startsWith("grok-");
 
   let contextWindow = 262144;
   let maxOutput = 65536;
@@ -351,7 +374,7 @@ export function inferModelInfo(id: string): OcGoModelInfo {
     fixedTemperature = 1;
     supportsVision = true;
     supportsThinking = true;
-    contextWindow = 262144;
+    contextWindow = id.includes("k3") ? 1000000 : 262144;
     maxOutput = id.includes("k2.5") ? 65536 : 262144;
   } else if (isGlm) {
     supportsThinking = true;
@@ -374,6 +397,10 @@ export function inferModelInfo(id: string): OcGoModelInfo {
   } else if (isHy3) {
     supportsThinking = true;
     contextWindow = 262144;
+    maxOutput = 65536;
+  } else if (isGrok) {
+    supportsVision = true;
+    contextWindow = 500000;
     maxOutput = 65536;
   }
 

@@ -22,7 +22,8 @@
     "glm",
     "qwen",
     "minimax",
-    "deepseek"
+    "deepseek",
+    "grok"
   ],
   "engines": {
     "vscode": "^1.104.0"

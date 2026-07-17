@@ -98,6 +98,16 @@ describe("OcGoChatModelProvider", () => {
     expect(kimi).toBeDefined();
     expect(kimi?.maxOutputTokens).toBe(262144);
 
+    const kimiK3 = infos.find((i: any) => i.id === "kimi-k3");
+    expect(kimiK3).toBeDefined();
+    expect(kimiK3?.maxOutputTokens).toBe(262144);
+    expect(kimiK3?.maxInputTokens).toBe(1000000 - 65536);
+
+    const grok45 = infos.find((i: any) => i.id === "grok-4.5");
+    expect(grok45).toBeDefined();
+    expect(grok45?.maxOutputTokens).toBe(65536);
+    expect(grok45?.maxInputTokens).toBe(500000 - 65536);
+
     const missing = infos.find((i: any) => i.id === "nonexistent-model");
     expect(missing).toBeUndefined();
   });
@@ -164,7 +174,12 @@ describe("OcGoChatModelProvider", () => {
   it("dynamically fetches models and infers capabilities", async () => {
     (secrets.get as jest.Mock).mockResolvedValue("test-key");
     const mockModelsResponse = {
-      data: [{ id: "kimi-k3-vision" }, { id: "deepseek-v5-pro" }, { id: "minimax-m4" }],
+      data: [
+        { id: "kimi-k3-vision" },
+        { id: "deepseek-v5-pro" },
+        { id: "minimax-m4" },
+        { id: "grok-4.5-preview" },
+      ],
     };
     const savedFetch = global.fetch;
     global.fetch = jest.fn().mockResolvedValue({
@@ -184,11 +199,13 @@ describe("OcGoChatModelProvider", () => {
       );
 
       expect(global.fetch).toHaveBeenCalled();
-      expect(infos.length).toBe(3);
+      expect(infos.length).toBe(4);
 
       const kimi = infos.find((i: any) => i.id === "kimi-k3-vision");
       expect(kimi).toBeDefined();
       expect(kimi?.capabilities?.imageInput).toBe(true); // kimi starts with kimi- is inferred as vision
+      expect(kimi?.maxOutputTokens).toBe(262144);
+      expect(kimi?.maxInputTokens).toBe(1000000 - 65536);
 
       const deepseek = infos.find((i: any) => i.id === "deepseek-v5-pro");
       expect(deepseek).toBeDefined();
@@ -198,6 +215,12 @@ describe("OcGoChatModelProvider", () => {
       expect(minimax).toBeDefined();
       expect(minimax?.maxOutputTokens).toBe(131072);
       expect(minimax?.tooltip).toContain("Anthropic format");
+
+      const grok = infos.find((i: any) => i.id === "grok-4.5-preview");
+      expect(grok).toBeDefined();
+      expect(grok?.capabilities?.imageInput).toBe(true);
+      expect(grok?.maxOutputTokens).toBe(65536);
+      expect(grok?.maxInputTokens).toBe(500000 - 65536);
     } finally {
       global.fetch = savedFetch;
     }
