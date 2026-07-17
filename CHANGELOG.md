@@ -1,5 +1,21 @@
 # Change Log
 
+## [0.1.61] - 2026-07-17
+
+### Fixed
+
+- **Fixed severe token underestimation for Japanese/Chinese/Korean input.** The lightweight token estimator counted every character as ½ token, which undercounts CJK text by about half and could let over-limit requests slip through to the API and fail with 400 errors. CJK and full-width characters now count as ~1 token each.
+- **Fixed invisible thinking output on MiniMax models (Anthropic path).** `thinking_delta` events were accumulated but never shown. They are now surfaced like in the OpenAI path, and the retry-visibility semantics were aligned so reasoning-only retries still work.
+- **Fixed unbounded `reasoningCache` growth.** The cache mapping message text to reasoning content is now a 50-entry LRU.
+- **Fixed chat history pollution from the vision model-switch notice.** "Switching to X for image analysis" is now logged to the debug channel only, consistent with the silent-retry policy.
+
+### Changed
+
+- **Extracted a shared SSE line reader** (`streaming/sse.ts`) used by `api.ts` and both streaming paths, removing duplicated timeout/buffer/flush logic.
+- **Documentation overhaul**: fixed stale model docs (dynamic model discovery, added Kimi K3 and Grok 4.5), added a model quirks/workaround matrix to `docs/models.md`, and documented the release & marketplace publishing steps in `docs/contributing.md`.
+- **Removed no-op tokenizer preload/dispose functions** and tracked dropped unparseable native tool calls in attempt snapshots for better diagnostics.
+- Added Anthropic streaming tests (thinking display, reasoning-only retry, tool-call nudge).
+
 ## [0.1.60] - 2026-07-17
 
 ### Fixed
