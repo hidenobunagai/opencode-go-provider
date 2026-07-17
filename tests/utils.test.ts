@@ -114,6 +114,20 @@ describe("convertMessages", () => {
     expect(result[0].reasoning_content).toBe("Cached thinking process");
     reasoningCache.clear();
   });
+
+  it("evicts the oldest reasoning cache entries beyond the cap", () => {
+    const { reasoningCache } = require("../src/openai-conversion");
+    reasoningCache.clear();
+    for (let i = 0; i < 60; i += 1) {
+      reasoningCache.set(`key-${i}`, `value-${i}`);
+    }
+    // Cap is 50: the first 10 entries must have been evicted.
+    expect(reasoningCache.get("key-0")).toBeUndefined();
+    expect(reasoningCache.get("key-9")).toBeUndefined();
+    expect(reasoningCache.get("key-10")).toBe("value-10");
+    expect(reasoningCache.get("key-59")).toBe("value-59");
+    reasoningCache.clear();
+  });
 });
 
 describe("estimateTokens", () => {
