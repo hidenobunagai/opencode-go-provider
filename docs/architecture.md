@@ -31,7 +31,7 @@ Copilot Chat
 | `anthropic-conversion.ts` | Converts Copilot Chat messages → Anthropic `/messages` request format (used by MiniMax models). |
 | `streaming/anthropic.ts` | Parses Anthropic-compatible SSE streams. |
 | `message-parts.ts` | Type guards (`hasTextValue`, `isToolCallPart`, `isToolResultPart`) and extraction helpers for `LanguageModelInputPart` and legacy parts. |
-| `tokenizer.ts` | Lightweight token estimator (characters ÷ 2). No WASM/tiktoken dependency. |
+| `tokenizer.ts` | Lightweight token estimator (CJK ~1 token/char, other ~2 chars/token). No WASM/tiktoken dependency. |
 | `tool-parser.ts` | Parses text-embedded and XML-style tool calls from streaming model output. Includes `ToolCallScanner` for incremental parsing. |
 | `announcement.ts` | Detects responses that end by announcing an action (JA/EN/ZH) without emitting the tool call, and builds the nudge message used to continue the turn. |
 | `tool-repair.ts` | Deduplicates tool calls, repairs missing arguments from chat context, and coerces argument types using `inputSchema`. |
@@ -91,5 +91,5 @@ Used by MiniMax M2.5, M2.7, M3. Endpoint: `POST /v1/messages`. Uses Anthropic co
 - **Zero runtime dependencies**: All HTTP, streaming, and parsing logic is built on Node.js/VS Code APIs.
 - **Two API formats, single provider**: The provider selects the conversion path based on `modelInfo.apiFormat`.
 - **Dynamic model discovery with bundled fallback**: The model list is fetched from the API at runtime, with the bundled `FALLBACK_MODELS` list in `types.ts` as a deterministic offline fallback. New models usually work without an extension update.
-- **Lightweight tokenizer**: Token estimation uses `Math.ceil(text.length / 2)` instead of loading a full tokenizer (tiktoken/WASM). This sacrifices precision for zero binary dependencies and fast startup.
+- **Lightweight tokenizer**: Token estimation counts CJK/full-width characters as ~1 token each and other characters as ~1/2 token each, instead of loading a full tokenizer (tiktoken/WASM). This sacrifices precision for zero binary dependencies and fast startup, while avoiding severe undercounts for Japanese/Chinese/Korean input.
 - **Reasoning content workaround**: Kimi K2.6+, DeepSeek V4 Pro/Flash models require special handling of `reasoning_content` fields in streaming deltas (`REASONING_CONTENT_WORKAROUND_MODELS`).

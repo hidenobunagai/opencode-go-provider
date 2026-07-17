@@ -120,6 +120,28 @@ describe("estimateTokens", () => {
   it("estimates tokens for ASCII text", () => {
     expect(estimateTokens("Hello world")).toBeGreaterThan(0);
   });
+
+  it("keeps the ~2 chars per token rate for Latin text", () => {
+    expect(estimateTokens("Hello world")).toBe(6);
+  });
+
+  it("counts Japanese characters at ~1 token each", () => {
+    expect(estimateTokens("こんにちは")).toBe(5);
+  });
+
+  it("counts CJK punctuation and full-width characters as CJK tokens", () => {
+    expect(estimateTokens("、。！")).toBe(3);
+    expect(estimateTokens("ＡＢＣ")).toBe(3);
+  });
+
+  it("mixes CJK and Latin rates in one string", () => {
+    // 4 CJK chars (、世界。) + 5 Latin chars (Hello) = 4 + ceil(5/2) = 7
+    expect(estimateTokens("Hello、世界。")).toBe(7);
+  });
+
+  it("returns 0 for empty text", () => {
+    expect(estimateTokens("")).toBe(0);
+  });
 });
 
 describe("estimateMessagesTokens", () => {
