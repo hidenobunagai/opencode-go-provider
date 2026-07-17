@@ -5,7 +5,6 @@ import {
   convertTools,
   estimateMessagesTokens,
   estimateTokens,
-  preloadTiktoken,
   extractReasoningContent,
 } from "../src/utils";
 
@@ -427,16 +426,5 @@ describe("applyReasoningContentWorkaround", () => {
     ];
     const result = applyReasoningContentWorkaround(messages, "kimi-k2.6");
     expect(result[0].reasoning_content).toBe("existing");
-  });
-});
-
-describe("preloadTiktoken", () => {
-  it("does not throw when called", () => {
-    expect(() => preloadTiktoken()).not.toThrow();
-  });
-
-  it("is idempotent", () => {
-    preloadTiktoken();
-    expect(() => preloadTiktoken()).not.toThrow();
   });
 });

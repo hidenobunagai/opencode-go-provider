@@ -11,4 +11,4 @@ export {
   convertTools,
   extractReasoningContent,
 } from "./openai-conversion";
-export { estimateMessagesTokens, estimateTokens, preloadTiktoken } from "./tokenizer";
+export { estimateMessagesTokens, estimateTokens } from "./tokenizer";

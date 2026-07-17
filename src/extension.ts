@@ -2,7 +2,6 @@ import * as vscode from "vscode";
 import { EXTENSION_VERSION } from "./constants";
 import { debugLog, disposeOutputChannel, getOutputChannel } from "./output-channel";
 import { OcGoChatModelProvider } from "./provider";
-import { disposeTokenizerCache, preloadTiktoken } from "./tokenizer";
 import { registerOcGoTools } from "./tools";
 
 let _provider: OcGoChatModelProvider | null = null;
@@ -17,8 +16,6 @@ export function activate(context: vscode.ExtensionContext) {
     "activate",
     `Extension activated. Debug logging ${debugEnabled ? "enabled" : "disabled"}.`,
   );
-
-  preloadTiktoken();
 
   const provider = new OcGoChatModelProvider(context.secrets, ua);
   _provider = provider;
@@ -116,6 +113,5 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
   _provider = null;
-  disposeTokenizerCache();
   disposeOutputChannel();
 }
