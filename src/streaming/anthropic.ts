@@ -220,10 +220,12 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
       prevEmittedKeys,
     );
 
-    // Check if retry is needed
+    // Check if retry is needed.  Use the same visibility semantics as the
+    // OpenAI path: reasoning output alone (ThinkingPart) does not count as
+    // visible output, otherwise the reasoning-only retry below could never
+    // fire now that thinking is reported to the user.
     let shouldRetry = false;
-    const hasVisibleOutput =
-      streamState.hasEmittedOutput || streamState.pendingText.trim().length > 0;
+    const hasVisibleOutput = streamState.hasVisibleOutput();
     if (
       !hasVisibleOutput &&
       streamState.reasoningContent &&
@@ -402,7 +404,9 @@ async function processAnthropicStreamingResponse(
             } else if (deltaEvt.delta?.type === "thinking_delta") {
               const thinking = deltaEvt.delta.thinking ?? "";
               if (thinking) {
-                state.reasoningContent += thinking;
+                // Surface thinking output to the user (ThinkingPart or the
+                // blockquote fallback), matching the OpenAI streaming path.
+                state.handleReasoningDelta(thinking);
               }
             }
             break;
