@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.1.59] - 2026-07-17
+
+### Added
+
+- **Added support for Kimi K3 and Grok 4.5.** Registered `kimi-k3` (1M context window, 262k max output, supports vision, fixed temperature of 1, supports thinking effort) and `grok-4.5` (500k context window, 65k max output, supports vision) as fallback models and updated the dynamic inference logic to identify them correctly when fetched dynamically from the API.
+- Added `grok` keyword to `package.json`.
+
 ## [0.1.58] - 2026-07-16
 
 ### Fixed
