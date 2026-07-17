@@ -58,6 +58,7 @@ function emitPendingToolCalls(state: StreamState): void {
         }
       }
     } catch {
+      state.lostNativeToolCallCount += 1;
       debugLog("processOpenAIStream", `Failed to parse JSON for tool call ${buf.name}`);
     }
     state.nativeToolCalls.delete(callId);
@@ -330,6 +331,7 @@ export async function processOpenAIStream(
           pendingTextChars: state.pendingText.length,
           reasoningChars: state.reasoningContent.length,
           nativeToolCalls: state.nativeToolCalls.size,
+          lostNativeToolCalls: state.lostNativeToolCallCount,
           skippedToolCalls: state.skippedToolCalls,
           finishReason,
         },

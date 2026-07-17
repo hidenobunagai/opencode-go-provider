@@ -37,16 +37,18 @@ export const STREAM_READ_TIMEOUT_MS = 60000;
 /** Max tool result characters for Anthropic API */
 export const ANTHROPIC_MAX_TOOL_RESULT_CHARS = 20000;
 
+/** Explicit model IDs that require the reasoning_content workaround. */
+const REASONING_CONTENT_WORKAROUND_STATIC_SET = new Set([
+  "kimi-k2.6",
+  "kimi-k2.7-code",
+  "deepseek-v4-pro",
+  "deepseek-v4-flash",
+]);
+
 /** Models that require the reasoning_content workaround */
 export const REASONING_CONTENT_WORKAROUND_MODELS = {
   has(modelId: string): boolean {
-    const staticSet = new Set([
-      "kimi-k2.6",
-      "kimi-k2.7-code",
-      "deepseek-v4-pro",
-      "deepseek-v4-flash",
-    ]);
-    if (staticSet.has(modelId)) {
+    if (REASONING_CONTENT_WORKAROUND_STATIC_SET.has(modelId)) {
       return true;
     }
     if (modelId.startsWith("kimi-")) {

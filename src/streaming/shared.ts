@@ -50,6 +50,14 @@ export class StreamState {
   nativeToolCalls = new Map<string, NativeToolCall>();
   completedNativeCallIds = new Set<string>();
 
+  /**
+   * Number of buffered native tool calls dropped because their streamed
+   * arguments never formed valid JSON.  Diagnostic only: the entries are
+   * dropped to avoid poisoning later retries, but the count is surfaced in
+   * attempt snapshots so mid-response cut-offs remain visible in capture logs.
+   */
+  lostNativeToolCallCount = 0;
+
   /** Captured stop_reason from Anthropic message_delta events */
   stopReason: string | null = null;
 
