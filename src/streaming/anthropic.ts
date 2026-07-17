@@ -279,6 +279,7 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
     }
 
     if (shouldRetry) {
+      streamState.closeReasoningBlockIfNeeded();
       prevEmittedKeys = streamState.snapshotEmittedKeys();
       continue;
     }

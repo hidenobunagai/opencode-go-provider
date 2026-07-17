@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { streamChatCompletion } from "../src/api";
+import { fetchWithRetry, streamChatCompletion } from "../src/api";
 import * as outputChannel from "../src/output-channel";
 import { OcGoChatModelProvider } from "../src/provider";
 
@@ -1432,6 +1432,182 @@ describe("OcGoChatModelProvider", () => {
     expect(
       (streamChatCompletion as jest.Mock).mock.calls.map((call) => call[1]?.reasoning_effort),
     ).toEqual([undefined, "low"]);
+  });
+
+  describe("Anthropic streaming path (MiniMax)", () => {
+    function anthropicSseResponse(events: object[]) {
+      const payload = events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join("");
+      return {
+        ok: true,
+        body: new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(payload));
+            controller.close();
+          },
+        }),
+      };
+    }
+
+    function makeToken() {
+      return {
+        isCancellationRequested: false,
+        onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+      };
+    }
+
+    function emittedTexts(progress: { report: jest.Mock }): string[] {
+      return progress.report.mock.calls
+        .map((call: any[]) => call[0]?.value)
+        .filter((value: unknown): value is string => typeof value === "string");
+    }
+
+    const minimaxModel = {
+      id: "minimax-m3",
+      maxInputTokens: 100000,
+      maxOutputTokens: 65536,
+    } as any;
+
+    const userMessage = [{ role: 1, content: [{ value: "Hi" }] }] as any;
+
+    beforeEach(() => {
+      // Prevent the constructor's dynamic model fetch from hitting the network.
+      global.fetch = jest.fn().mockRejectedValue(new Error("no network in tests")) as any;
+    });
+
+    it("surfaces thinking deltas to the user like the OpenAI path does", async () => {
+      (secrets.get as jest.Mock).mockResolvedValue("test-key");
+      (fetchWithRetry as jest.Mock).mockResolvedValue(
+        anthropicSseResponse([
+          { type: "content_block_delta", index: 0, delta: { type: "thinking_delta", thinking: "thinking" } },
+          { type: "content_block_delta", index: 1, delta: { type: "text_delta", text: "done" } },
+          { type: "message_delta", delta: { stop_reason: "end_turn", stop_sequence: null }, usage: { output_tokens: 1 } },
+        ]),
+      );
+
+      const progress = { report: jest.fn() };
+      await provider.provideLanguageModelChatResponse(
+        minimaxModel,
+        userMessage,
+        { modelOptions: {} } as any,
+        progress,
+        makeToken() as any,
+      );
+
+      expect(fetchWithRetry).toHaveBeenCalledTimes(1);
+      expect(emittedTexts(progress)).toEqual([
+        "\n> **[思考プロセス (Thinking Process)]**\n> ",
+        "thinking",
+        "\n\n---\n\n",
+        "done",
+      ]);
+    });
+
+    it("retries reasoning-only responses even though thinking is now visible", async () => {
+      (secrets.get as jest.Mock).mockResolvedValue("test-key");
+      let attempt = 0;
+      (fetchWithRetry as jest.Mock).mockImplementation(() => {
+        attempt += 1;
+        if (attempt === 1) {
+          return Promise.resolve(
+            anthropicSseResponse([
+              { type: "content_block_delta", index: 0, delta: { type: "thinking_delta", thinking: "thinking" } },
+              { type: "message_delta", delta: { stop_reason: "end_turn", stop_sequence: null }, usage: { output_tokens: 1 } },
+            ]),
+          );
+        }
+        return Promise.resolve(
+          anthropicSseResponse([
+            { type: "content_block_delta", index: 0, delta: { type: "thinking_delta", thinking: "thinking" } },
+            { type: "content_block_delta", index: 1, delta: { type: "text_delta", text: "done" } },
+            { type: "message_delta", delta: { stop_reason: "end_turn", stop_sequence: null }, usage: { output_tokens: 1 } },
+          ]),
+        );
+      });
+
+      const progress = { report: jest.fn() };
+      await provider.provideLanguageModelChatResponse(
+        minimaxModel,
+        userMessage,
+        { modelOptions: {} } as any,
+        progress,
+        makeToken() as any,
+      );
+
+      expect(fetchWithRetry).toHaveBeenCalledTimes(2);
+      expect(emittedTexts(progress)).toEqual([
+        "\n> **[思考プロセス (Thinking Process)]**\n> ",
+        "thinking",
+        "\n\n---\n\n",
+        "\n> **[思考プロセス (Thinking Process)]**\n> ",
+        "thinking",
+        "\n\n---\n\n",
+        "done",
+      ]);
+    });
+
+    it("nudges the model when it ends with an action announcement but no tool call", async () => {
+      (secrets.get as jest.Mock).mockResolvedValue("test-key");
+      let attempt = 0;
+      (fetchWithRetry as jest.Mock).mockImplementation(() => {
+        attempt += 1;
+        if (attempt === 1) {
+          return Promise.resolve(
+            anthropicSseResponse([
+              { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "テストを実行します。" } },
+              { type: "message_delta", delta: { stop_reason: "end_turn", stop_sequence: null }, usage: { output_tokens: 1 } },
+            ]),
+          );
+        }
+        return Promise.resolve(
+          anthropicSseResponse([
+            { type: "content_block_start", index: 0, content_block: { type: "tool_use", id: "tu_1", name: "run_tests" } },
+            { type: "content_block_delta", index: 0, delta: { type: "input_json_delta", partial_json: '{"suite":"all"}' } },
+            { type: "content_block_stop", index: 0 },
+            { type: "message_delta", delta: { stop_reason: "end_turn", stop_sequence: null }, usage: { output_tokens: 1 } },
+          ]),
+        );
+      });
+
+      const progress = { report: jest.fn() };
+      await provider.provideLanguageModelChatResponse(
+        minimaxModel,
+        userMessage,
+        {
+          modelOptions: {},
+          tools: [
+            {
+              name: "run_tests",
+              description: "Run tests",
+              inputSchema: {
+                type: "object",
+                properties: { suite: { type: "string" } },
+                required: ["suite"],
+              },
+            },
+          ],
+        } as any,
+        progress,
+        makeToken() as any,
+      );
+
+      expect(fetchWithRetry).toHaveBeenCalledTimes(2);
+
+      const retryBody = JSON.parse((fetchWithRetry as jest.Mock).mock.calls.at(-1)?.[1]?.body);
+      expect(retryBody.messages.at(-2)).toEqual({
+        role: "assistant",
+        content: "テストを実行します。",
+      });
+      expect(retryBody.messages.at(-1).role).toBe("user");
+      expect(retryBody.messages.at(-1).content).toContain("no tool call was emitted");
+
+      const toolCallPart = progress.report.mock.calls
+        .map((call: any[]) => call[0])
+        .find((part: any) => part?.name === "run_tests");
+      expect(toolCallPart).toBeDefined();
+      expect(toolCallPart.input).toEqual({ suite: "all" });
+
+      expect(emittedTexts(progress).some((text) => text.includes("実行します"))).toBe(false);
+    });
   });
 
   it("retries incomplete tool calls even when no reasoning content is emitted", async () => {
