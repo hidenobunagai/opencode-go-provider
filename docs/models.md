@@ -75,6 +75,25 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 |-------|---------|------------|--------|-------|----------|-----|
 | HY3 Preview | 262,144 | 65,536 | ✗ | ✓ | ✓ | OpenAI |
 
+## Model Quirks & Workarounds
+
+The extension applies several model-behavior workarounds while streaming. This matrix summarizes which workaround applies to which model family, and where it lives:
+
+| Workaround | Applies to | Where |
+|------------|-----------|-------|
+| `reasoning_content` field added to assistant history, and parsed from streaming deltas | Kimi (except K2.5), DeepSeek V4+ (`REASONING_CONTENT_WORKAROUND_MODELS`) | `constants.ts`, `openai-conversion.ts` |
+| `fixedTemperature: 1` sent on every request | Kimi | `types.ts` |
+| Anthropic Messages API instead of OpenAI format | MiniMax (`apiFormat: "anthropic"`) | `anthropic-conversion.ts`, `streaming/anthropic.ts` |
+| System prompt sanitization ("Claude" → "GitHub Copilot") and provider identity guidance | DeepSeek | `guidance.ts` |
+| Tool-use grounding guidance injected into the system prompt | All models, when tools are present | `guidance.ts` |
+| Text-embedded tool call parsing (`<\|tool_call_begin\|>`, XML `<tool_calls>`) | All models (streaming) | `tool-parser.ts` |
+| Tool call dedup and argument repair from chat context | All models | `tool-repair.ts` |
+| Action-announcement nudge (response ends announcing an action without a tool call) | All models, when tools are present | `announcement.ts`, `streaming/*.ts` |
+| `reasoning_effort: "low"` forced on retries when Thinking Effort is "Default" | Thinking models | `streaming/openai.ts` |
+| Vision fallback: separate image analysis or model switch for image input | Models without native vision | `provider.ts`, `mcp.ts`, `tools.ts` |
+
+When adding a new model, check this matrix first and prefer registering quirks in the listed location over inventing a new mechanism.
+
 ## Capability Matrix
 
 ### Thinking (Reasoning Effort)
