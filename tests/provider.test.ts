@@ -1478,9 +1478,17 @@ describe("OcGoChatModelProvider", () => {
       (secrets.get as jest.Mock).mockResolvedValue("test-key");
       (fetchWithRetry as jest.Mock).mockResolvedValue(
         anthropicSseResponse([
-          { type: "content_block_delta", index: 0, delta: { type: "thinking_delta", thinking: "thinking" } },
+          {
+            type: "content_block_delta",
+            index: 0,
+            delta: { type: "thinking_delta", thinking: "thinking" },
+          },
           { type: "content_block_delta", index: 1, delta: { type: "text_delta", text: "done" } },
-          { type: "message_delta", delta: { stop_reason: "end_turn", stop_sequence: null }, usage: { output_tokens: 1 } },
+          {
+            type: "message_delta",
+            delta: { stop_reason: "end_turn", stop_sequence: null },
+            usage: { output_tokens: 1 },
+          },
         ]),
       );
 
@@ -1510,16 +1518,32 @@ describe("OcGoChatModelProvider", () => {
         if (attempt === 1) {
           return Promise.resolve(
             anthropicSseResponse([
-              { type: "content_block_delta", index: 0, delta: { type: "thinking_delta", thinking: "thinking" } },
-              { type: "message_delta", delta: { stop_reason: "end_turn", stop_sequence: null }, usage: { output_tokens: 1 } },
+              {
+                type: "content_block_delta",
+                index: 0,
+                delta: { type: "thinking_delta", thinking: "thinking" },
+              },
+              {
+                type: "message_delta",
+                delta: { stop_reason: "end_turn", stop_sequence: null },
+                usage: { output_tokens: 1 },
+              },
             ]),
           );
         }
         return Promise.resolve(
           anthropicSseResponse([
-            { type: "content_block_delta", index: 0, delta: { type: "thinking_delta", thinking: "thinking" } },
+            {
+              type: "content_block_delta",
+              index: 0,
+              delta: { type: "thinking_delta", thinking: "thinking" },
+            },
             { type: "content_block_delta", index: 1, delta: { type: "text_delta", text: "done" } },
-            { type: "message_delta", delta: { stop_reason: "end_turn", stop_sequence: null }, usage: { output_tokens: 1 } },
+            {
+              type: "message_delta",
+              delta: { stop_reason: "end_turn", stop_sequence: null },
+              usage: { output_tokens: 1 },
+            },
           ]),
         );
       });
@@ -1553,17 +1577,37 @@ describe("OcGoChatModelProvider", () => {
         if (attempt === 1) {
           return Promise.resolve(
             anthropicSseResponse([
-              { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "テストを実行します。" } },
-              { type: "message_delta", delta: { stop_reason: "end_turn", stop_sequence: null }, usage: { output_tokens: 1 } },
+              {
+                type: "content_block_delta",
+                index: 0,
+                delta: { type: "text_delta", text: "テストを実行します。" },
+              },
+              {
+                type: "message_delta",
+                delta: { stop_reason: "end_turn", stop_sequence: null },
+                usage: { output_tokens: 1 },
+              },
             ]),
           );
         }
         return Promise.resolve(
           anthropicSseResponse([
-            { type: "content_block_start", index: 0, content_block: { type: "tool_use", id: "tu_1", name: "run_tests" } },
-            { type: "content_block_delta", index: 0, delta: { type: "input_json_delta", partial_json: '{"suite":"all"}' } },
+            {
+              type: "content_block_start",
+              index: 0,
+              content_block: { type: "tool_use", id: "tu_1", name: "run_tests" },
+            },
+            {
+              type: "content_block_delta",
+              index: 0,
+              delta: { type: "input_json_delta", partial_json: '{"suite":"all"}' },
+            },
             { type: "content_block_stop", index: 0 },
-            { type: "message_delta", delta: { stop_reason: "end_turn", stop_sequence: null }, usage: { output_tokens: 1 } },
+            {
+              type: "message_delta",
+              delta: { stop_reason: "end_turn", stop_sequence: null },
+              usage: { output_tokens: 1 },
+            },
           ]),
         );
       });
