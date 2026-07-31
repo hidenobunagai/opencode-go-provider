@@ -40,7 +40,8 @@ At runtime the extension fetches the current model list from the OpenCode Go API
 - MiniMax M2.5, MiniMax M2.7, **MiniMax M3**
 - Qwen3.5 Plus, Qwen3.6 Plus, Qwen3.7 Plus, **Qwen3.7 Max**
 - **Grok 4.5**
-- **HY3 Preview**
+- **GPT 5.6 Luna**
+- **Hy3**, HY3 Preview
 
 ## Usage
 
