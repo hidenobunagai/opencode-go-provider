@@ -1,5 +1,21 @@
 # Change Log
 
+## [0.1.62] - 2026-08-01
+
+### Added
+
+- **Added support for GPT 5.6 Luna** (`gpt-5.6-luna`). The model uses OpenAI's **Responses API** (`apiFormat: "responses"`), so a new streaming handler was implemented for the `/responses` endpoint: messages are converted to Responses input items (`message` / `function_call` / `function_call_output`), native `function_call` items are assembled from `response.function_call_arguments.delta` events, and reasoning summaries stream through `response.reasoning_summary_text.delta` / `response.reasoning_text.delta`. It has a 400K context window (272K input + 128K output), vision, tools, and thinking support, with `store: false` and `max_output_tokens` for privacy and budget control.
+- **Added `hy3` (Hy3)** to the fallback model list. `hy3` is the current model ID on OpenCode Go; `hy3-preview` is kept for backward compatibility.
+- Added a `THINKING_MODELS` set so Responses-API reasoning models (e.g. GPT 5.6 Luna) get the same minimum output budget floor as `reasoning_content` workaround models.
+
+### Changed
+
+- Registered `gpt` and `hy3` marketplace keywords for model discoverability.
+
+### Fixed
+
+- **GPT 5.6 Luna now appears in the model picker and works end-to-end.** Previously the model existed on the OpenCode Go API but was not registered in the extension, so it could not be selected, and no client existed for the `/responses` endpoint.
+
 ## [0.1.61] - 2026-07-17
 
 ### Fixed
