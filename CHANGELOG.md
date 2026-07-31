@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.63] - 2026-08-01
+
+### Changed
+
+- Updated the marketplace description: the README supported-models list now includes **GPT 5.6 Luna** and **Hy3**.
+
 ## [0.1.62] - 2026-08-01
 
 ### Added
