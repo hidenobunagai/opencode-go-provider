@@ -77,7 +77,7 @@ export interface OcGoChatCompletionResponse {
 }
 
 /** API format used by a model */
-export type OcGoApiFormat = "openai" | "anthropic";
+export type OcGoApiFormat = "openai" | "anthropic" | "responses";
 
 /** Reasoning effort level for models that support it (e.g. DeepSeek) */
 export type ReasoningEffort = "xhigh" | "high" | "medium" | "low" | "minimal" | "none";
@@ -321,6 +321,17 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsThinking: true,
   },
   {
+    id: "hy3",
+    name: "Hy3",
+    displayName: "Hy3",
+    contextWindow: 262144,
+    maxOutput: 65536,
+    supportsTools: true,
+    supportsVision: false,
+    apiFormat: "openai",
+    supportsThinking: true,
+  },
+  {
     id: "hy3-preview",
     name: "HY3 Preview",
     displayName: "HY3 Preview",
@@ -341,6 +352,17 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: true,
     apiFormat: "openai",
   },
+  {
+    id: "gpt-5.6-luna",
+    name: "GPT 5.6 Luna",
+    displayName: "GPT 5.6 Luna",
+    contextWindow: 400000,
+    maxOutput: 128000,
+    supportsTools: true,
+    supportsVision: true,
+    apiFormat: "responses",
+    supportsThinking: true,
+  },
 ];
 
 export function inferModelInfo(id: string): OcGoModelInfo {
@@ -355,8 +377,9 @@ export function inferModelInfo(id: string): OcGoModelInfo {
   const isDeepseek = id.startsWith("deepseek-");
   const isQwen = id.startsWith("qwen");
   const isMimo = id.startsWith("mimo-");
-  const isHy3 = id.startsWith("hy3-");
+  const isHy3 = id === "hy3" || id.startsWith("hy3-");
   const isGrok = id.startsWith("grok-");
+  const isGpt = id.startsWith("gpt-5.6");
 
   let contextWindow = 262144;
   let maxOutput = 65536;
@@ -402,6 +425,12 @@ export function inferModelInfo(id: string): OcGoModelInfo {
     supportsVision = true;
     contextWindow = 500000;
     maxOutput = 65536;
+  } else if (isGpt) {
+    apiFormat = "responses";
+    supportsVision = true;
+    supportsThinking = true;
+    contextWindow = 400000;
+    maxOutput = 128000;
   }
 
   const displayName = id
@@ -514,3 +543,68 @@ export type AnthropicSSEEvent =
   | AnthropicContentBlockStopEvent
   | AnthropicMessageDeltaEvent
   | AnthropicMessageStopEvent;
+
+// ============================================================================
+// OpenAI Responses API types
+// Used by GPT 5.6 Luna via the OpenCode Go proxy (/responses endpoint)
+// ============================================================================
+
+/** Content part inside a Responses API message item */
+export type OcGoResponsesContentPart =
+  | { type: "input_text"; text: string }
+  | { type: "input_image"; image_url: string }
+  | { type: "output_text"; text: string };
+
+/** Input item for the Responses API */
+export type OcGoResponsesInputItem =
+  | {
+      type: "message";
+      role: "user" | "assistant";
+      content: string | OcGoResponsesContentPart[];
+    }
+  | { type: "function_call"; call_id: string; name: string; arguments: string }
+  | { type: "function_call_output"; call_id: string; output: string };
+
+/** Function tool definition for the Responses API */
+export interface OcGoResponsesTool {
+  type: "function";
+  name: string;
+  description?: string;
+  parameters?: JsonObject;
+}
+
+/** Responses API request body */
+export interface OcGoResponsesRequest {
+  model: string;
+  instructions?: string;
+  input: OcGoResponsesInputItem[];
+  tools?: OcGoResponsesTool[];
+  tool_choice?: "auto" | "required" | "none" | { type: "function"; name: string };
+  temperature?: number;
+  max_output_tokens?: number;
+  stream?: boolean;
+  store?: boolean;
+  reasoning?: { effort?: string; summary?: string };
+}
+
+/** Responses API SSE stream event */
+export interface OcGoResponsesStreamEvent {
+  type: string;
+  item_id?: string;
+  output_index?: number;
+  delta?: string;
+  item?: {
+    id?: string;
+    type?: string;
+    name?: string;
+    call_id?: string;
+    arguments?: string;
+    status?: string;
+    role?: string;
+  };
+  response?: {
+    status?: string;
+    incomplete_details?: { reason?: string };
+  };
+  error?: { message?: string; code?: string };
+}
