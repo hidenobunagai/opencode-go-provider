@@ -69,11 +69,22 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 |-------|---------|------------|--------|-------|----------|-----|
 | Grok 4.5 | 500,000 | 65,536 | ✓ | ✓ | ✗ | OpenAI |
 
+### GPT Series (OpenAI)
+
+| Model | Context | Max Output | Vision | Tools | Thinking | API |
+|-------|---------|------------|--------|-------|----------|-----|
+| GPT 5.6 Luna | 400,000 | 128,000 | ✓ | ✓ | ✓ | Responses |
+
+> **Note**: GPT 5.6 Luna uses the **OpenAI Responses API** (`apiFormat: "responses"`) served from the `/responses` endpoint. Messages are converted to Responses input items (`message` / `function_call` / `function_call_output`), tool calls use `function_call` items, and reasoning is streamed via `response.reasoning_summary_text.delta` / `response.reasoning_text.delta`. `max_output_tokens` is used instead of `max_tokens` / `max_completion_tokens`.
+
 ### HY3 Preview
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
+| Hy3 | 262,144 | 65,536 | ✗ | ✓ | ✓ | OpenAI |
 | HY3 Preview | 262,144 | 65,536 | ✗ | ✓ | ✓ | OpenAI |
+
+> **Note**: `hy3` is the current model ID; `hy3-preview` is kept for backward compatibility.
 
 ## Model Quirks & Workarounds
 
@@ -82,6 +93,7 @@ The extension applies several model-behavior workarounds while streaming. This m
 | Workaround | Applies to | Where |
 |------------|-----------|-------|
 | `reasoning_content` field added to assistant history, and parsed from streaming deltas | Kimi (except K2.5), DeepSeek V4+ (`REASONING_CONTENT_WORKAROUND_MODELS`) | `constants.ts`, `openai-conversion.ts` |
+| Responses API (`/responses`) instead of OpenAI chat.completions | GPT 5.6 Luna (`apiFormat: "responses"`) | `responses-conversion.ts`, `streaming/responses.ts` |
 | `fixedTemperature: 1` sent on every request | Kimi | `types.ts` |
 | Anthropic Messages API instead of OpenAI format | MiniMax (`apiFormat: "anthropic"`) | `anthropic-conversion.ts`, `streaming/anthropic.ts` |
 | System prompt sanitization ("Claude" → "GitHub Copilot") and provider identity guidance | DeepSeek | `guidance.ts` |
@@ -107,7 +119,7 @@ Models with `supportsThinking: true` show a **Thinking Effort** dropdown in the 
 - `minimal` — Minimal reasoning
 - `none` — No reasoning
 
-All models in the current lineup support thinking except MiniMax models and Grok 4.5.
+All models in the current lineup support thinking except MiniMax models and Grok 4.5. For Responses-API models (GPT 5.6 Luna) the effort is sent as `reasoning.effort` (with `max` mapped to the Responses-API `high` level, since `xhigh` is not supported).
 
 ### Vision
 

@@ -1654,6 +1654,311 @@ describe("OcGoChatModelProvider", () => {
     });
   });
 
+  describe("Responses streaming path (GPT 5.6 Luna)", () => {
+    function responsesSseResponse(events: object[]) {
+      const payload = events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join("");
+      return {
+        ok: true,
+        body: new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(payload));
+            controller.close();
+          },
+        }),
+      };
+    }
+
+    function makeToken() {
+      return {
+        isCancellationRequested: false,
+        onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+      };
+    }
+
+    function emittedTexts(progress: { report: jest.Mock }): string[] {
+      return progress.report.mock.calls
+        .map((call: any[]) => call[0]?.value)
+        .filter((value: unknown): value is string => typeof value === "string");
+    }
+
+    const lunaModel = {
+      id: "gpt-5.6-luna",
+      maxInputTokens: 272000,
+      maxOutputTokens: 128000,
+    } as any;
+
+    const userMessage = [{ role: 1, content: [{ value: "Hi" }] }] as any;
+
+    beforeEach(() => {
+      // Prevent the constructor's dynamic model fetch from hitting the network.
+      global.fetch = jest.fn().mockRejectedValue(new Error("no network in tests")) as any;
+    });
+
+    it("streams output text and reasoning summaries from /responses", async () => {
+      (secrets.get as jest.Mock).mockResolvedValue("test-key");
+      (fetchWithRetry as jest.Mock).mockResolvedValue(
+        responsesSseResponse([
+          { type: "response.reasoning_summary_text.delta", delta: "thinking" },
+          { type: "response.output_text.delta", delta: "done" },
+          { type: "response.completed", response: { status: "completed" } },
+        ]),
+      );
+
+      const progress = { report: jest.fn() };
+      await provider.provideLanguageModelChatResponse(
+        lunaModel,
+        userMessage,
+        { modelOptions: {} } as any,
+        progress,
+        makeToken() as any,
+      );
+
+      expect(fetchWithRetry).toHaveBeenCalledTimes(1);
+      const [url, init] = (fetchWithRetry as jest.Mock).mock.calls[0];
+      expect(url).toContain("/responses");
+      const body = JSON.parse(init.body);
+      expect(body.model).toBe("gpt-5.6-luna");
+      expect(body.stream).toBe(true);
+      expect(body.store).toBe(false);
+      expect(body.max_output_tokens).toBe(65536);
+      expect(body.input).toEqual([{ type: "message", role: "user", content: "Hi" }]);
+      expect(emittedTexts(progress)).toEqual([
+        "\n> **[思考プロセス (Thinking Process)]**\n> ",
+        "thinking",
+        "\n\n---\n\n",
+        "done",
+      ]);
+    });
+
+    it("retries reasoning-only responses", async () => {
+      (secrets.get as jest.Mock).mockResolvedValue("test-key");
+      let attempt = 0;
+      (fetchWithRetry as jest.Mock).mockImplementation(() => {
+        attempt += 1;
+        if (attempt === 1) {
+          return Promise.resolve(
+            responsesSseResponse([
+              { type: "response.reasoning_summary_text.delta", delta: "thinking" },
+              { type: "response.completed", response: { status: "completed" } },
+            ]),
+          );
+        }
+        return Promise.resolve(
+          responsesSseResponse([
+            { type: "response.reasoning_summary_text.delta", delta: "thinking" },
+            { type: "response.output_text.delta", delta: "done" },
+            { type: "response.completed", response: { status: "completed" } },
+          ]),
+        );
+      });
+
+      const progress = { report: jest.fn() };
+      await provider.provideLanguageModelChatResponse(
+        lunaModel,
+        userMessage,
+        { modelOptions: {} } as any,
+        progress,
+        makeToken() as any,
+      );
+
+      expect(fetchWithRetry).toHaveBeenCalledTimes(2);
+      const retryBody = JSON.parse((fetchWithRetry as jest.Mock).mock.calls.at(-1)?.[1]?.body);
+      // Budget doubled from 65536 and capped at the model's 128K max output.
+      expect(retryBody.max_output_tokens).toBe(128000);
+      // Unconfigured effort forces "low" on retries so reasoning cannot
+      // consume the whole budget again.
+      expect(retryBody.reasoning).toEqual({ effort: "low", summary: "auto" });
+      expect(emittedTexts(progress).filter((text) => text === "done")).toEqual(["done"]);
+    });
+
+    it("emits native function_call items as tool calls", async () => {
+      (secrets.get as jest.Mock).mockResolvedValue("test-key");
+      (fetchWithRetry as jest.Mock).mockResolvedValue(
+        responsesSseResponse([
+          {
+            type: "response.output_item.added",
+            item: { type: "function_call", id: "fc_1", name: "run_tests", arguments: "" },
+          },
+          {
+            type: "response.function_call_arguments.delta",
+            item_id: "fc_1",
+            delta: '{"suite":"',
+          },
+          { type: "response.function_call_arguments.delta", item_id: "fc_1", delta: 'all"}' },
+          {
+            type: "response.output_item.done",
+            item: {
+              type: "function_call",
+              id: "fc_1",
+              name: "run_tests",
+              arguments: '{"suite":"all"}',
+            },
+          },
+          { type: "response.completed", response: { status: "completed" } },
+        ]),
+      );
+
+      const progress = { report: jest.fn() };
+      await provider.provideLanguageModelChatResponse(
+        lunaModel,
+        userMessage,
+        {
+          modelOptions: {},
+          tools: [
+            {
+              name: "run_tests",
+              description: "Run tests",
+              inputSchema: {
+                type: "object",
+                properties: { suite: { type: "string" } },
+                required: ["suite"],
+              },
+            },
+          ],
+        } as any,
+        progress,
+        makeToken() as any,
+      );
+
+      const toolCallPart = progress.report.mock.calls
+        .map((call: any[]) => call[0])
+        .find((part: any) => part?.name === "run_tests");
+      expect(toolCallPart).toBeDefined();
+      expect(toolCallPart.input).toEqual({ suite: "all" });
+
+      const sentBody = JSON.parse((fetchWithRetry as jest.Mock).mock.calls[0][1].body);
+      expect(sentBody.tools).toEqual([
+        {
+          type: "function",
+          name: "run_tests",
+          description: expect.any(String),
+          parameters: expect.objectContaining({ type: "object" }),
+        },
+      ]);
+      expect(sentBody.tool_choice).toBe("auto");
+    });
+
+    it("retries truncated responses on max_output_tokens with a doubled budget", async () => {
+      (secrets.get as jest.Mock).mockResolvedValue("test-key");
+      let attempt = 0;
+      (fetchWithRetry as jest.Mock).mockImplementation(() => {
+        attempt += 1;
+        if (attempt === 1) {
+          return Promise.resolve(
+            responsesSseResponse([
+              { type: "response.output_text.delta", delta: "partial" },
+              {
+                type: "response.incomplete",
+                response: {
+                  status: "incomplete",
+                  incomplete_details: { reason: "max_output_tokens" },
+                },
+              },
+            ]),
+          );
+        }
+        return Promise.resolve(
+          responsesSseResponse([
+            { type: "response.output_text.delta", delta: "partial complete" },
+            { type: "response.completed", response: { status: "completed" } },
+          ]),
+        );
+      });
+
+      const progress = { report: jest.fn() };
+      await provider.provideLanguageModelChatResponse(
+        lunaModel,
+        userMessage,
+        { modelOptions: {} } as any,
+        progress,
+        makeToken() as any,
+      );
+
+      expect(fetchWithRetry).toHaveBeenCalledTimes(2);
+      const retryBody = JSON.parse((fetchWithRetry as jest.Mock).mock.calls.at(-1)?.[1]?.body);
+      expect(retryBody.max_output_tokens).toBe(128000);
+    });
+
+    it("nudges the model when it ends with an action announcement but no tool call", async () => {
+      (secrets.get as jest.Mock).mockResolvedValue("test-key");
+      let attempt = 0;
+      (fetchWithRetry as jest.Mock).mockImplementation(() => {
+        attempt += 1;
+        if (attempt === 1) {
+          return Promise.resolve(
+            responsesSseResponse([
+              { type: "response.output_text.delta", delta: "テストを実行します。" },
+              { type: "response.completed", response: { status: "completed" } },
+            ]),
+          );
+        }
+        return Promise.resolve(
+          responsesSseResponse([
+            {
+              type: "response.output_item.added",
+              item: { type: "function_call", id: "fc_2", name: "run_tests", arguments: "" },
+            },
+            {
+              type: "response.function_call_arguments.delta",
+              item_id: "fc_2",
+              delta: '{"suite":"all"}',
+            },
+            {
+              type: "response.output_item.done",
+              item: {
+                type: "function_call",
+                id: "fc_2",
+                name: "run_tests",
+                arguments: '{"suite":"all"}',
+              },
+            },
+            { type: "response.completed", response: { status: "completed" } },
+          ]),
+        );
+      });
+
+      const progress = { report: jest.fn() };
+      await provider.provideLanguageModelChatResponse(
+        lunaModel,
+        userMessage,
+        {
+          modelOptions: {},
+          tools: [
+            {
+              name: "run_tests",
+              description: "Run tests",
+              inputSchema: {
+                type: "object",
+                properties: { suite: { type: "string" } },
+                required: ["suite"],
+              },
+            },
+          ],
+        } as any,
+        progress,
+        makeToken() as any,
+      );
+
+      expect(fetchWithRetry).toHaveBeenCalledTimes(2);
+
+      const retryBody = JSON.parse((fetchWithRetry as jest.Mock).mock.calls.at(-1)?.[1]?.body);
+      expect(retryBody.input.at(-2)).toEqual({
+        type: "message",
+        role: "assistant",
+        content: "テストを実行します。",
+      });
+      expect(retryBody.input.at(-1).type).toBe("message");
+      expect(retryBody.input.at(-1).role).toBe("user");
+      expect(retryBody.input.at(-1).content).toContain("no tool call was emitted");
+
+      const toolCallPart = progress.report.mock.calls
+        .map((call: any[]) => call[0])
+        .find((part: any) => part?.name === "run_tests");
+      expect(toolCallPart).toBeDefined();
+      expect(toolCallPart.input).toEqual({ suite: "all" });
+    });
+  });
+
   it("retries incomplete tool calls even when no reasoning content is emitted", async () => {
     (secrets.get as jest.Mock).mockResolvedValue("test-key");
 
