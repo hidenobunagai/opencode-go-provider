@@ -25,6 +25,85 @@ export interface NativeToolCall {
   args: string;
 }
 
+/** Map "max" to the target API's highest effort level, otherwise pass through. */
+export function normalizeReasoningEffort(
+  reasoningEffort: string | undefined,
+  maxEquivalent: string,
+): string | undefined {
+  return reasoningEffort === "max" ? maxEquivalent : reasoningEffort;
+}
+
+/** Step reasoning effort down on retries so a thinking model cannot burn the whole budget again. */
+export function getRetryReasoningEffort(
+  reasoningEffort: string | undefined,
+  attempt: number,
+  fallbackOrder: readonly string[],
+): string | undefined {
+  if (!reasoningEffort || attempt <= 0) {
+    return reasoningEffort;
+  }
+  const index = fallbackOrder.indexOf(reasoningEffort as (typeof fallbackOrder)[number]);
+  if (index === -1) {
+    return reasoningEffort;
+  }
+  return fallbackOrder[Math.min(index + attempt, fallbackOrder.length - 1)];
+}
+
+export function emitPendingToolCalls(state: StreamState): void {
+  for (const [callId, buf] of Array.from(state.nativeToolCalls.entries())) {
+    if (state.completedNativeCallIds.has(callId)) continue;
+    try {
+      const args = buf.args ? JSON.parse(buf.args) : {};
+      if (buf.id && buf.name && isToolCallInput(args)) {
+        const emitted = state.tryEmitNativeToolCall(buf.id, buf.name, args);
+        if (emitted) {
+          state.completedNativeCallIds.add(callId);
+        }
+      }
+    } catch {
+      state.lostNativeToolCallCount += 1;
+      debugLog("emitPendingToolCalls", `Failed to parse JSON for tool call ${buf.name}`);
+    }
+    state.nativeToolCalls.delete(callId);
+  }
+}
+
+/** Record an attempt snapshot for the no-output/truncation capture logs. */
+export function pushAttemptSnapshot(
+  snapshots: Array<Record<string, unknown>>,
+  attempt: number,
+  retryReason: string | undefined,
+  requestBody: unknown,
+  state: StreamState,
+  finishReason: string | null,
+): void {
+  snapshots.push({
+    attempt: attempt + 1,
+    retryReason: retryReason ?? null,
+    requestBody: JSON.parse(JSON.stringify(requestBody)) as Record<string, unknown>,
+    state: {
+      hasVisibleOutput: state.hasVisibleOutput(),
+      sawToolCall: state.sawToolCall,
+      emittedToolCall: state.emittedToolCall,
+      incompleteToolCall: state.hasIncompleteToolCall(),
+      pendingTextChars: state.pendingText.length,
+      reasoningChars: state.reasoningContent.length,
+      nativeToolCalls: state.nativeToolCalls.size,
+      lostNativeToolCalls: state.lostNativeToolCallCount,
+      skippedToolCalls: state.skippedToolCalls,
+      finishReason,
+    },
+  });
+}
+
+export function reportTruncated(progress: vscode.Progress<vscode.LanguageModelResponsePart>): void {
+  progress.report(
+    new vscode.LanguageModelTextPart(
+      "\n\n_⚠️ The response was automatically truncated. You can ask the model to continue if the response seems incomplete._",
+    ),
+  );
+}
+
 export function setupStreamState(
   progress: vscode.Progress<vscode.LanguageModelResponsePart>,
   toolSchemas: Map<string, ToolSchema>,

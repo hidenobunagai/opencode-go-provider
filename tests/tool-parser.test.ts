@@ -1,8 +1,6 @@
 import {
   findTrailingTokenPrefixStart,
   findTrailingTokenPrefixStartAny,
-  parseTextEmbeddedToolCalls,
-  parseTextEmbeddedToolCallsFrom,
   parseXmlStyleToolCall,
   ToolCallScanner,
 } from "../src/tool-parser";
@@ -108,69 +106,46 @@ describe("parseXmlStyleToolCall", () => {
   });
 });
 
-describe("parseTextEmbeddedToolCalls", () => {
+describe("ToolCallScanner one-shot parsing", () => {
+  const scan = (text: string) => new ToolCallScanner().feed(text);
+
   it("returns text segment for plain text", () => {
-    const result = parseTextEmbeddedToolCalls("Hello world");
-    expect(result.segments).toEqual([{ type: "text", text: "Hello world" }]);
+    expect(scan("Hello world")).toEqual([{ type: "text", text: "Hello world" }]);
   });
 
   it("parses single tool call", () => {
-    const text =
-      '<|tool_call_begin|>read_file<|tool_call_argument_begin|>{"filePath":"/x.txt"}<|tool_call_end|>';
-    const result = parseTextEmbeddedToolCalls(text);
-    expect(result.segments.length).toBe(1);
-    expect(result.segments[0].type).toBe("toolCall");
-    if (result.segments[0].type === "toolCall") {
-      expect(result.segments[0].toolCall.name).toBe("read_file");
-      expect(result.segments[0].toolCall.args).toEqual({ filePath: "/x.txt" });
+    const result = scan(
+      '<|tool_call_begin|>read_file<|tool_call_argument_begin|>{"filePath":"/x.txt"}<|tool_call_end|>',
+    );
+    expect(result.length).toBe(1);
+    expect(result[0].type).toBe("toolCall");
+    if (result[0].type === "toolCall") {
+      expect(result[0].toolCall.name).toBe("read_file");
+      expect(result[0].toolCall.args).toEqual({ filePath: "/x.txt" });
     }
   });
 
   it("parses text before and after tool call as text segments", () => {
-    const text =
-      "prefix<|tool_call_begin|>tool<|tool_call_argument_begin|>{}<|tool_call_end|>suffix";
-    const result = parseTextEmbeddedToolCalls(text);
-    const types = result.segments.map((s) => s.type);
+    const result = scan(
+      "prefix<|tool_call_begin|>tool<|tool_call_argument_begin|>{}<|tool_call_end|>suffix",
+    );
+    const types = result.map((s) => s.type);
     expect(types).toEqual(["text", "toolCall", "text"]);
   });
 
-  it("handles incomplete tool call at end (no end token)", () => {
-    const text = '<|tool_call_begin|>tool<|tool_call_argument_begin|>{"x":1}';
-    const result = parseTextEmbeddedToolCalls(text);
-    expect(result.incompleteText).toBeDefined();
-  });
-});
-
-describe("parseTextEmbeddedToolCallsFrom", () => {
-  it("returns text segment when no tool calls present", () => {
-    const result = parseTextEmbeddedToolCallsFrom(
-      "just some text",
-      0,
-      "<|tool_call_begin|>",
-      "<|tool_call_argument_begin|>",
-      "<|tool_call_end|>",
-      [],
-    );
-    expect(result.segments).toEqual([{ type: "text", text: "just some text" }]);
+  it("keeps incomplete tool call at end in buffer (no end token)", () => {
+    const scanner = new ToolCallScanner();
+    const result = scanner.feed('<|tool_call_begin|>tool<|tool_call_argument_begin|>{"x":1}');
+    expect(result).toEqual([]);
+    expect(scanner.buffer).toContain("<|tool_call_begin|>");
   });
 
-  it("parses XML-style tool calls (startPos is unused by implementation)", () => {
-    // Note: startPos parameter is currently unused in parseTextEmbeddedToolCallsFrom.
-    // The function always processes from position 0, so the text segment "ignore"
-    // is included in the output.
-    const result = parseTextEmbeddedToolCallsFrom(
-      'ignore<tool_calls><tool_call name="t"></tool_call></tool_calls>',
-      6,
-      "<|tool_call_begin|>",
-      "<|tool_call_argument_begin|>",
-      "<|tool_call_end|>",
-      ["<tool_calls>", "<tool_call "] as const,
-    );
-    // 2 segments: "ignore" text + tool call
-    expect(result.segments.length).toBe(2);
-    expect(result.segments[0]).toEqual({ type: "text", text: "ignore" });
-    if (result.segments[1].type === "toolCall") {
-      expect(result.segments[1].toolCall.name).toBe("t");
+  it("parses XML-style tool calls in one shot", () => {
+    const result = scan('ignore<tool_calls><tool_call name="t"></tool_call></tool_calls>');
+    expect(result.length).toBe(2);
+    expect(result[0]).toEqual({ type: "text", text: "ignore" });
+    if (result[1].type === "toolCall") {
+      expect(result[1].toolCall.name).toBe("t");
     }
   });
 });

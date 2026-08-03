@@ -2,16 +2,15 @@
 import * as vscode from "vscode";
 import { buildMissingToolCallNudge, looksLikeActionAnnouncement } from "../announcement";
 import { convertMessagesToAnthropic, convertToolsToAnthropic } from "../anthropic-conversion";
-import { fetchWithRetry } from "../api";
+import { fetchWithRetry, throwApiError } from "../api";
 import { BASE_URL, REQUEST_TIMEOUT_MS } from "../constants";
 import { buildProviderIdentityGuidance, sanitizeSystemPromptForModel } from "../guidance";
-import { isProbablyCompleteJson } from "../incremental-json";
 import { convertTools } from "../openai-conversion";
 import { debugLog } from "../output-channel";
 import { extractChatRequestContext, getToolSchemaMap, isToolCallInput } from "../tool-repair";
 import { AnthropicMessage, AnthropicSSEEvent, OcGoModelInfo, type Json } from "../types";
 import { readSseLines } from "./sse";
-import { setupStreamState, type StreamState } from "./shared";
+import { setupStreamState, reportTruncated, type StreamState } from "./shared";
 
 export interface AnthropicRequestParams {
   modelId: string;
@@ -172,40 +171,7 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
     ).finally(() => clearTimeout(timeoutId));
 
     if (!response.ok) {
-      const rawBody = await response.text();
-      let detail = "";
-      try {
-        const body = JSON.parse(rawBody) as {
-          error?: { message?: string; type?: string };
-        };
-        if (body.error?.message) {
-          detail = body.error.message;
-        }
-      } catch {
-        if (rawBody.trim().length > 0) {
-          detail = rawBody.trim().slice(0, 500);
-        }
-      }
-
-      if (response.status === 401 || response.status === 403) {
-        const guide =
-          'Run "OpenCode Go: Manage OpenCode Go API Key" from the Command Palette to update your API key.';
-        throw new Error(
-          `OpenCode Go API authentication failed (${response.status}). Your API key may be invalid or expired.\n${guide}\n${detail}`,
-        );
-      }
-
-      if (response.status === 429) {
-        const retryAfter = response.headers.get("retry-after");
-        const retryInfo = retryAfter ? `Retry after ${retryAfter}. ` : "";
-        throw new Error(
-          `OpenCode Go rate limit reached (429). ${retryInfo}The request will be retried automatically.\n${detail}`,
-        );
-      }
-
-      throw new Error(
-        `OpenCode Go Anthropic API error (${response.status} ${response.statusText})\n${detail || rawBody.trim().slice(0, 500)}`,
-      );
+      await throwApiError(response, "OpenCode Go Anthropic API error");
     }
 
     if (!response.body) {
@@ -290,11 +256,7 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
     // Finalize on last attempt (successful or all retries exhausted)
     streamState.finalize("processAnthropicStreamingResponse");
     if (wasTruncated) {
-      progress.report(
-        new vscode.LanguageModelTextPart(
-          "\n\n_⚠️ The response was automatically truncated. You can ask the model to continue if the response seems incomplete._",
-        ),
-      );
+      reportTruncated(progress);
     }
     return;
   }
@@ -389,7 +351,7 @@ async function processAnthropicStreamingResponse(
           const tc = state.nativeToolCalls.get(idx);
           if (tc) {
             let input: unknown = {};
-            if (tc.args.trim() && isProbablyCompleteJson(tc.args)) {
+            if (tc.args.trim()) {
               try {
                 input = JSON.parse(tc.args) as Record<string, Json>;
               } catch {

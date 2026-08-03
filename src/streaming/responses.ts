@@ -3,17 +3,25 @@
 // OpenAI chat.completions path while consuming the Responses typed events.
 import * as vscode from "vscode";
 import { buildMissingToolCallNudge, looksLikeActionAnnouncement } from "../announcement";
-import { fetchWithRetry } from "../api";
+import { fetchWithRetry, throwApiError } from "../api";
 import { BASE_URL, REQUEST_TIMEOUT_MS } from "../constants";
 import { applyOpenAiSystemPromptGuidance } from "../guidance";
-import { isProbablyCompleteJson } from "../incremental-json";
 import { convertMessages, reasoningCache } from "../openai-conversion";
 import { captureLog, debugLog } from "../output-channel";
 import { convertMessagesToResponses, convertToolsToResponses } from "../responses-conversion";
 import { extractChatRequestContext, getToolSchemaMap, isToolCallInput } from "../tool-repair";
 import { OcGoModelInfo, OcGoResponsesRequest, OcGoResponsesStreamEvent } from "../types";
 import { readSseLines } from "./sse";
-import { setupStreamState, type StreamState } from "./shared";
+import {
+  emitPendingToolCalls,
+  getRetryReasoningEffort,
+  normalizeReasoningEffort,
+  pushAttemptSnapshot,
+  reportTruncated,
+  setupStreamState,
+} from "./shared";
+
+const REASONING_EFFORT_FALLBACK_ORDER = ["high", "medium", "low"] as const;
 
 export interface ResponsesRequestParams {
   modelId: string;
@@ -28,50 +36,6 @@ export interface ResponsesRequestParams {
   fallbackModels: readonly OcGoModelInfo[];
   userAgent: string;
   reasoningEffort?: string;
-}
-
-function normalizeReasoningEffort(reasoningEffort: string | undefined): string | undefined {
-  // The Responses API does not support "xhigh"; "max" maps to its highest level.
-  if (reasoningEffort === "max") {
-    return "high";
-  }
-  return reasoningEffort;
-}
-
-function getRetryReasoningEffort(
-  reasoningEffort: string | undefined,
-  attempt: number,
-): string | undefined {
-  if (!reasoningEffort || attempt <= 0) {
-    return reasoningEffort;
-  }
-
-  const fallbackOrder = ["high", "medium", "low"] as const;
-  const index = fallbackOrder.indexOf(reasoningEffort as (typeof fallbackOrder)[number]);
-  if (index === -1) {
-    return reasoningEffort;
-  }
-
-  return fallbackOrder[Math.min(index + attempt, fallbackOrder.length - 1)];
-}
-
-function emitPendingToolCalls(state: StreamState): void {
-  for (const [callId, buf] of Array.from(state.nativeToolCalls.entries())) {
-    if (state.completedNativeCallIds.has(callId)) continue;
-    try {
-      const args = buf.args ? JSON.parse(buf.args) : {};
-      if (buf.id && buf.name && isToolCallInput(args)) {
-        const emitted = state.tryEmitNativeToolCall(buf.id, buf.name, args);
-        if (emitted) {
-          state.completedNativeCallIds.add(callId);
-        }
-      }
-    } catch {
-      state.lostNativeToolCallCount += 1;
-      debugLog("processResponsesStream", `Failed to parse JSON for tool call ${buf.name}`);
-    }
-    state.nativeToolCalls.delete(callId);
-  }
 }
 
 export async function handleResponsesRequest(params: ResponsesRequestParams): Promise<void> {
@@ -107,7 +71,7 @@ export async function handleResponsesRequest(params: ResponsesRequestParams): Pr
     fallbackModels,
   );
   const { input: initialInput, instructions } = convertMessagesToResponses(convertedMessages);
-  const normalizedEffort = normalizeReasoningEffort(reasoningEffort);
+  const normalizedEffort = normalizeReasoningEffort(reasoningEffort, "high");
 
   // Reasoning models may consume the entire output budget on internal thinking
   // before producing any visible text/tool calls.  Allow multiple retries with
@@ -137,7 +101,7 @@ export async function handleResponsesRequest(params: ResponsesRequestParams): Pr
 
     const attemptReasoningEffort =
       normalizedEffort !== undefined
-        ? getRetryReasoningEffort(normalizedEffort, attempt)
+        ? getRetryReasoningEffort(normalizedEffort, attempt, REASONING_EFFORT_FALLBACK_ORDER)
         : attempt > 0 && isThinkingModel
           ? "low"
           : undefined;
@@ -200,60 +164,7 @@ export async function handleResponsesRequest(params: ResponsesRequestParams): Pr
     ).finally(() => clearTimeout(timeoutId));
 
     if (!response.ok) {
-      const rawBody = await response.text();
-      let detail = "";
-      try {
-        const body = JSON.parse(rawBody) as {
-          error?: { message?: string; code?: string; type?: string };
-        };
-        if (body.error?.message) {
-          detail = body.error.message;
-        }
-      } catch {
-        if (rawBody.trim().length > 0) {
-          detail = rawBody.trim().slice(0, 500);
-        }
-      }
-
-      if (response.status === 401 || response.status === 403) {
-        const guide =
-          'Run "OpenCode Go: Manage OpenCode Go API Key" from the Command Palette to update your API key.';
-        throw new Error(
-          `OpenCode Go API authentication failed (${response.status}). Your API key may be invalid or expired.\n${guide}\n${detail}`,
-        );
-      }
-
-      if (response.status === 429) {
-        const retryAfter = response.headers.get("retry-after");
-        const retryInfo = retryAfter ? `Retry after ${retryAfter}. ` : "";
-        throw new Error(
-          `OpenCode Go rate limit reached (429). ${retryInfo}The request will be retried automatically.\n${detail}`,
-        );
-      }
-
-      if (response.status === 400) {
-        if (
-          detail.toLowerCase().includes("token") &&
-          (detail.toLowerCase().includes("limit") || detail.toLowerCase().includes("exceed"))
-        ) {
-          throw new Error(
-            `OpenCode Go token limit exceeded. Try reducing conversation history, splitting the request, or switching to a model with a larger context window.\n${detail}`,
-          );
-        }
-        throw new Error(
-          `OpenCode Go API error (400): The request was invalid.\n${detail || rawBody.trim().slice(0, 500)}`,
-        );
-      }
-
-      if (response.status >= 500 && response.status < 600) {
-        throw new Error(
-          `OpenCode Go server error (${response.status}). The service may be experiencing issues.\n${detail}`,
-        );
-      }
-
-      throw new Error(
-        `OpenCode Go API error (${response.status} ${response.statusText})\n${detail || rawBody.trim().slice(0, 500)}`,
-      );
+      await throwApiError(response, "OpenCode Go API error");
     }
 
     if (!response.body) {
@@ -338,7 +249,7 @@ export async function handleResponsesRequest(params: ResponsesRequestParams): Pr
             const tc = state.nativeToolCalls.get(id);
             if (!tc) break;
             const rawArgs = tc.args.trim() || item.arguments || "";
-            if (rawArgs && isProbablyCompleteJson(rawArgs)) {
+            if (rawArgs) {
               try {
                 const input = JSON.parse(rawArgs) as Record<string, unknown>;
                 if (tc.id && tc.name && isToolCallInput(input)) {
@@ -436,23 +347,14 @@ export async function handleResponsesRequest(params: ResponsesRequestParams): Pr
         ];
       }
 
-      attemptSnapshots.push({
-        attempt: attempt + 1,
-        retryReason: shouldRetry ? retryReason : null,
-        requestBody: JSON.parse(JSON.stringify(requestBody)) as OcGoResponsesRequest,
-        state: {
-          hasVisibleOutput,
-          sawToolCall: state.sawToolCall,
-          emittedToolCall: state.emittedToolCall,
-          incompleteToolCall: state.hasIncompleteToolCall(),
-          pendingTextChars: state.pendingText.length,
-          reasoningChars: state.reasoningContent.length,
-          nativeToolCalls: state.nativeToolCalls.size,
-          lostNativeToolCalls: state.lostNativeToolCallCount,
-          skippedToolCalls: state.skippedToolCalls,
-          finishReason,
-        },
-      });
+      pushAttemptSnapshot(
+        attemptSnapshots,
+        attempt,
+        shouldRetry ? retryReason : undefined,
+        requestBody,
+        state,
+        finishReason,
+      );
 
       if (shouldRetry) {
         state.closeReasoningBlockIfNeeded();
@@ -484,11 +386,7 @@ export async function handleResponsesRequest(params: ResponsesRequestParams): Pr
       // Finalize on last attempt (successful or all retries exhausted)
       state.finalize("handleResponsesRequest");
       if (wasTruncated) {
-        progress.report(
-          new vscode.LanguageModelTextPart(
-            "\n\n_⚠️ The response was automatically truncated. You can ask the model to continue if the response seems incomplete._",
-          ),
-        );
+        reportTruncated(progress);
       }
       if (state.reasoningContent) {
         reasoningCache.set(fullContent.trim(), state.reasoningContent.trim());

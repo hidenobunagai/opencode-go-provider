@@ -17,11 +17,6 @@ interface ParsedTextSegmentToolCall {
 
 type ParsedTextSegment = ParsedTextSegmentText | ParsedTextSegmentToolCall;
 
-interface ParsedTextToolCallResult {
-  segments: ParsedTextSegment[];
-  incompleteText: string;
-}
-
 interface ParsedXmlStyleToolCallResult {
   consumed: number;
   incomplete: boolean;
@@ -125,121 +120,7 @@ export function parseXmlStyleToolCall(text: string): ParsedXmlStyleToolCallResul
   return { consumed, incomplete: false, toolCall: { name: toolName, args } };
 }
 
-export function parseTextEmbeddedToolCalls(text: string): ParsedTextToolCallResult {
-  const beginToken = "<|tool_call_begin|>";
-  const argBeginToken = "<|tool_call_argument_begin|>";
-  const endToken = "<|tool_call_end|>";
-  const xmlStartTokens = ["<tool_calls>", "<tool_call "] as const;
-
-  const result = parseTextEmbeddedToolCallsFrom(
-    text,
-    0,
-    beginToken,
-    argBeginToken,
-    endToken,
-    xmlStartTokens,
-  );
-  return { segments: result.segments, incompleteText: result.incompleteText };
-}
-
-/** Internal: underlying scanner with configurable start position.  Exposed for streaming state. */
-export function parseTextEmbeddedToolCallsFrom(
-  text: string,
-  startPos: number,
-  beginToken: string,
-  argBeginToken: string,
-  endToken: string,
-  xmlStartTokens: readonly string[],
-): { segments: ParsedTextSegment[]; incompleteText: string; consumedLength: number } {
-  const segments: ParsedTextSegment[] = [];
-  let remaining = text;
-  let incompleteText = "";
-
-  const appendText = (value: string): void => {
-    if (!value) return;
-    const lastSegment = segments.at(-1);
-    if (lastSegment?.type === "text") {
-      lastSegment.text += value;
-      return;
-    }
-    segments.push({ type: "text", text: value });
-  };
-
-  while (remaining.length > 0) {
-    const candidateStarts = [
-      { kind: "legacy" as const, index: remaining.indexOf(beginToken) },
-      ...xmlStartTokens.map((token) => ({ kind: "xml" as const, index: remaining.indexOf(token) })),
-    ].filter((candidate) => candidate.index !== -1);
-
-    const nextStart = candidateStarts.reduce<{ kind: "legacy" | "xml"; index: number } | undefined>(
-      (earliest, candidate) => {
-        if (!earliest || candidate.index < earliest.index) return candidate;
-        return earliest;
-      },
-      undefined,
-    );
-
-    if (!nextStart) {
-      const partialStart = findTrailingTokenPrefixStartAny(remaining, [
-        beginToken,
-        ...xmlStartTokens,
-      ]);
-      if (partialStart === -1) {
-        appendText(remaining);
-      } else {
-        appendText(remaining.slice(0, partialStart));
-        incompleteText = remaining.slice(partialStart);
-      }
-      break;
-    }
-
-    appendText(remaining.slice(0, nextStart.index));
-    remaining = remaining.slice(nextStart.index);
-
-    if (nextStart.kind === "xml") {
-      const xmlToolCall = parseXmlStyleToolCall(remaining);
-      if (xmlToolCall.incomplete) {
-        incompleteText = remaining;
-        break;
-      }
-      remaining = remaining.slice(xmlToolCall.consumed);
-      if (xmlToolCall.rawText) {
-        appendText(xmlToolCall.rawText);
-      } else if (xmlToolCall.toolCall) {
-        segments.push({ type: "toolCall", toolCall: xmlToolCall.toolCall });
-      }
-      continue;
-    }
-
-    remaining = remaining.slice(beginToken.length);
-    const argBeginIndex = remaining.indexOf(argBeginToken);
-    const endIndex = remaining.indexOf(endToken);
-    if (argBeginIndex === -1 || endIndex === -1 || argBeginIndex > endIndex) {
-      incompleteText = beginToken + remaining;
-      break;
-    }
-
-    const name = remaining.slice(0, argBeginIndex).trim();
-    const argsText = remaining.slice(argBeginIndex + argBeginToken.length, endIndex).trim();
-    remaining = remaining.slice(endIndex + endToken.length);
-
-    if (!name) continue;
-
-    try {
-      segments.push({
-        type: "toolCall",
-        toolCall: { name, args: argsText ? JSON.parse(argsText) : {} },
-      });
-    } catch {
-      /* unparseable tool-call args — emit the raw text instead */
-      appendText(`${beginToken}${name}${argBeginToken}${argsText}${endToken}`);
-    }
-  }
-
-  return { segments, incompleteText, consumedLength: text.length - remaining.length };
-}
-
-export type { ParsedTextSegment, ParsedTextToolCall, ParsedTextToolCallResult };
+export type { ParsedTextToolCall };
 
 // ---------------------------------------------------------------------------
 // Stateful scanner for streaming text-embedded tool calls.

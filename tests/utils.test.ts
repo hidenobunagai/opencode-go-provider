@@ -1,12 +1,7 @@
 import * as vscode from "vscode";
 import { OcGoChatMessage } from "../src/types";
-import {
-  convertMessages,
-  convertTools,
-  estimateMessagesTokens,
-  estimateTokens,
-  extractReasoningContent,
-} from "../src/utils";
+import { convertMessages, convertTools, extractReasoningContent } from "../src/openai-conversion";
+import { estimateMessagesTokens, estimateTokens } from "../src/tokenizer";
 
 describe("convertMessages", () => {
   it("converts user text message", () => {
@@ -399,28 +394,28 @@ describe("convertMessages with tools", () => {
 
 describe("applyReasoningContentWorkaround", () => {
   it("adds reasoning_content for Kimi K2.6", () => {
-    const { applyReasoningContentWorkaround } = require("../src/utils");
+    const { applyReasoningContentWorkaround } = require("../src/openai-conversion");
     const messages: OcGoChatMessage[] = [{ role: "assistant", content: "Hello" }];
     const result = applyReasoningContentWorkaround(messages, "kimi-k2.6");
     expect(result[0].reasoning_content).toBe(" ");
   });
 
   it("adds reasoning_content for DeepSeek V4 Pro", () => {
-    const { applyReasoningContentWorkaround } = require("../src/utils");
+    const { applyReasoningContentWorkaround } = require("../src/openai-conversion");
     const messages: OcGoChatMessage[] = [{ role: "assistant", content: "Hello" }];
     const result = applyReasoningContentWorkaround(messages, "deepseek-v4-pro");
     expect(result[0].reasoning_content).toBe(" ");
   });
 
   it("does not add reasoning_content for other models", () => {
-    const { applyReasoningContentWorkaround } = require("../src/utils");
+    const { applyReasoningContentWorkaround } = require("../src/openai-conversion");
     const messages: OcGoChatMessage[] = [{ role: "assistant", content: "Hello" }];
     const result = applyReasoningContentWorkaround(messages, "glm-5");
     expect(result[0].reasoning_content).toBeUndefined();
   });
 
   it("preserves existing reasoning_content", () => {
-    const { applyReasoningContentWorkaround } = require("../src/utils");
+    const { applyReasoningContentWorkaround } = require("../src/openai-conversion");
     const messages: OcGoChatMessage[] = [
       { role: "assistant", content: "Hello", reasoning_content: "existing" },
     ];

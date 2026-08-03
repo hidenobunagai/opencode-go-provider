@@ -126,24 +126,23 @@ async function createChatCompletionResponse(
   return response;
 }
 
-async function throwChatCompletionError(response: Response): Promise<never> {
-  const rawBody = await response.text();
-  let detail = "";
-
-  // Parse response body for structured error info
+/** Parse a non-OK response body into a detail string (JSON error message or raw text). */
+function extractErrorDetail(response: Response, rawBody: string): string {
   try {
-    const body = JSON.parse(rawBody) as {
-      error?: { message?: string; code?: string; type?: string };
-    };
+    const body = JSON.parse(rawBody) as { error?: { message?: string } };
     if (body.error?.message) {
-      detail = body.error.message;
+      return body.error.message;
     }
   } catch {
-    // Non-JSON body — use first 500 chars of raw text
-    if (rawBody.trim().length > 0) {
-      detail = rawBody.trim().slice(0, 500);
-    }
+    // Non-JSON body — fall through to raw text
   }
+  return rawBody.trim().slice(0, 500);
+}
+
+/** Throw a user-facing error for a failed request, with status-specific guidance. */
+export async function throwApiError(response: Response, label: string): Promise<never> {
+  const rawBody = await response.text();
+  const detail = extractErrorDetail(response, rawBody);
 
   if (response.status === 401 || response.status === 403) {
     const guide =
@@ -182,7 +181,7 @@ async function throwChatCompletionError(response: Response): Promise<never> {
   }
 
   throw new Error(
-    `OpenCode Go API error (${response.status} ${response.statusText})\n${detail || rawBody.trim().slice(0, 500)}`,
+    `${label} (${response.status} ${response.statusText})\n${detail || rawBody.trim().slice(0, 500)}`,
   );
 }
 
@@ -194,7 +193,7 @@ export async function requestChatCompletion(
 ): Promise<OcGoChatCompletionResponse> {
   const response = await createChatCompletionResponse(apiKey, requestBody, signal, userAgent);
   if (!response.ok) {
-    await throwChatCompletionError(response);
+    await throwApiError(response, "OpenCode Go API error");
   }
   return (await response.json()) as OcGoChatCompletionResponse;
 }
@@ -208,7 +207,7 @@ export async function* streamChatCompletion(
   const response = await createChatCompletionResponse(apiKey, requestBody, signal, userAgent);
 
   if (!response.ok) {
-    await throwChatCompletionError(response);
+    await throwApiError(response, "OpenCode Go API error");
   }
 
   if (!response.body) {

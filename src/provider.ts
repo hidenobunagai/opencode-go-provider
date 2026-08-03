@@ -19,6 +19,7 @@ import {
   getContextWindowSafetyMargin,
 } from "./constants";
 import { OcGoMcpClient } from "./mcp";
+import { extractImageData, getTextPartValue } from "./message-parts";
 import { debugLog } from "./output-channel";
 import { handleAnthropicRequest } from "./streaming/anthropic";
 import { processOpenAIStream, type OpenAIModelInfo } from "./streaming/openai";
@@ -187,32 +188,17 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
 
     for (const msg of messages) {
       const textParts: string[] = [];
-      for (const part of msg.content) {
-        if (part instanceof vscode.LanguageModelTextPart) {
-          textParts.push(part.value);
-        } else if (
-          typeof part === "object" &&
-          part !== null &&
-          "value" in part &&
-          typeof (part as { value?: unknown }).value === "string"
-        ) {
-          textParts.push((part as { value: string }).value);
-        }
-      }
-
       const images: Array<{ mimeType: string; data: Uint8Array }> = [];
       for (const part of msg.content) {
-        const p = part as { mimeType?: unknown; data?: unknown; bytes?: unknown; buffer?: unknown };
-        if (typeof p.mimeType !== "string" || !p.mimeType.startsWith("image/")) continue;
-        let data: Uint8Array | undefined;
-        if (p.data instanceof Uint8Array && p.data.length > 0) data = p.data;
-        else if (p.bytes instanceof Uint8Array && (p.bytes as Uint8Array).length > 0)
-          data = p.bytes as Uint8Array;
-        else if (Array.isArray(p.data) && p.data.length > 0)
-          data = new Uint8Array(p.data as number[]);
-        else if (Array.isArray(p.bytes) && (p.bytes as unknown[]).length > 0)
-          data = new Uint8Array(p.bytes as number[]);
-        if (data) images.push({ mimeType: p.mimeType, data });
+        const textValue = getTextPartValue(part as never);
+        if (textValue !== undefined) {
+          textParts.push(textValue);
+          continue;
+        }
+        const image = extractImageData(part as never);
+        if (image) {
+          images.push(image);
+        }
       }
 
       if (images.length === 0) {
@@ -548,15 +534,9 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     }
     const textParts: string[] = [];
     for (const part of text.content) {
-      if (part instanceof vscode.LanguageModelTextPart) {
-        textParts.push(part.value);
-      } else if (
-        typeof part === "object" &&
-        part !== null &&
-        "value" in part &&
-        typeof (part as Record<string, unknown>).value === "string"
-      ) {
-        textParts.push((part as { value: string }).value);
+      const value = getTextPartValue(part as never);
+      if (value !== undefined) {
+        textParts.push(value);
       }
     }
     if (textParts.length === 0) {

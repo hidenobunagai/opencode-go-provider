@@ -101,12 +101,7 @@
     "lint:fix": "eslint src/ tests/ --fix",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
     "check-changelog": "bun scripts/check-changelog.ts",
-    "package:vsix": "bun run check-changelog && bun run compile && vsce package --allow-missing-repository",
-    "repro:deepseek": "bun scripts/repro-deepseek-identity.mjs",
-    "repro:compare": "bun scripts/repro-deepseek-identity.mjs --models deepseek-v4-flash,kimi-k2.6",
-    "repro:compare:json": "bun scripts/repro-deepseek-identity.mjs --models deepseek-v4-flash,kimi-k2.6 --json",
-    "measure:deepseek": "bun scripts/measure-deepseek-chat-completions.mjs",
-    "measure:deepseek:json": "bun scripts/measure-deepseek-chat-completions.mjs --json"
+    "package:vsix": "bun run check-changelog && bun run compile && vsce package --allow-missing-repository"
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "^2.1.4",

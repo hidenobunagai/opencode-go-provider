@@ -11,10 +11,17 @@ import {
   reasoningCache,
 } from "../openai-conversion";
 import { captureLog, debugLog } from "../output-channel";
-import { extractChatRequestContext, getToolSchemaMap, isToolCallInput } from "../tool-repair";
+import { extractChatRequestContext, getToolSchemaMap } from "../tool-repair";
 import type { OcGoModelInfo } from "../types";
 import { OcGoChatRequest } from "../types";
-import { setupStreamState, type StreamState } from "./shared";
+import {
+  emitPendingToolCalls,
+  getRetryReasoningEffort,
+  normalizeReasoningEffort,
+  pushAttemptSnapshot,
+  reportTruncated,
+  setupStreamState,
+} from "./shared";
 
 export interface OpenAIModelInfo {
   id: string;
@@ -22,48 +29,7 @@ export interface OpenAIModelInfo {
   maxOutputTokens: number;
 }
 
-function normalizeReasoningEffort(reasoningEffort: string | undefined): string | undefined {
-  if (reasoningEffort === "max") {
-    return "xhigh";
-  }
-  return reasoningEffort;
-}
-
-function getRetryReasoningEffort(
-  reasoningEffort: string | undefined,
-  attempt: number,
-): string | undefined {
-  if (!reasoningEffort || attempt <= 0) {
-    return reasoningEffort;
-  }
-
-  const fallbackOrder = ["xhigh", "high", "medium", "low"] as const;
-  const index = fallbackOrder.indexOf(reasoningEffort as (typeof fallbackOrder)[number]);
-  if (index === -1) {
-    return reasoningEffort;
-  }
-
-  return fallbackOrder[Math.min(index + attempt, fallbackOrder.length - 1)];
-}
-
-function emitPendingToolCalls(state: StreamState): void {
-  for (const [callId, buf] of Array.from(state.nativeToolCalls.entries())) {
-    if (state.completedNativeCallIds.has(callId)) continue;
-    try {
-      const args = buf.args ? JSON.parse(buf.args) : {};
-      if (buf.id && buf.name && isToolCallInput(args)) {
-        const emitted = state.tryEmitNativeToolCall(buf.id, buf.name, args);
-        if (emitted) {
-          state.completedNativeCallIds.add(callId);
-        }
-      }
-    } catch {
-      state.lostNativeToolCallCount += 1;
-      debugLog("processOpenAIStream", `Failed to parse JSON for tool call ${buf.name}`);
-    }
-    state.nativeToolCalls.delete(callId);
-  }
-}
+const REASONING_EFFORT_FALLBACK_ORDER = ["xhigh", "high", "medium", "low"] as const;
 
 export async function processOpenAIStream(
   model: OpenAIModelInfo,
@@ -96,7 +62,7 @@ export async function processOpenAIStream(
   );
 
   const toolConfig = convertTools(options);
-  const normalizedEffort = normalizeReasoningEffort(reasoningEffort);
+  const normalizedEffort = normalizeReasoningEffort(reasoningEffort, "xhigh");
   const isThinkingModel = REASONING_CONTENT_WORKAROUND_MODELS.has(model.id);
 
   // Reasoning models may consume the entire output budget on internal thinking
@@ -131,7 +97,7 @@ export async function processOpenAIStream(
     // keeps its step-down schedule (xhigh → high → medium → low).
     const attemptReasoningEffort =
       normalizedEffort !== undefined
-        ? getRetryReasoningEffort(normalizedEffort, attempt)
+        ? getRetryReasoningEffort(normalizedEffort, attempt, REASONING_EFFORT_FALLBACK_ORDER)
         : attempt > 0 && isThinkingModel
           ? "low"
           : undefined;
@@ -319,23 +285,14 @@ export async function processOpenAIStream(
         ];
       }
 
-      attemptSnapshots.push({
-        attempt: attempt + 1,
-        retryReason: shouldRetry ? retryReason : null,
-        requestBody: JSON.parse(JSON.stringify(requestBody)) as OcGoChatRequest,
-        state: {
-          hasVisibleOutput,
-          sawToolCall: state.sawToolCall,
-          emittedToolCall: state.emittedToolCall,
-          incompleteToolCall: state.hasIncompleteToolCall(),
-          pendingTextChars: state.pendingText.length,
-          reasoningChars: state.reasoningContent.length,
-          nativeToolCalls: state.nativeToolCalls.size,
-          lostNativeToolCalls: state.lostNativeToolCallCount,
-          skippedToolCalls: state.skippedToolCalls,
-          finishReason,
-        },
-      });
+      pushAttemptSnapshot(
+        attemptSnapshots,
+        attempt,
+        shouldRetry ? retryReason : undefined,
+        requestBody,
+        state,
+        finishReason,
+      );
 
       if (shouldRetry) {
         state.closeReasoningBlockIfNeeded();
@@ -367,11 +324,7 @@ export async function processOpenAIStream(
       // Finalize on last attempt (successful or all retries exhausted)
       state.finalize("processOpenAIStream");
       if (wasTruncated) {
-        progress.report(
-          new vscode.LanguageModelTextPart(
-            "\n\n_⚠️ The response was automatically truncated. You can ask the model to continue if the response seems incomplete._",
-          ),
-        );
+        reportTruncated(progress);
       }
       if (state.reasoningContent) {
         reasoningCache.set(fullContent.trim(), state.reasoningContent.trim());
