@@ -299,6 +299,17 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsThinking: true,
   },
   {
+    id: "qwen3.8-max",
+    name: "Qwen3.8 Max",
+    displayName: "Qwen3.8 Max",
+    contextWindow: 1000000,
+    maxOutput: 65536,
+    supportsTools: true,
+    supportsVision: true,
+    apiFormat: "openai",
+    supportsThinking: true,
+  },
+  {
     id: "deepseek-v4-pro",
     name: "DeepSeek V4 Pro",
     displayName: "DeepSeek V4 Pro",
