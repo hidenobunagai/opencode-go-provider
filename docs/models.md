@@ -51,6 +51,7 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | Qwen3.6 Plus | 1,000,000 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
 | Qwen3.7 Plus | 1,000,000 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
 | Qwen3.7 Max | 1,000,000 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
+| Qwen3.8 Max | 1,000,000 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
 
 > **Note**: Qwen models have a 1M context window — the largest in the lineup. The dynamic safety margin scales proportionally (~10,240 tokens).
 

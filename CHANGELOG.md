@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.64] - 2026-08-04
+
+### Added
+
+- **Added support for Qwen3.8 Max** (`qwen3.8-max`). Registered in the fallback model list (1M context window, 65k max output, vision, tools, and thinking support, OpenAI format — mirrors Qwen3.7 Max). Dynamic inference already covered it via the `qwen` prefix.
+
 ## [0.1.63] - 2026-08-01
 
 ### Changed

@@ -38,7 +38,7 @@ At runtime the extension fetches the current model list from the OpenCode Go API
 - Kimi K2.5, Kimi K2.6, Kimi K2.7 Code, **Kimi K3**
 - MiMo-V2-Pro, MiMo-V2-Omni, MiMo-V2.5-Pro, MiMo-V2.5
 - MiniMax M2.5, MiniMax M2.7, **MiniMax M3**
-- Qwen3.5 Plus, Qwen3.6 Plus, Qwen3.7 Plus, **Qwen3.7 Max**
+- Qwen3.5 Plus, Qwen3.6 Plus, Qwen3.7 Plus, **Qwen3.7 Max**, **Qwen3.8 Max**
 - **Grok 4.5**
 - **GPT 5.6 Luna**
 - **Hy3**, HY3 Preview
