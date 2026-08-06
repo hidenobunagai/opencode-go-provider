@@ -3,14 +3,14 @@ import * as vscode from "vscode";
 import { buildMissingToolCallNudge, looksLikeActionAnnouncement } from "../announcement";
 import { convertMessagesToAnthropic, convertToolsToAnthropic } from "../anthropic-conversion";
 import { fetchWithRetry, throwApiError } from "../api";
-import { BASE_URL, REQUEST_TIMEOUT_MS } from "../constants";
+import { BASE_URL, ANTHROPIC_MAX_TOOL_RESULT_CHARS, REQUEST_TIMEOUT_MS } from "../constants";
 import { buildProviderIdentityGuidance, sanitizeSystemPromptForModel } from "../guidance";
 import { convertTools } from "../openai-conversion";
-import { debugLog } from "../output-channel";
+import { captureLog, debugLog } from "../output-channel";
 import { extractChatRequestContext, getToolSchemaMap, isToolCallInput } from "../tool-repair";
 import { AnthropicMessage, AnthropicSSEEvent, OcGoModelInfo, type Json } from "../types";
 import { readSseLines } from "./sse";
-import { setupStreamState, reportTruncated, type StreamState } from "./shared";
+import { pushAttemptSnapshot, reportTruncated, setupStreamState, type StreamState } from "./shared";
 
 export interface AnthropicRequestParams {
   modelId: string;
@@ -58,7 +58,7 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
   }
 
   const { messages: apiMessages, system } = convertMessagesToAnthropic(messages, {
-    maxToolResultChars: 20000,
+    maxToolResultChars: ANTHROPIC_MAX_TOOL_RESULT_CHARS,
     reasoningContentPlaceholderForToolUse: isDeepSeek ? " " : undefined,
   });
   const effectiveSystem = [
@@ -84,6 +84,7 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
   let retryReason:
     | "reasoning-only"
     | "mid-response-stop"
+    | "empty-response"
     | "truncated"
     | "missing-tool-call"
     | undefined;
@@ -91,6 +92,7 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
   // the model's action announcement plus a nudge so the model can emit the
   // tool call it announced.
   let requestMessages = apiMessages;
+  const attemptSnapshots: Array<Record<string, unknown>> = [];
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (token.isCancellationRequested) throw new vscode.CancellationError();
@@ -211,6 +213,18 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
       shouldRetry = true;
       retryReason = "mid-response-stop";
     } else if (
+      !hasVisibleOutput &&
+      !streamState.sawToolCall &&
+      !streamState.reasoningContent &&
+      attempt < MAX_RETRIES &&
+      !token.isCancellationRequested
+    ) {
+      // Some providers occasionally terminate a stream without yielding any
+      // visible content or tool calls. Retry a few times before surfacing the
+      // fallback text to the user.
+      shouldRetry = true;
+      retryReason = "empty-response";
+    } else if (
       streamState.stopReason === "max_tokens" &&
       attempt < MAX_RETRIES &&
       !token.isCancellationRequested
@@ -245,6 +259,15 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
       ];
     }
 
+    pushAttemptSnapshot(
+      attemptSnapshots,
+      attempt,
+      shouldRetry ? retryReason : undefined,
+      requestBody,
+      streamState,
+      streamState.stopReason,
+    );
+
     if (shouldRetry) {
       streamState.closeReasoningBlockIfNeeded();
       prevEmittedKeys = streamState.snapshotEmittedKeys();
@@ -252,6 +275,18 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
     }
 
     const wasTruncated = streamState.stopReason === "max_tokens" && hasVisibleOutput;
+    const shouldCaptureNoOutput =
+      !hasVisibleOutput &&
+      (!streamState.sawToolCall ||
+        streamState.reasoningContent.length > 0 ||
+        streamState.hasIncompleteToolCall());
+    if (shouldCaptureNoOutput) {
+      captureLog("Anthropic exhausted no-output retries", {
+        model: modelId,
+        attempts: attemptSnapshots,
+        hint: "Replay the requestBody payloads above against /messages to compare plain-vs-extension behavior.",
+      });
+    }
 
     // Finalize on last attempt (successful or all retries exhausted)
     streamState.finalize("processAnthropicStreamingResponse");
