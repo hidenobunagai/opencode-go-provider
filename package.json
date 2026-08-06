@@ -35,7 +35,7 @@
     "Chat"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onLanguageModelTool:opencode_go_analyze_image"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -92,7 +92,7 @@
   },
   "scripts": {
     "vscode:prepublish": "bun run compile",
-    "compile": "tsc -p ./",
+    "compile": "rm -rf out && tsc -p ./",
     "watch": "tsc -w -p ./",
     "test": "jest",
     "test:coverage": "jest --coverage",
