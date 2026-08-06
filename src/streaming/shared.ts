@@ -33,6 +33,13 @@ export function normalizeReasoningEffort(
   return reasoningEffort === "max" ? maxEquivalent : reasoningEffort;
 }
 
+/**
+ * Step-down schedule used on retries.  "xhigh" is only sent by the OpenAI
+ * chat.completions path; the Responses path never receives it because "max"
+ * maps to "high" there and "xhigh" is not a valid user-facing level.
+ */
+export const REASONING_EFFORT_FALLBACK_ORDER = ["xhigh", "high", "medium", "low"] as const;
+
 /** Step reasoning effort down on retries so a thinking model cannot burn the whole budget again. */
 export function getRetryReasoningEffort(
   reasoningEffort: string | undefined,

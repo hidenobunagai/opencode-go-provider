@@ -19,6 +19,7 @@ import {
   getRetryReasoningEffort,
   normalizeReasoningEffort,
   pushAttemptSnapshot,
+  REASONING_EFFORT_FALLBACK_ORDER,
   reportTruncated,
   setupStreamState,
 } from "./shared";
@@ -28,8 +29,6 @@ export interface OpenAIModelInfo {
   modelInfo?: OcGoModelInfo;
   maxOutputTokens: number;
 }
-
-const REASONING_EFFORT_FALLBACK_ORDER = ["xhigh", "high", "medium", "low"] as const;
 
 export async function processOpenAIStream(
   model: OpenAIModelInfo,

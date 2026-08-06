@@ -17,11 +17,10 @@ import {
   getRetryReasoningEffort,
   normalizeReasoningEffort,
   pushAttemptSnapshot,
+  REASONING_EFFORT_FALLBACK_ORDER,
   reportTruncated,
   setupStreamState,
 } from "./shared";
-
-const REASONING_EFFORT_FALLBACK_ORDER = ["high", "medium", "low"] as const;
 
 export interface ResponsesRequestParams {
   modelId: string;
