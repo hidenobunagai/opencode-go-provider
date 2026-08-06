@@ -18,7 +18,7 @@ import {
   THINKING_MODELS,
   getContextWindowSafetyMargin,
 } from "./constants";
-import { OcGoMcpClient } from "./mcp";
+import { OcGoVisionClient } from "./vision";
 import { extractImageData, getTextPartValue } from "./message-parts";
 import { debugLog } from "./output-channel";
 import { handleAnthropicRequest } from "./streaming/anthropic";
@@ -32,7 +32,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
   readonly onDidChangeLanguageModelChatInformation: Event<void> =
     this._onDidChangeLanguageModelChatInformation.event;
 
-  private readonly _mcpClient: OcGoMcpClient;
+  private readonly _visionClient: OcGoVisionClient;
   private readonly _modelMap = new Map<string, OcGoModelInfo>();
   private _models: OcGoModelInfo[] = FALLBACK_MODELS;
   private _modelsFetched = false;
@@ -41,7 +41,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     private readonly secrets: vscode.SecretStorage,
     private readonly userAgent: string,
   ) {
-    this._mcpClient = new OcGoMcpClient(secrets, userAgent);
+    this._visionClient = new OcGoVisionClient(secrets, userAgent);
     for (const m of FALLBACK_MODELS) {
       this._modelMap.set(m.id, m);
     }
@@ -216,7 +216,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
           const base64Data = Buffer.from(img.data).toString("base64");
           const imageDataUrl = `data:${img.mimeType};base64,${base64Data}`;
           const analysisPrompt = userPrompt || "Describe this image in detail.";
-          return this._mcpClient.analyzeImage(
+          return this._visionClient.analyzeImage(
             imageDataUrl,
             analysisPrompt,
             abortController.signal,

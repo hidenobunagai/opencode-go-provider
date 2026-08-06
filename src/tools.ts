@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { OcGoMcpClient } from "./mcp";
+import { OcGoVisionClient } from "./vision";
 
 /**
  * Tool for analyzing images using the OpenCode Go Vision model (MiMo-V2-Omni).
@@ -35,10 +35,10 @@ export class OcGoAnalyzeImageTool implements vscode.LanguageModelTool<{
     required: ["image_data", "prompt"],
   };
 
-  private readonly _mcpClient: OcGoMcpClient;
+  private readonly _visionClient: OcGoVisionClient;
 
   constructor(secrets: vscode.SecretStorage, userAgent?: string) {
-    this._mcpClient = new OcGoMcpClient(secrets, userAgent);
+    this._visionClient = new OcGoVisionClient(secrets, userAgent);
   }
 
   async invoke(
@@ -49,7 +49,11 @@ export class OcGoAnalyzeImageTool implements vscode.LanguageModelTool<{
     const abortController = new AbortController();
     const cancellationSubscription = token.onCancellationRequested(() => abortController.abort());
     try {
-      const result = await this._mcpClient.analyzeImage(image_data, prompt, abortController.signal);
+      const result = await this._visionClient.analyzeImage(
+        image_data,
+        prompt,
+        abortController.signal,
+      );
       return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(result)]);
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {

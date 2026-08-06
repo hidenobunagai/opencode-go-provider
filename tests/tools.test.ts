@@ -15,8 +15,8 @@ jest.mock("vscode", () => ({
   },
 }));
 
-jest.mock("../src/mcp", () => ({
-  OcGoMcpClient: jest.fn().mockImplementation(() => ({
+jest.mock("../src/vision", () => ({
+  OcGoVisionClient: jest.fn().mockImplementation(() => ({
     analyzeImage: jest.fn().mockResolvedValue("Analyzed result"),
   })),
 }));
@@ -51,8 +51,8 @@ describe("OcGoAnalyzeImageTool", () => {
   });
 
   it("handles analyzeImage errors gracefully", async () => {
-    const { OcGoMcpClient } = require("../src/mcp");
-    OcGoMcpClient.mockImplementationOnce(() => ({
+    const { OcGoVisionClient } = require("../src/vision");
+    OcGoVisionClient.mockImplementationOnce(() => ({
       analyzeImage: jest.fn().mockRejectedValue(new Error("API down")),
     }));
     const failingTool = new OcGoAnalyzeImageTool(secrets as any, "test-ua");

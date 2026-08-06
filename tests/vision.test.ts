@@ -1,16 +1,16 @@
-import { OcGoMcpClient } from "../src/mcp";
+import { OcGoVisionClient } from "../src/vision";
 
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
-describe("OcGoMcpClient", () => {
+describe("OcGoVisionClient", () => {
   let secrets: { get: jest.Mock };
-  let client: OcGoMcpClient;
+  let client: OcGoVisionClient;
 
   beforeEach(() => {
     jest.clearAllMocks();
     secrets = { get: jest.fn() };
-    client = new OcGoMcpClient(secrets as any, "test-ua");
+    client = new OcGoVisionClient(secrets as any, "test-ua");
   });
 
   it("analyzes an image successfully", async () => {

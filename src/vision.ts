@@ -2,10 +2,10 @@ import * as vscode from "vscode";
 import { requestChatCompletion } from "./api";
 
 /**
- * OpenCode Go MCP Client for making HTTP-based MCP tool calls.
+ * OpenCode Go vision client for HTTP-based image analysis requests.
  * Used internally to provide image analysis capabilities for non-vision models.
  */
-export class OcGoMcpClient {
+export class OcGoVisionClient {
   constructor(
     private readonly secrets: vscode.SecretStorage,
     private readonly userAgent?: string,
