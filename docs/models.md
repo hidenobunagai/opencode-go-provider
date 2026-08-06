@@ -103,7 +103,7 @@ The extension applies several model-behavior workarounds while streaming. This m
 | Tool call dedup and argument repair from chat context | All models | `tool-repair.ts` |
 | Action-announcement nudge (response ends announcing an action without a tool call) | All models, when tools are present | `announcement.ts`, `streaming/*.ts` |
 | `reasoning_effort: "low"` forced on retries when Thinking Effort is "Default" | Thinking models | `streaming/openai.ts` |
-| Vision fallback: separate image analysis or model switch for image input | Models without native vision | `provider.ts`, `mcp.ts`, `tools.ts` |
+| Vision fallback: separate image analysis or model switch for image input | Models without native vision | `provider.ts`, `vision.ts`, `tools.ts` |
 
 When adding a new model, check this matrix first and prefer registering quirks in the listed location over inventing a new mechanism.
 

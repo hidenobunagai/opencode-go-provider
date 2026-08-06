@@ -39,8 +39,7 @@ Test files live in `tests/` and mirror the `src/` structure:
 - `tests/tool-repair.test.ts` — Tool argument repair and dedup
 - `tests/tool-parser.test.ts` — Tool call parsing from streaming output
 - `tests/guidance.test.ts` — System prompt sanitization and guidance
-- `tests/incremental-json.test.ts` — JSON completeness heuristics
-- `tests/mcp.test.ts` — MCP client integration
+- `tests/vision.test.ts` — Vision client integration
 - `tests/tools.test.ts` — Language model tool registration
 - `tests/utils.test.ts` — Shared utility functions
 - `tests/extension.test.ts` — Extension activation/deactivation
@@ -143,17 +142,6 @@ Debug logs include:
 - Tool call parsing and repair details
 - Stream errors and retry events
 
-### Troubleshooting DeepSeek Identity
-
-If DeepSeek models claim to be a different model, run the repro script:
-
-```bash
-export OPENCODE_GO_API_KEY="your-api-key"
-bun run repro:deepseek -- "What model are you?"
-```
-
-This sends a direct `/messages` request bypassing the extension to isolate the issue.
-
 ## Project Structure
 
 ```
@@ -165,10 +153,14 @@ opencode-go-provider/
 │   ├── api.ts                # HTTP client + retry
 │   ├── openai-conversion.ts  # OpenAI message conversion
 │   ├── anthropic-conversion.ts # Anthropic message conversion
+│   ├── openai-conversion.ts  # OpenAI message conversion
+│   ├── anthropic-conversion.ts # Anthropic message conversion
+│   ├── responses-conversion.ts # Responses API message conversion
 │   ├── streaming/
 │   │   ├── sse.ts            # Shared SSE line reader
 │   │   ├── openai.ts         # OpenAI SSE parser
 │   │   ├── anthropic.ts      # Anthropic SSE parser
+│   │   ├── responses.ts      # Responses API SSE parser
 │   │   └── shared.ts         # Shared streaming utilities
 │   ├── announcement.ts       # Action-announcement detection + nudge
 │   ├── message-parts.ts      # Type guards + part extractors
@@ -176,13 +168,12 @@ opencode-go-provider/
 │   ├── tool-parser.ts        # Text-embedded tool call parser
 │   ├── tool-repair.ts        # Tool argument repair + dedup
 │   ├── tools.ts              # Language model tool registration
-│   ├── mcp.ts                # MCP client
+│   ├── vision.ts             # Vision image-analysis client
 │   ├── guidance.ts           # System prompt guidance
 │   ├── output-channel.ts     # Debug logging
-│   ├── constants.ts          # Constants + workarounds
-│   └── utils.ts              # Re-export hub
+│   └── constants.ts          # Constants + workarounds
 ├── tests/                    # Jest test files
-├── scripts/                  # Repro & measurement scripts
+├── scripts/                  # Release helper scripts
 ├── docs/                     # Documentation
 └── images/                   # Extension icon
 ```

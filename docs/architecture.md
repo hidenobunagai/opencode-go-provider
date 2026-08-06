@@ -39,7 +39,7 @@ Copilot Chat
 | `announcement.ts` | Detects responses that end by announcing an action (JA/EN/ZH) without emitting the tool call, and builds the nudge message used to continue the turn. |
 | `tool-repair.ts` | Deduplicates tool calls, repairs missing arguments from chat context, and coerces argument types using `inputSchema`. |
 | `tools.ts` | Registers the `opencode_go_analyze_image` language model tool for vision requests. |
-| `mcp.ts` | MCP (Model Context Protocol) client for optional server integration. |
+| `vision.ts` | Vision image-analysis client (`OcGoVisionClient`) used by non-vision models to delegate image requests to MiMo-V2-Omni. |
 | `guidance.ts` | Builds system-prompt guidance: provider identity, tool-use instructions, and DeepSeek-specific prompt sanitization. |
 | `output-channel.ts` | Centralized debug logging via `vscode.OutputChannel`. |
 | `constants.ts` | API base URL, timeout values, context window safety margins, and workaround model sets. |
