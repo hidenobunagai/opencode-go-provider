@@ -24,3 +24,21 @@ coverage/
 .serena/
 AGENTS.md
 .env
+# Added by code-review-graph
+.code-review-graph/
+.github/code-review-graph.instruction.md
+.vscode/mcp.json
+.claude/
+.codebuddy/
+.cursor/
+.gemini/
+.kiro/
+.qoder/
+CLAUDE.md
+CODEBUDDY.md
+GEMINI.md
+QODER.md
+.windsurfrules
+.cursorrules
+opencode.jsonc
+.mcp.json
