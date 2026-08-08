@@ -28,7 +28,7 @@ export interface ResponsesRequestParams {
   options: vscode.ProvideLanguageModelChatResponseOptions;
   apiKey: string;
   requestedMaxTokens: number;
-  temperatureVal: number;
+  temperatureVal: number | undefined;
   progress: vscode.Progress<vscode.LanguageModelResponsePart>;
   token: vscode.CancellationToken;
   abortController: AbortController;

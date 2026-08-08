@@ -1,5 +1,21 @@
 # Change Log
 
+## [Unreleased]
+
+### Changed
+
+- **Aligned sampling parameters with the OpenCode CLI for parity with OpenCode usage.**
+  - **Qwen models** now send `temperature: 0.55` and `top_p: 1` (CLI defaults) instead of 0.7.
+  - **MiniMax M2.5/M2.7** now send `temperature: 1` and `top_p: 0.95` (CLI defaults) instead of 0.7.
+  - **Kimi K2.5** now sends `top_p: 0.95` (CLI default) alongside the existing `temperature: 1`.
+  - Models without a CLI-defined sampling default (GLM, DeepSeek, MiMo, Grok, MiniMax M3, GPT 5.6 Luna, Hy3, Kimi K3) no longer force `temperature: 0.7`; the request omits `temperature` so the provider's server-side default applies, matching OpenCode CLI behavior.
+- **Thinking models now send `max_tokens` instead of `max_completion_tokens`.** The zen/go proxy silently ignores `max_completion_tokens` (verified 2026-08: a request with `max_completion_tokens: 2048` produced 3989 output tokens), so the previous 16K output-budget floor never reached the server. The 16K floor and the retry budget-doubling logic now take effect via `max_tokens`.
+
+### Added
+
+- `fixedTopP` field on `OcGoModelInfo` for per-model top_p defaults, mirroring the OpenCode CLI's per-model sampling defaults.
+- Tests covering CLI-parity sampling (Qwen 0.55/1.0, MiniMax M2 1.0/0.95, MiniMax M3 no fixed values, no temperature for unconfigured models) and `max_tokens` (not `max_completion_tokens`) for thinking models.
+
 ## [0.1.64] - 2026-08-04
 
 ### Added

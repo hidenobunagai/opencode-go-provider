@@ -21,7 +21,7 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | Kimi K2.7 Code | 262,144 | 262,144 | ✓ | ✓ | ✓ | OpenAI |
 | Kimi K3 | 1,000,000 | 262,144 | ✓ | ✓ | ✓ | OpenAI |
 
-> **Note**: Kimi models use `fixedTemperature: 1` for optimal performance.
+> **Note**: Kimi models use `fixedTemperature: 1` for optimal performance. Kimi K2.5 also sends `top_p: 0.95`, matching the OpenCode CLI's per-model sampling defaults.
 > Kimi models other than K2.5 (K2.6, K2.7 Code, K3, ...) require `REASONING_CONTENT_WORKAROUND_MODELS` for correct streaming output.
 
 ### MiMo Series
@@ -41,7 +41,7 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | MiniMax M2.7 | 196,608 | 131,072 | ✗ | ✓ | ✗ | Anthropic |
 | MiniMax M3 | 196,608 | 131,072 | ✗ | ✓ | ✗ | Anthropic |
 
-> **Note**: MiniMax models use the **Anthropic Messages API** (`apiFormat: "anthropic"`). Tool calls and results use Anthropic's `tool_use` / `tool_result` block format rather than OpenAI's function calling.
+> **Note**: MiniMax models use the **Anthropic Messages API** (`apiFormat: "anthropic"`). Tool calls and results use Anthropic's `tool_use` / `tool_result` block format rather than OpenAI's function calling. M2.5/M2.7 send `temperature: 1` and `top_p: 0.95`, matching the OpenCode CLI's defaults; M3 leaves sampling to the provider default.
 
 ### Qwen Series (Alibaba)
 
@@ -53,7 +53,7 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | Qwen3.7 Max | 1,000,000 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
 | Qwen3.8 Max | 1,000,000 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
 
-> **Note**: Qwen models have a 1M context window — the largest in the lineup. The dynamic safety margin scales proportionally (~10,240 tokens).
+> **Note**: Qwen models have a 1M context window — the largest in the lineup. The dynamic safety margin scales proportionally (~10,240 tokens). They send `temperature: 0.55` and `top_p: 1`, matching the OpenCode CLI's defaults.
 
 ### DeepSeek Series
 
@@ -95,7 +95,7 @@ The extension applies several model-behavior workarounds while streaming. This m
 |------------|-----------|-------|
 | `reasoning_content` field added to assistant history, and parsed from streaming deltas | Kimi (except K2.5), DeepSeek V4+ (`REASONING_CONTENT_WORKAROUND_MODELS`) | `constants.ts`, `openai-conversion.ts` |
 | Responses API (`/responses`) instead of OpenAI chat.completions | GPT 5.6 Luna (`apiFormat: "responses"`) | `responses-conversion.ts`, `streaming/responses.ts` |
-| `fixedTemperature: 1` sent on every request | Kimi | `types.ts` |
+| `fixedTemperature` / `fixedTopP` sent on every request | Kimi (temp 1), Qwen (0.55 / top_p 1), MiniMax M2 (1 / 0.95), Kimi K2.5 (top_p 0.95) | `types.ts` |
 | Anthropic Messages API instead of OpenAI format | MiniMax (`apiFormat: "anthropic"`) | `anthropic-conversion.ts`, `streaming/anthropic.ts` |
 | System prompt sanitization ("Claude" → "GitHub Copilot") and provider identity guidance | DeepSeek | `guidance.ts` |
 | Tool-use grounding guidance injected into the system prompt | All models, when tools are present | `guidance.ts` |
@@ -146,6 +146,19 @@ Each model's `contextWindow` is used to:
 1. **Calculate max output tokens**: `maxOutput` or `DEFAULT_MAX_OUTPUT_TOKENS` (65,536), whichever is smaller.
 2. **Apply safety margin**: Dynamic margin = `max(2048, floor(contextWindow * 0.01))`.
 3. **Cap tool results**: `calculateMaxToolResultChars()` returns 10,000–50,000 chars based on context window size.
+
+## Sampling Parameters
+
+The extension mirrors the OpenCode CLI's per-model sampling defaults so model output matches what you get when using the same models in OpenCode:
+
+| Model | temperature | top_p |
+|-------|-------------|-------|
+| Qwen3.5/3.6/3.7/3.8 Plus/Max | 0.55 | 1 |
+| MiniMax M2.5, M2.7 | 1 | 0.95 |
+| Kimi K2.5, K2.6, K2.7 Code, K3 | 1 | K2.5: 0.95, others: unset |
+| GLM-5.x, DeepSeek V4, MiMo, Grok, MiniMax M3, Hy3, GPT 5.6 Luna | unset (provider default) | unset |
+
+When a model has no fixed values and the user has not set a temperature in the model options, the request omits `temperature` entirely so the server-side default applies — same as the OpenCode CLI. Requests always use `max_tokens` (the zen/go proxy ignores `max_completion_tokens`); thinking models enforce a 16K output-budget floor.
 
 ## Adding Models
 

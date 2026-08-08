@@ -36,7 +36,8 @@ export async function processOpenAIStream(
   options: vscode.ProvideLanguageModelChatResponseOptions,
   apiKey: string,
   requestedMaxTokens: number,
-  temperatureVal: number,
+  temperatureVal: number | undefined,
+  topPVal: number | undefined,
   openCodeGoModelInfo: readonly OcGoModelInfo[],
   userAgent: string,
   progress: vscode.Progress<vscode.LanguageModelResponsePart>,
@@ -119,17 +120,23 @@ export async function processOpenAIStream(
       model: model.id,
       messages: requestMessages,
       stream: true,
-      temperature: temperatureVal,
     };
 
-    if (isThinkingModel) {
-      requestBody.max_completion_tokens = Math.min(
-        Math.max(currentMaxTokens, 16384),
-        model.maxOutputTokens,
-      );
-    } else {
-      requestBody.max_tokens = currentMaxTokens;
+    if (typeof temperatureVal === "number" && temperatureVal > 0) {
+      requestBody.temperature = temperatureVal;
     }
+    if (typeof topPVal === "number" && topPVal > 0) {
+      requestBody.top_p = topPVal;
+    }
+
+    // The zen/go proxy only honors max_tokens; max_completion_tokens is
+    // silently ignored (verified 2026-08: max_completion_tokens=2048
+    // produced 3989 output tokens). Thinking models keep the 16K floor so
+    // reasoning has room to run AND a visible response can follow.
+    requestBody.max_tokens = Math.min(
+      Math.max(currentMaxTokens, isThinkingModel ? 16384 : 0),
+      model.maxOutputTokens,
+    );
 
     if (toolConfig.tools) requestBody.tools = toolConfig.tools;
     if (toolConfig.tool_choice) requestBody.tool_choice = toolConfig.tool_choice;

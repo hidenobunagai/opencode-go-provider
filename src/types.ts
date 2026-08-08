@@ -94,6 +94,12 @@ export interface OcGoModelInfo {
   apiFormat?: OcGoApiFormat;
   /** If set, this exact temperature value is sent for every request */
   fixedTemperature?: number;
+  /**
+   * If set, this exact top_p value is sent for every request.
+   * Matches the OpenCode CLI's per-model sampling defaults
+   * (e.g. qwen top_p=1, kimi-k2.5 / minimax-m2 top_p=0.95).
+   */
+  fixedTopP?: number;
   /** If true, a Thinking Effort dropdown is shown in the model picker */
   supportsThinking?: boolean;
 }
@@ -142,6 +148,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: true,
     apiFormat: "openai",
     fixedTemperature: 1,
+    fixedTopP: 0.95,
     supportsThinking: true,
   },
   {
@@ -233,6 +240,8 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsTools: true,
     supportsVision: false,
     apiFormat: "anthropic",
+    fixedTemperature: 1,
+    fixedTopP: 0.95,
   },
   {
     id: "minimax-m2.7",
@@ -243,6 +252,8 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsTools: true,
     supportsVision: false,
     apiFormat: "anthropic",
+    fixedTemperature: 1,
+    fixedTopP: 0.95,
   },
   {
     id: "minimax-m3",
@@ -263,6 +274,8 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsTools: true,
     supportsVision: true,
     apiFormat: "openai",
+    fixedTemperature: 0.55,
+    fixedTopP: 1,
     supportsThinking: true,
   },
   {
@@ -274,6 +287,8 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsTools: true,
     supportsVision: true,
     apiFormat: "openai",
+    fixedTemperature: 0.55,
+    fixedTopP: 1,
     supportsThinking: true,
   },
   {
@@ -285,6 +300,8 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsTools: true,
     supportsVision: true,
     apiFormat: "openai",
+    fixedTemperature: 0.55,
+    fixedTopP: 1,
     supportsThinking: true,
   },
   {
@@ -296,6 +313,8 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsTools: true,
     supportsVision: true,
     apiFormat: "openai",
+    fixedTemperature: 0.55,
+    fixedTopP: 1,
     supportsThinking: true,
   },
   {
@@ -307,6 +326,8 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsTools: true,
     supportsVision: true,
     apiFormat: "openai",
+    fixedTemperature: 0.55,
+    fixedTopP: 1,
     supportsThinking: true,
   },
   {
@@ -398,14 +419,22 @@ export function inferModelInfo(id: string): OcGoModelInfo {
   let supportsVision = false;
   let apiFormat: OcGoApiFormat = "openai";
   let fixedTemperature: number | undefined = undefined;
+  let fixedTopP: number | undefined = undefined;
   let supportsThinking = false;
 
   if (isMinimax) {
     apiFormat = "anthropic";
     contextWindow = 196608;
     maxOutput = 131072;
+    if (id.includes("m2")) {
+      fixedTemperature = 1;
+      fixedTopP = 0.95;
+    }
   } else if (isKimi) {
     fixedTemperature = 1;
+    if (id.includes("k2.5")) {
+      fixedTopP = 0.95;
+    }
     supportsVision = true;
     supportsThinking = true;
     contextWindow = id.includes("k3") ? 1000000 : 262144;
@@ -419,6 +448,8 @@ export function inferModelInfo(id: string): OcGoModelInfo {
     contextWindow = 262144;
     maxOutput = 65536;
   } else if (isQwen) {
+    fixedTemperature = 0.55;
+    fixedTopP = 1;
     supportsVision = true;
     supportsThinking = true;
     contextWindow = 1000000;
@@ -459,6 +490,7 @@ export function inferModelInfo(id: string): OcGoModelInfo {
     supportsVision,
     apiFormat,
     fixedTemperature,
+    fixedTopP,
     supportsThinking,
   };
 }

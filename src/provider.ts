@@ -451,7 +451,8 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
           ? variantModelInfo.fixedTemperature
           : typeof (options.modelOptions as Record<string, unknown>)?.temperature === "number"
             ? ((options.modelOptions as Record<string, unknown>).temperature as number)
-            : 0.7;
+            : undefined;
+      const topPVal = variantModelInfo?.fixedTopP;
 
       if (apiFormat === "anthropic") {
         await handleAnthropicRequest({
@@ -461,6 +462,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
           apiKey,
           requestedMaxTokens: effectiveMaxTokens,
           temperatureVal,
+          topPVal,
           userAgent: this.userAgent,
           fallbackModels: FALLBACK_MODELS,
           progress,
@@ -501,6 +503,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         apiKey,
         effectiveMaxTokens,
         temperatureVal,
+        topPVal,
         FALLBACK_MODELS,
         this.userAgent,
         progress,

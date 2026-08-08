@@ -18,12 +18,13 @@ export interface AnthropicRequestParams {
   options: vscode.ProvideLanguageModelChatResponseOptions;
   apiKey: string;
   requestedMaxTokens: number;
-  temperatureVal: number;
+  temperatureVal: number | undefined;
   progress: vscode.Progress<vscode.LanguageModelResponsePart>;
   token: vscode.CancellationToken;
   abortController: AbortController;
   fallbackModels: readonly OcGoModelInfo[];
   userAgent: string;
+  topPVal?: number;
 }
 
 export async function handleAnthropicRequest(params: AnthropicRequestParams): Promise<void> {
@@ -39,6 +40,7 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
     abortController,
     fallbackModels,
     userAgent,
+    topPVal,
   } = params;
 
   const isDeepSeek = modelId.startsWith("deepseek-");
@@ -120,6 +122,7 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
       max_tokens?: number;
       stream: boolean;
       temperature?: number;
+      top_p?: number;
       tools?: unknown[];
       tool_choice?: unknown;
     } = {
@@ -135,6 +138,9 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
     if (effectiveSystem) requestBody.system = effectiveSystem;
     if (typeof temperatureVal === "number" && temperatureVal > 0) {
       requestBody.temperature = temperatureVal;
+    }
+    if (typeof topPVal === "number" && topPVal > 0) {
+      requestBody.top_p = topPVal;
     }
     if (toolConfig.tools && toolConfig.tools.length > 0) {
       requestBody.tools = toolConfig.tools;

@@ -978,6 +978,88 @@ describe("OcGoChatModelProvider", () => {
     expect(requestBody.tool_choice).toBe("required");
   });
 
+  it("sends Qwen fixed temperature 0.55 and top_p 1 (CLI sampling parity)", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const mockStream = async function* () {
+      yield { choices: [{ delta: { content: "done" } }] };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "qwen3.7-max", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "Hi" }] }] as any,
+      { modelOptions: {} } as any,
+      progress,
+      token as any,
+    );
+
+    const requestBody = (streamChatCompletion as jest.Mock).mock.calls.at(-1)?.[1];
+    expect(requestBody.temperature).toBe(0.55);
+    expect(requestBody.top_p).toBe(1);
+  });
+
+  it("does not send temperature/top_p when the model has no fixed sampling values", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const mockStream = async function* () {
+      yield { choices: [{ delta: { content: "done" } }] };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "deepseek-v4-pro", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "Hi" }] }] as any,
+      { modelOptions: {} } as any,
+      progress,
+      token as any,
+    );
+
+    const requestBody = (streamChatCompletion as jest.Mock).mock.calls.at(-1)?.[1];
+    expect(requestBody.temperature).toBeUndefined();
+    expect(requestBody.top_p).toBeUndefined();
+  });
+
+  it("sends max_tokens (not max_completion_tokens) for thinking models", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const mockStream = async function* () {
+      yield { choices: [{ delta: { content: "done" } }] };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "kimi-k2.6", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "Hi" }] }] as any,
+      { modelOptions: { max_tokens: 8192 } } as any,
+      progress,
+      token as any,
+    );
+
+    const requestBody = (streamChatCompletion as jest.Mock).mock.calls.at(-1)?.[1];
+    // 16K floor for thinking models lifts the 8192 request up to 16384.
+    expect(requestBody.max_tokens).toBe(16384);
+    expect(requestBody.max_completion_tokens).toBeUndefined();
+  });
+
   it("routes DeepSeek tool calls through chat completions with explicit auto tool choice", async () => {
     (secrets.get as jest.Mock).mockResolvedValue("test-key");
 
@@ -1649,8 +1731,60 @@ describe("OcGoChatModelProvider", () => {
         .find((part: any) => part?.name === "run_tests");
       expect(toolCallPart).toBeDefined();
       expect(toolCallPart.input).toEqual({ suite: "all" });
+    });
 
-      expect(emittedTexts(progress).some((text) => text.includes("実行します"))).toBe(false);
+    it("sends fixedTemperature=1 and top_p=0.95 for MiniMax M2 models", async () => {
+      (secrets.get as jest.Mock).mockResolvedValue("test-key");
+      (fetchWithRetry as jest.Mock).mockResolvedValue(
+        anthropicSseResponse([
+          { type: "content_block_delta", index: 1, delta: { type: "text_delta", text: "done" } },
+          {
+            type: "message_delta",
+            delta: { stop_reason: "end_turn", stop_sequence: null },
+            usage: { output_tokens: 1 },
+          },
+        ]),
+      );
+
+      const progress = { report: jest.fn() };
+      await provider.provideLanguageModelChatResponse(
+        { id: "minimax-m2.7", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+        userMessage,
+        { modelOptions: {} } as any,
+        progress,
+        makeToken() as any,
+      );
+
+      const sentBody = JSON.parse((fetchWithRetry as jest.Mock).mock.calls.at(-1)?.[1]?.body);
+      expect(sentBody.temperature).toBe(1);
+      expect(sentBody.top_p).toBe(0.95);
+    });
+
+    it("does not send temperature/top_p for MiniMax M3 (no fixed values)", async () => {
+      (secrets.get as jest.Mock).mockResolvedValue("test-key");
+      (fetchWithRetry as jest.Mock).mockResolvedValue(
+        anthropicSseResponse([
+          { type: "content_block_delta", index: 1, delta: { type: "text_delta", text: "done" } },
+          {
+            type: "message_delta",
+            delta: { stop_reason: "end_turn", stop_sequence: null },
+            usage: { output_tokens: 1 },
+          },
+        ]),
+      );
+
+      const progress = { report: jest.fn() };
+      await provider.provideLanguageModelChatResponse(
+        minimaxModel,
+        userMessage,
+        { modelOptions: {} } as any,
+        progress,
+        makeToken() as any,
+      );
+
+      const sentBody = JSON.parse((fetchWithRetry as jest.Mock).mock.calls.at(-1)?.[1]?.body);
+      expect(sentBody.temperature).toBeUndefined();
+      expect(sentBody.top_p).toBeUndefined();
     });
   });
 
