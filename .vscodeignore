@@ -9,6 +9,7 @@ node_modules/**
 coverage/**
 .serena/**
 .headroom/**
+.code-review-graph/**
 .gitignore
 .env
 .env.*
