@@ -72,8 +72,7 @@ export function getToolSchemaMap(
   const map = new Map<string, ToolSchema>();
   for (const tool of options.tools ?? []) {
     const inputSchema = tool.inputSchema as
-      | { required?: unknown; properties?: unknown }
-      | undefined;
+      { required?: unknown; properties?: unknown } | undefined;
     const required = Array.isArray(inputSchema?.required)
       ? inputSchema.required.filter(
           (value): value is string => typeof value === "string" && value.length > 0,
