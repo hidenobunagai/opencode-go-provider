@@ -11,6 +11,7 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | GLM-5 | 202,752 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
 | GLM-5.1 | 202,752 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
 | GLM-5.2 | 202,752 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
+| GLM-5.3 | 202,752 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
 
 ### Kimi Series (Moonshot AI)
 

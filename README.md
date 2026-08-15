@@ -33,7 +33,7 @@ VS Code extension to use OpenCode Go models in Copilot Chat with your own OpenCo
 
 At runtime the extension fetches the current model list from the OpenCode Go API (`GET /models`) and infers each model's capabilities automatically, so newly released models usually work without an extension update. A bundled `FALLBACK_MODELS` list (in `src/types.ts`) is used when the API cannot be reached or no API key is configured yet. Currently bundled fallback models include:
 
-- GLM-5, GLM-5.1, **GLM-5.2**
+- GLM-5, GLM-5.1, **GLM-5.2**, **GLM-5.3**
 - DeepSeek V4 Pro, DeepSeek V4 Flash
 - Kimi K2.5, Kimi K2.6, Kimi K2.7 Code, **Kimi K3**
 - MiMo-V2-Pro, MiMo-V2-Omni, MiMo-V2.5-Pro, MiMo-V2.5

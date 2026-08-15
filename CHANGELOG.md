@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.66] - 2026-08-15
+
+### Added
+
+- **Added support for GLM-5.3** (`glm-5.3`). Registered in the fallback model list (202,752-token context window, 131,072 max output, tools and thinking support, OpenAI format — mirrors GLM-5.2). Dynamic inference already covered it via the `glm` prefix.
+
 ## [0.1.65] - 2026-08-09
 
 ### Changed

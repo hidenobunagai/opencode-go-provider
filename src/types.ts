@@ -139,6 +139,17 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsThinking: true,
   },
   {
+    id: "glm-5.3",
+    name: "GLM-5.3",
+    displayName: "GLM-5.3",
+    contextWindow: 202752,
+    maxOutput: 131072,
+    supportsTools: true,
+    supportsVision: false,
+    apiFormat: "openai",
+    supportsThinking: true,
+  },
+  {
     id: "kimi-k2.5",
     name: "Kimi K2.5",
     displayName: "Kimi K2.5",
