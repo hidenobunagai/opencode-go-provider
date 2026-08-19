@@ -179,6 +179,7 @@ describe("OcGoChatModelProvider", () => {
         { id: "deepseek-v5-pro" },
         { id: "minimax-m4" },
         { id: "grok-4.5-preview" },
+        { id: "muse-spark-1.2-contributor" },
       ],
     };
     const savedFetch = global.fetch;
@@ -199,7 +200,7 @@ describe("OcGoChatModelProvider", () => {
       );
 
       expect(global.fetch).toHaveBeenCalled();
-      expect(infos.length).toBe(4);
+      expect(infos.length).toBe(5);
 
       const kimi = infos.find((i: any) => i.id === "kimi-k3-vision");
       expect(kimi).toBeDefined();
@@ -221,6 +222,14 @@ describe("OcGoChatModelProvider", () => {
       expect(grok?.capabilities?.imageInput).toBe(true);
       expect(grok?.maxOutputTokens).toBe(65536);
       expect(grok?.maxInputTokens).toBe(500000 - 65536);
+
+      const muse = infos.find((i: any) => i.id === "muse-spark-1.2-contributor");
+      expect(muse).toBeDefined();
+      expect(muse?.capabilities?.imageInput).toBe(true);
+      expect(muse?.capabilities?.toolCalling).toBe(true);
+      expect(muse?.maxOutputTokens).toBe(131072);
+      expect(muse?.maxInputTokens).toBe(1048576 - 65536);
+      expect(muse?.tooltip).toContain("Responses format");
     } finally {
       global.fetch = savedFetch;
     }

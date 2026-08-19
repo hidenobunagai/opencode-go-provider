@@ -41,6 +41,7 @@ At runtime the extension fetches the current model list from the OpenCode Go API
 - Qwen3.5 Plus, Qwen3.6 Plus, Qwen3.7 Plus, **Qwen3.7 Max**, **Qwen3.8 Max**
 - **Grok 4.5**
 - **GPT 5.6 Luna**
+- **Muse Spark 1.2 Contributor**
 - **Hy3**, HY3 Preview
 
 ## Usage

@@ -406,6 +406,17 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     apiFormat: "responses",
     supportsThinking: true,
   },
+  {
+    id: "muse-spark-1.2-contributor",
+    name: "Muse Spark 1.2 Contributor",
+    displayName: "Muse Spark 1.2 Contributor",
+    contextWindow: 1048576,
+    maxOutput: 131072,
+    supportsTools: true,
+    supportsVision: true,
+    apiFormat: "responses",
+    supportsThinking: true,
+  },
 ];
 
 export function inferModelInfo(id: string): OcGoModelInfo {
@@ -423,6 +434,7 @@ export function inferModelInfo(id: string): OcGoModelInfo {
   const isHy3 = id === "hy3" || id.startsWith("hy3-");
   const isGrok = id.startsWith("grok-");
   const isGpt = id.startsWith("gpt-5.6");
+  const isMuse = id.startsWith("muse-");
 
   let contextWindow = 262144;
   let maxOutput = 65536;
@@ -484,6 +496,12 @@ export function inferModelInfo(id: string): OcGoModelInfo {
     supportsThinking = true;
     contextWindow = 400000;
     maxOutput = 128000;
+  } else if (isMuse) {
+    apiFormat = "responses";
+    supportsVision = true;
+    supportsThinking = true;
+    contextWindow = 1048576;
+    maxOutput = 131072;
   }
 
   const displayName = id

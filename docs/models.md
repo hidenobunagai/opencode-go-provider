@@ -79,6 +79,14 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 
 > **Note**: GPT 5.6 Luna uses the **OpenAI Responses API** (`apiFormat: "responses"`) served from the `/responses` endpoint. Messages are converted to Responses input items (`message` / `function_call` / `function_call_output`), tool calls use `function_call` items, and reasoning is streamed via `response.reasoning_summary_text.delta` / `response.reasoning_text.delta`. `max_output_tokens` is used instead of `max_tokens` / `max_completion_tokens`.
 
+### Muse Series (Meta)
+
+| Model | Context | Max Output | Vision | Tools | Thinking | API |
+|-------|---------|------------|--------|-------|----------|-----|
+| Muse Spark 1.2 Contributor | 1,048,576 | 131,072 | ✓ | ✓ | ✓ | Responses |
+
+> **Note**: Muse Spark 1.2 Contributor uses the **OpenAI Responses API** (`apiFormat: "responses"`) served from the `/responses` endpoint, same as GPT 5.6 Luna. It has a 1M context window — the largest in the lineup — with text and image input. The Contributor tier offers heavily discounted token pricing in exchange for permission to use prompts/completions to train future Meta models.
+
 ### HY3 Preview
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
@@ -95,7 +103,7 @@ The extension applies several model-behavior workarounds while streaming. This m
 | Workaround | Applies to | Where |
 |------------|-----------|-------|
 | `reasoning_content` field added to assistant history, and parsed from streaming deltas | Kimi (except K2.5), DeepSeek V4+ (`REASONING_CONTENT_WORKAROUND_MODELS`) | `constants.ts`, `openai-conversion.ts` |
-| Responses API (`/responses`) instead of OpenAI chat.completions | GPT 5.6 Luna (`apiFormat: "responses"`) | `responses-conversion.ts`, `streaming/responses.ts` |
+| Responses API (`/responses`) instead of OpenAI chat.completions | GPT 5.6 Luna, Muse Spark 1.2 Contributor (`apiFormat: "responses"`) | `responses-conversion.ts`, `streaming/responses.ts` |
 | `fixedTemperature` / `fixedTopP` sent on every request | Kimi (temp 1), Qwen (0.55 / top_p 1), MiniMax M2 (1 / 0.95), Kimi K2.5 (top_p 0.95) | `types.ts` |
 | Anthropic Messages API instead of OpenAI format | MiniMax (`apiFormat: "anthropic"`) | `anthropic-conversion.ts`, `streaming/anthropic.ts` |
 | System prompt sanitization ("Claude" → "GitHub Copilot") and provider identity guidance | DeepSeek | `guidance.ts` |
@@ -121,7 +129,7 @@ Models with `supportsThinking: true` show a **Thinking Effort** dropdown in the 
 - `minimal` — Minimal reasoning
 - `none` — No reasoning
 
-All models in the current lineup support thinking except MiniMax models and Grok 4.5. For Responses-API models (GPT 5.6 Luna) the effort is sent as `reasoning.effort` (with `max` mapped to the Responses-API `high` level, since `xhigh` is not supported).
+All models in the current lineup support thinking except MiniMax models and Grok 4.5. For Responses-API models (GPT 5.6 Luna, Muse Spark 1.2 Contributor) the effort is sent as `reasoning.effort` (with `max` mapped to the Responses-API `high` level, since `xhigh` is not supported).
 
 ### Vision
 
@@ -157,7 +165,7 @@ The extension mirrors the OpenCode CLI's per-model sampling defaults so model ou
 | Qwen3.5/3.6/3.7/3.8 Plus/Max | 0.55 | 1 |
 | MiniMax M2.5, M2.7 | 1 | 0.95 |
 | Kimi K2.5, K2.6, K2.7 Code, K3 | 1 | K2.5: 0.95, others: unset |
-| GLM-5.x, DeepSeek V4, MiMo, Grok, MiniMax M3, Hy3, GPT 5.6 Luna | unset (provider default) | unset |
+| GLM-5.x, DeepSeek V4, MiMo, Grok, MiniMax M3, Hy3, GPT 5.6 Luna, Muse Spark 1.2 Contributor | unset (provider default) | unset |
 
 When a model has no fixed values and the user has not set a temperature in the model options, the request omits `temperature` entirely so the server-side default applies — same as the OpenCode CLI. Requests always use `max_tokens` (the zen/go proxy ignores `max_completion_tokens`); thinking models enforce a 16K output-budget floor.
 

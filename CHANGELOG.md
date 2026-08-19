@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.67] - 2026-08-15
+
+### Added
+
+- **Added support for Muse Spark 1.2 Contributor** (`muse-spark-1.2-contributor`). Registered in the fallback model list (1M-token context window, 131,072 max output, vision, tools, and thinking support, **Responses API format** — served from the `/responses` endpoint like GPT 5.6 Luna). Dynamic inference now recognizes the `muse-` prefix with the same Responses-API profile, and the model is included in `THINKING_MODELS` for the minimum output-budget floor.
+
 ## [0.1.66] - 2026-08-15
 
 ### Added
