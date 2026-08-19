@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.68] - 2026-08-15
+
+### Fixed
+
+- **Fixed chat failures on Muse Spark 1.2 Contributor ("tools[N] did not match any supported type").** Some VS Code tools carry no `inputSchema`, so the Responses API request sent `function` tools without a `parameters` field. OpenAI's backend accepts that, but the strict Meta backend behind Muse Spark rejects the tool. `convertToolsToResponses` now defaults a tool's `parameters` to an empty object schema (`{ "type": "object", "properties": {} }`) when the schema is missing. Verified end-to-end against the `/responses` endpoint (200/completed).
+
 ## [0.1.67] - 2026-08-15
 
 ### Added

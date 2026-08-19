@@ -3,7 +3,6 @@
 import * as vscode from "vscode";
 import { convertTools } from "./openai-conversion";
 import {
-  JsonObject,
   OcGoChatMessage,
   OcGoContentPart,
   OcGoResponsesContentPart,
@@ -103,7 +102,11 @@ export function convertToolsToResponses(options: vscode.ProvideLanguageModelChat
     type: "function",
     name: tool.function.name,
     description: tool.function.description,
-    parameters: tool.function.parameters as JsonObject,
+    // Some VS Code tools carry no inputSchema. OpenAI's Responses API accepts
+    // a function tool without `parameters`, but strict backends (e.g. Meta's
+    // Muse Spark via the /responses endpoint) reject it with
+    // "did not match any supported type". Default it to an empty object schema.
+    parameters: tool.function.parameters ?? { type: "object", properties: {} },
   }));
 
   let tool_choice: "auto" | "required" | { type: "function"; name: string } = "auto";

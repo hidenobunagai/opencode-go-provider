@@ -148,6 +148,22 @@ describe("convertToolsToResponses", () => {
     expect(tool_choice).toBe("required");
   });
 
+  it("defaults parameters for tools without an inputSchema (strict backends)", () => {
+    const { tools } = convertToolsToResponses({
+      tools: [{ name: "no_schema_tool", description: "No schema" }],
+    } as any);
+    // Meta's Muse Spark /responses backend rejects function tools with no
+    // `parameters` ("did not match any supported type"), so it must be defaulted.
+    expect(tools).toEqual([
+      {
+        type: "function",
+        name: "no_schema_tool",
+        description: expect.any(String),
+        parameters: { type: "object", properties: {} },
+      },
+    ]);
+  });
+
   it("returns empty config when no tools are provided", () => {
     const { tools, tool_choice } = convertToolsToResponses({ tools: [] } as any);
     expect(tools).toBeUndefined();
