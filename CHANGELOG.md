@@ -1,5 +1,15 @@
 # Change Log
 
+## [0.1.69] - 2026-08-21
+
+### Fixed
+
+- **Refined Kimi K3 reasoning_content workaround registration and MiMo series vision inference logic.** `kimi-k3` is now explicitly registered in `REASONING_CONTENT_WORKAROUND_STATIC_SET`, and dynamic inference for MiMo models (`inferModelInfo`) now recognizes all modern MiMo models (including `mimo-v2.5-pro`) as vision-capable, keeping only `mimo-v2-pro` text-only.
+
+### Added
+
+- Added full model catalogue validation and capability inference tests covering all 27 OpenCode Go models in the test suite.
+
 ## [0.1.68] - 2026-08-15
 
 ### Fixed
