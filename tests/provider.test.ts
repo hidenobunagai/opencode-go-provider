@@ -1,7 +1,9 @@
 import * as vscode from "vscode";
 import { fetchWithRetry, streamChatCompletion } from "../src/api";
+import { REASONING_CONTENT_WORKAROUND_MODELS, THINKING_MODELS } from "../src/constants";
 import * as outputChannel from "../src/output-channel";
 import { OcGoChatModelProvider } from "../src/provider";
+import { FALLBACK_MODELS, inferModelInfo } from "../src/types";
 
 jest.mock("../src/api", () => ({
   streamChatCompletion: jest.fn(),
@@ -3435,5 +3437,87 @@ describe("OcGoChatModelProvider", () => {
         }),
       ]),
     );
+  });
+
+  describe("OpenCode Go Models & Capability Inference", () => {
+    it("bundles all 27 OpenCode Go models in FALLBACK_MODELS", () => {
+      const expectedModelIds = [
+        "minimax-m3",
+        "minimax-m2.7",
+        "minimax-m2.5",
+        "kimi-k3",
+        "kimi-k2.7-code",
+        "kimi-k2.6",
+        "kimi-k2.5",
+        "glm-5.2",
+        "glm-5.3",
+        "glm-5.1",
+        "glm-5",
+        "deepseek-v4-pro",
+        "deepseek-v4-flash",
+        "qwen3.7-max",
+        "qwen3.8-max",
+        "qwen3.7-plus",
+        "qwen3.6-plus",
+        "qwen3.5-plus",
+        "mimo-v2-pro",
+        "mimo-v2-omni",
+        "mimo-v2.5-pro",
+        "mimo-v2.5",
+        "hy3",
+        "hy3-preview",
+        "gpt-5.6-luna",
+        "grok-4.5",
+        "muse-spark-1.2-contributor",
+      ];
+
+      expect(FALLBACK_MODELS).toHaveLength(expectedModelIds.length);
+      for (const id of expectedModelIds) {
+        const found = FALLBACK_MODELS.find((m) => m.id === id);
+        expect(found).toBeDefined();
+      }
+    });
+
+    it("correctly identifies reasoning_content workaround models", () => {
+      expect(REASONING_CONTENT_WORKAROUND_MODELS.has("kimi-k3")).toBe(true);
+      expect(REASONING_CONTENT_WORKAROUND_MODELS.has("kimi-k2.7-code")).toBe(true);
+      expect(REASONING_CONTENT_WORKAROUND_MODELS.has("kimi-k2.6")).toBe(true);
+      expect(REASONING_CONTENT_WORKAROUND_MODELS.has("kimi-k2.5")).toBe(false);
+      expect(REASONING_CONTENT_WORKAROUND_MODELS.has("deepseek-v4-pro")).toBe(true);
+      expect(REASONING_CONTENT_WORKAROUND_MODELS.has("deepseek-v4-flash")).toBe(true);
+      expect(REASONING_CONTENT_WORKAROUND_MODELS.has("deepseek-v5-preview")).toBe(true);
+      expect(REASONING_CONTENT_WORKAROUND_MODELS.has("glm-5.3")).toBe(false);
+    });
+
+    it("correctly identifies thinking models requiring output token floor", () => {
+      expect(THINKING_MODELS.has("gpt-5.6-luna")).toBe(true);
+      expect(THINKING_MODELS.has("muse-spark-1.2-contributor")).toBe(true);
+      expect(THINKING_MODELS.has("deepseek-v4-pro")).toBe(true);
+      expect(THINKING_MODELS.has("kimi-k3")).toBe(true);
+    });
+
+    it("correctly infers capabilities for unknown/future models via inferModelInfo", () => {
+      const futureKimi = inferModelInfo("kimi-k4-turbo");
+      expect(futureKimi.supportsVision).toBe(true);
+      expect(futureKimi.supportsThinking).toBe(true);
+      expect(futureKimi.fixedTemperature).toBe(1);
+
+      const futureQwen = inferModelInfo("qwen3.9-max");
+      expect(futureQwen.supportsVision).toBe(true);
+      expect(futureQwen.supportsThinking).toBe(true);
+      expect(futureQwen.fixedTemperature).toBe(0.55);
+      expect(futureQwen.fixedTopP).toBe(1);
+
+      const futureMimo = inferModelInfo("mimo-v2.6-pro");
+      expect(futureMimo.supportsVision).toBe(true);
+      expect(futureMimo.contextWindow).toBe(1048576);
+
+      const mimoV2Pro = inferModelInfo("mimo-v2-pro");
+      expect(mimoV2Pro.supportsVision).toBe(false);
+
+      const futureMinimax = inferModelInfo("minimax-m4");
+      expect(futureMinimax.apiFormat).toBe("anthropic");
+      expect(futureMinimax.maxOutput).toBe(131072);
+    });
   });
 });

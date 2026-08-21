@@ -479,7 +479,7 @@ export function inferModelInfo(id: string): OcGoModelInfo {
     maxOutput = 65536;
   } else if (isMimo) {
     supportsThinking = true;
-    supportsVision = !id.includes("pro");
+    supportsVision = !id.includes("v2-pro");
     contextWindow = id.includes("pro") ? 1048576 : 262144;
     maxOutput = id.includes("pro") ? 131072 : 65536;
   } else if (isHy3) {
