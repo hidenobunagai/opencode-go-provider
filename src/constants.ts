@@ -40,6 +40,7 @@ const REASONING_CONTENT_WORKAROUND_STATIC_SET = new Set([
   "kimi-k3",
   "deepseek-v4-pro",
   "deepseek-v4-flash",
+  "ox-alpha-free",
 ]);
 
 /**

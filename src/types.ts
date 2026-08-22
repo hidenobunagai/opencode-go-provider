@@ -364,6 +364,17 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsThinking: true,
   },
   {
+    id: "deepseek-v4-flash-vision-exp",
+    name: "DeepSeek V4 Flash Vision Exp",
+    displayName: "DeepSeek V4 Flash Vision Exp",
+    contextWindow: 262144,
+    maxOutput: 65536,
+    supportsTools: true,
+    supportsVision: true,
+    apiFormat: "openai",
+    supportsThinking: true,
+  },
+  {
     id: "hy3",
     name: "Hy3",
     displayName: "Hy3",
@@ -404,6 +415,17 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsTools: true,
     supportsVision: true,
     apiFormat: "responses",
+    supportsThinking: true,
+  },
+  {
+    id: "ox-alpha-free",
+    name: "Ox Alpha Free",
+    displayName: "Ox Alpha Free",
+    contextWindow: 262144,
+    maxOutput: 65536,
+    supportsTools: true,
+    supportsVision: true,
+    apiFormat: "openai",
     supportsThinking: true,
   },
   {
@@ -468,6 +490,7 @@ export function inferModelInfo(id: string): OcGoModelInfo {
     maxOutput = 131072;
   } else if (isDeepseek) {
     supportsThinking = true;
+    supportsVision = id.includes("vision");
     contextWindow = 262144;
     maxOutput = 65536;
   } else if (isQwen) {

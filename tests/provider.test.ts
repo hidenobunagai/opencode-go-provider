@@ -3440,7 +3440,7 @@ describe("OcGoChatModelProvider", () => {
   });
 
   describe("OpenCode Go Models & Capability Inference", () => {
-    it("bundles all 27 OpenCode Go models in FALLBACK_MODELS", () => {
+    it("bundles all 29 OpenCode Go models in FALLBACK_MODELS", () => {
       const expectedModelIds = [
         "minimax-m3",
         "minimax-m2.7",
@@ -3455,6 +3455,7 @@ describe("OcGoChatModelProvider", () => {
         "glm-5",
         "deepseek-v4-pro",
         "deepseek-v4-flash",
+        "deepseek-v4-flash-vision-exp",
         "qwen3.7-max",
         "qwen3.8-max",
         "qwen3.7-plus",
@@ -3469,6 +3470,7 @@ describe("OcGoChatModelProvider", () => {
         "gpt-5.6-luna",
         "grok-4.5",
         "muse-spark-1.2-contributor",
+        "ox-alpha-free",
       ];
 
       expect(FALLBACK_MODELS).toHaveLength(expectedModelIds.length);
@@ -3485,6 +3487,8 @@ describe("OcGoChatModelProvider", () => {
       expect(REASONING_CONTENT_WORKAROUND_MODELS.has("kimi-k2.5")).toBe(false);
       expect(REASONING_CONTENT_WORKAROUND_MODELS.has("deepseek-v4-pro")).toBe(true);
       expect(REASONING_CONTENT_WORKAROUND_MODELS.has("deepseek-v4-flash")).toBe(true);
+      expect(REASONING_CONTENT_WORKAROUND_MODELS.has("deepseek-v4-flash-vision-exp")).toBe(true);
+      expect(REASONING_CONTENT_WORKAROUND_MODELS.has("ox-alpha-free")).toBe(true);
       expect(REASONING_CONTENT_WORKAROUND_MODELS.has("deepseek-v5-preview")).toBe(true);
       expect(REASONING_CONTENT_WORKAROUND_MODELS.has("glm-5.3")).toBe(false);
     });

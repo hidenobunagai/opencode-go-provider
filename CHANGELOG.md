@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.70] - 2026-08-22
+
+### Added
+
+- **Added support for DeepSeek V4 Flash Vision Exp** (`deepseek-v4-flash-vision-exp`) and **Ox Alpha Free** (`ox-alpha-free`), both verified live against `/chat/completions`. Vision Exp mirrors DeepSeek V4 Flash (262K context, 65K output) plus vision; Ox Alpha Free is registered with tools, vision, thinking support (reasoning effort honored), and the `reasoning_content` workaround. Dynamic inference now recognizes any `deepseek-*vision*` id as vision-capable.
+
 ## [0.1.69] - 2026-08-21
 
 ### Fixed
@@ -111,7 +117,7 @@
 
 ### Fixed
 
-- **Fixed missing retries and silent failures for truncated/incomplete text-embedded tool calls.** Previously, `hasVisibleOutput` mistakenly considered buffered text that had not yet been reported to the user as "visible output". This prevented the extension from retrying when a response got cut off in the middle of outputting a text-embedded tool call (e.g. XML-style tool calls used by Cline/Roo Code). Furthermore, `hasIncompleteToolCall` did not scan the scanner's internal buffer for unclosed tags/delimiters. We now correctly track only *actually emitted* user-visible output and inspect the scanner buffer, ensuring that any cut-off or incomplete tool calls are reliably retried with a larger budget.
+- **Fixed missing retries and silent failures for truncated/incomplete text-embedded tool calls.** Previously, `hasVisibleOutput` mistakenly considered buffered text that had not yet been reported to the user as "visible output". This prevented the extension from retrying when a response got cut off in the middle of outputting a text-embedded tool call (e.g. XML-style tool calls used by Cline/Roo Code). Furthermore, `hasIncompleteToolCall` did not scan the scanner's internal buffer for unclosed tags/delimiters. We now correctly track only _actually emitted_ user-visible output and inspect the scanner buffer, ensuring that any cut-off or incomplete tool calls are reliably retried with a larger budget.
 
 ## [0.1.57] - 2026-07-14
 
