@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.1.71] - 2026-08-24
+
+### Changed
+
+- **Per-model Thinking Effort (reasoningEffort) synced with Pi / OpenCode Go.** The model picker now shows only the levels each model actually supports (from `pi-ai`'s `thinkingLevelMap`), e.g. `muse-spark-1.2-contributor: minimal,low,medium,high,xhigh` (no `max`), `longcat-2.0`/`grok-4.5: low,medium,high`, `deepseek-v4-flash: low,high,max`, `deepseek-v4-pro: high,max`, `gpt-5.6-luna: low,medium,high,xhigh,max`; `kimi-k2.6`/`k2.7-code` and MiniMax no longer show a thinking UI. Invalid stale selections are dropped or aliased (`max<->xhigh`), and retry step-down now respects the per-model list.
+- **Full Pi context-window sync.** `FALLBACK_MODELS` and `inferModelInfo` now match `pi-ai/dist/providers/data/opencode-go.json` exactly: `deepseek 1M/384k`, `glm-5.1 202752/32768`, `glm-5.2/5.3 1M/131072`, `mimo-v2.5 1M/128k`, `hy3 256k/64k`, `kimi-k3 1048576/131072`, `qwen3.8-max 131072`, `gpt-5.6-luna 1.05M/128k`, `grok 500k/500k` (now Responses API, thinking `low,medium,high`), `ox 1M/131072`, `longcat-2.0`, `minimax-m2.7 204800`/`m3 1M` (vision), etc. `docs/models.md` tables and the Thinking capability matrix updated accordingly.
+
 ## [0.1.70] - 2026-08-22
 
 ### Added
