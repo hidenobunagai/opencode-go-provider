@@ -80,7 +80,17 @@ export interface OcGoChatCompletionResponse {
 export type OcGoApiFormat = "openai" | "anthropic" | "responses";
 
 /** Reasoning effort level for models that support it (e.g. DeepSeek) */
-export type ReasoningEffort = "xhigh" | "high" | "medium" | "low" | "minimal" | "none";
+export type ReasoningEffort = "xhigh" | "high" | "medium" | "low" | "minimal" | "max";
+
+/** Ordered list for UI and fallback logic */
+export const REASONING_EFFORT_ORDER: readonly ReasoningEffort[] = [
+  "minimal",
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+  "max",
+] as const;
 
 export interface OcGoModelInfo {
   id: string;
@@ -102,6 +112,8 @@ export interface OcGoModelInfo {
   fixedTopP?: number;
   /** If true, a Thinking Effort dropdown is shown in the model picker */
   supportsThinking?: boolean;
+  /** Per-model allowed reasoning efforts (excluding "default"). If undefined and supportsThinking, generic fallback is used. */
+  supportedReasoningEfforts?: ReasoningEffort[];
 }
 
 export const FALLBACK_MODELS: OcGoModelInfo[] = [
@@ -115,6 +127,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: false,
     apiFormat: "openai",
     supportsThinking: true,
+    supportedReasoningEfforts: ["high", "max"],
   },
   {
     id: "glm-5.1",
@@ -126,6 +139,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: false,
     apiFormat: "openai",
     supportsThinking: true,
+    supportedReasoningEfforts: ["high", "max"],
   },
   {
     id: "glm-5.2",
@@ -137,6 +151,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: false,
     apiFormat: "openai",
     supportsThinking: true,
+    supportedReasoningEfforts: ["high", "max"],
   },
   {
     id: "glm-5.3",
@@ -148,6 +163,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: false,
     apiFormat: "openai",
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "high", "max"],
   },
   {
     id: "kimi-k2.5",
@@ -161,6 +177,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     fixedTemperature: 1,
     fixedTopP: 0.95,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "kimi-k2.6",
@@ -172,7 +189,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: true,
     apiFormat: "openai",
     fixedTemperature: 1,
-    supportsThinking: true,
+    supportsThinking: false,
   },
   {
     id: "kimi-k2.7-code",
@@ -184,7 +201,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: true,
     apiFormat: "openai",
     fixedTemperature: 1,
-    supportsThinking: true,
+    supportsThinking: false,
   },
   {
     id: "kimi-k3",
@@ -197,6 +214,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     apiFormat: "openai",
     fixedTemperature: 1,
     supportsThinking: true,
+    supportedReasoningEfforts: ["max"],
   },
   {
     id: "mimo-v2-pro",
@@ -208,6 +226,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: false,
     apiFormat: "openai",
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "mimo-v2-omni",
@@ -219,6 +238,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: true,
     apiFormat: "openai",
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "mimo-v2.5-pro",
@@ -230,6 +250,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: true,
     apiFormat: "openai",
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "mimo-v2.5",
@@ -241,6 +262,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: true,
     apiFormat: "openai",
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "minimax-m2.5",
@@ -288,6 +310,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     fixedTemperature: 0.55,
     fixedTopP: 1,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "qwen3.6-plus",
@@ -301,6 +324,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     fixedTemperature: 0.55,
     fixedTopP: 1,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "qwen3.7-plus",
@@ -314,6 +338,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     fixedTemperature: 0.55,
     fixedTopP: 1,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "qwen3.7-max",
@@ -327,6 +352,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     fixedTemperature: 0.55,
     fixedTopP: 1,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "qwen3.8-max",
@@ -340,6 +366,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     fixedTemperature: 0.55,
     fixedTopP: 1,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "deepseek-v4-pro",
@@ -351,6 +378,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: false,
     apiFormat: "openai",
     supportsThinking: true,
+    supportedReasoningEfforts: ["high", "max"],
   },
   {
     id: "deepseek-v4-flash",
@@ -362,6 +390,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: false,
     apiFormat: "openai",
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "high", "max"],
   },
   {
     id: "deepseek-v4-flash-vision-exp",
@@ -373,6 +402,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: true,
     apiFormat: "openai",
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "high", "max"],
   },
   {
     id: "hy3",
@@ -384,6 +414,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: false,
     apiFormat: "openai",
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "high"],
   },
   {
     id: "hy3-preview",
@@ -395,6 +426,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: false,
     apiFormat: "openai",
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "high"],
   },
   {
     id: "grok-4.5",
@@ -404,7 +436,9 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: true,
-    apiFormat: "openai",
+    apiFormat: "responses",
+    supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "gpt-5.6-luna",
@@ -416,6 +450,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: true,
     apiFormat: "responses",
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high", "xhigh", "max"],
   },
   {
     id: "ox-alpha-free",
@@ -427,6 +462,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: true,
     apiFormat: "openai",
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "high", "max"],
   },
   {
     id: "muse-spark-1.2-contributor",
@@ -438,6 +474,19 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: true,
     apiFormat: "responses",
     supportsThinking: true,
+    supportedReasoningEfforts: ["minimal", "low", "medium", "high", "xhigh"],
+  },
+  {
+    id: "longcat-2.0",
+    name: "LongCat 2.0",
+    displayName: "LongCat 2.0",
+    contextWindow: 1000000,
+    maxOutput: 131072,
+    supportsTools: true,
+    supportsVision: false,
+    apiFormat: "openai",
+    supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
 ];
 
@@ -457,6 +506,7 @@ export function inferModelInfo(id: string): OcGoModelInfo {
   const isGrok = id.startsWith("grok-");
   const isGpt = id.startsWith("gpt-5.6");
   const isMuse = id.startsWith("muse-");
+  const isLongcat = id.startsWith("longcat-");
 
   let contextWindow = 262144;
   let maxOutput = 65536;
@@ -466,64 +516,105 @@ export function inferModelInfo(id: string): OcGoModelInfo {
   let fixedTemperature: number | undefined = undefined;
   let fixedTopP: number | undefined = undefined;
   let supportsThinking = false;
+  let supportedReasoningEfforts: ReasoningEffort[] | undefined = undefined;
 
   if (isMinimax) {
     apiFormat = "anthropic";
-    contextWindow = 196608;
+    contextWindow = id === "minimax-m3" ? 1000000 : 196608;
     maxOutput = 131072;
     if (id.includes("m2")) {
       fixedTemperature = 1;
       fixedTopP = 0.95;
     }
+    if (id === "minimax-m3") {
+      supportsVision = true;
+    }
+    // MiniMax: no reasoning ui (anthropic adaptive thinking is internal)
   } else if (isKimi) {
     fixedTemperature = 1;
     if (id.includes("k2.5")) {
       fixedTopP = 0.95;
+      supportsVision = true;
+      supportsThinking = true;
+      supportedReasoningEfforts = ["low", "medium", "high"];
+    } else if (id.includes("k2.6") || id.includes("k2.7")) {
+      supportsVision = true;
+      supportsThinking = false;
+    } else if (id.includes("k3")) {
+      supportsVision = true;
+      supportsThinking = true;
+      supportedReasoningEfforts = ["max"];
+    } else {
+      supportsVision = true;
+      supportsThinking = true;
+      supportedReasoningEfforts = ["low", "medium", "high"];
     }
-    supportsVision = true;
-    supportsThinking = true;
     contextWindow = id.includes("k3") ? 1000000 : 262144;
     maxOutput = id.includes("k2.5") ? 65536 : 262144;
   } else if (isGlm) {
     supportsThinking = true;
-    contextWindow = 202752;
-    maxOutput = 131072;
+    contextWindow = id.includes("5.3") ? 1000000 : id.includes("5.2") ? 1000000 : 202752;
+    maxOutput = id.includes("5.1") ? 32768 : 131072;
+    if (id.includes("5.3")) {
+      supportedReasoningEfforts = ["low", "high", "max"];
+    } else if (id.includes("5.2") || id === "glm-5" || id.includes("5.1")) {
+      supportedReasoningEfforts = ["high", "max"];
+    }
   } else if (isDeepseek) {
     supportsThinking = true;
     supportsVision = id.includes("vision");
-    contextWindow = 262144;
-    maxOutput = 65536;
+    contextWindow = 1000000;
+    maxOutput = 384000;
+    if (id.includes("v4-pro")) {
+      supportedReasoningEfforts = ["high", "max"];
+    } else {
+      supportedReasoningEfforts = ["low", "high", "max"];
+    }
   } else if (isQwen) {
     fixedTemperature = 0.55;
     fixedTopP = 1;
     supportsVision = true;
     supportsThinking = true;
+    supportedReasoningEfforts = ["low", "medium", "high"];
     contextWindow = 1000000;
     maxOutput = 65536;
   } else if (isMimo) {
     supportsThinking = true;
     supportsVision = !id.includes("v2-pro");
-    contextWindow = id.includes("pro") ? 1048576 : 262144;
-    maxOutput = id.includes("pro") ? 131072 : 65536;
+    contextWindow = id.includes("pro") ? 1048576 : 1000000;
+    maxOutput = id.includes("pro") ? 128000 : 128000;
+    supportedReasoningEfforts = ["low", "medium", "high"];
   } else if (isHy3) {
     supportsThinking = true;
-    contextWindow = 262144;
-    maxOutput = 65536;
+    supportedReasoningEfforts = ["low", "high"];
+    contextWindow = 256000;
+    maxOutput = 64000;
   } else if (isGrok) {
+    // grok-4.5 uses Responses API in Pi (openai-responses)
+    apiFormat = "responses";
     supportsVision = true;
+    supportsThinking = true;
+    supportedReasoningEfforts = ["low", "medium", "high"];
     contextWindow = 500000;
     maxOutput = 65536;
   } else if (isGpt) {
     apiFormat = "responses";
     supportsVision = true;
     supportsThinking = true;
-    contextWindow = 400000;
+    supportedReasoningEfforts = ["low", "medium", "high", "xhigh", "max"];
+    contextWindow = 1050000;
     maxOutput = 128000;
   } else if (isMuse) {
     apiFormat = "responses";
     supportsVision = true;
     supportsThinking = true;
+    supportedReasoningEfforts = ["minimal", "low", "medium", "high", "xhigh"];
     contextWindow = 1048576;
+    maxOutput = 131072;
+  } else if (isLongcat) {
+    supportsThinking = true;
+    supportedReasoningEfforts = ["low", "medium", "high"];
+    contextWindow = 1000000;
     maxOutput = 131072;
   }
 
@@ -544,6 +635,7 @@ export function inferModelInfo(id: string): OcGoModelInfo {
     fixedTemperature,
     fixedTopP,
     supportsThinking,
+    ...(supportedReasoningEfforts ? { supportedReasoningEfforts } : {}),
   };
 }
 

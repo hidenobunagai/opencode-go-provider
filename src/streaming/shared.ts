@@ -25,7 +25,7 @@ export interface NativeToolCall {
   args: string;
 }
 
-/** Map "max" to the target API's highest effort level, otherwise pass through. */
+/** Legacy helper: map "max" alias to the target API's highest effort level. Kept for stale configs; new per-model UI sends correct values directly. */
 export function normalizeReasoningEffort(
   reasoningEffort: string | undefined,
   maxEquivalent: string,
@@ -34,11 +34,17 @@ export function normalizeReasoningEffort(
 }
 
 /**
- * Step-down schedule used on retries.  "xhigh" is only sent by the OpenAI
- * chat.completions path; the Responses path never receives it because "max"
- * maps to "high" there and "xhigh" is not a valid user-facing level.
+ * Step-down schedule used on retries. Includes all levels; per-model filtering
+ * is applied in the streaming handlers so unsupported levels are skipped.
  */
-export const REASONING_EFFORT_FALLBACK_ORDER = ["xhigh", "high", "medium", "low"] as const;
+export const REASONING_EFFORT_FALLBACK_ORDER = [
+  "max",
+  "xhigh",
+  "high",
+  "medium",
+  "low",
+  "minimal",
+] as const;
 
 /** Step reasoning effort down on retries so a thinking model cannot burn the whole budget again. */
 export function getRetryReasoningEffort(

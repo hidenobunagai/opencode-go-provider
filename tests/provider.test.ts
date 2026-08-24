@@ -212,7 +212,7 @@ describe("OcGoChatModelProvider", () => {
 
       const deepseek = infos.find((i: any) => i.id === "deepseek-v5-pro");
       expect(deepseek).toBeDefined();
-      expect(deepseek?.maxOutputTokens).toBe(65536);
+      expect(deepseek?.maxOutputTokens).toBe(384000);
 
       const minimax = infos.find((i: any) => i.id === "minimax-m4");
       expect(minimax).toBeDefined();
@@ -1115,7 +1115,7 @@ describe("OcGoChatModelProvider", () => {
     );
   });
 
-  it("maps DeepSeek max thinking variants to xhigh reasoning_effort", async () => {
+  it("maps DeepSeek max thinking variants to max reasoning_effort (per-model, no xhigh alias)", async () => {
     (secrets.get as jest.Mock).mockResolvedValue("test-key");
 
     const mockStream = async function* () {
@@ -1141,7 +1141,7 @@ describe("OcGoChatModelProvider", () => {
     expect(requestBody).toEqual(
       expect.objectContaining({
         model: "deepseek-v4-pro",
-        reasoning_effort: "xhigh",
+        reasoning_effort: "max",
       }),
     );
   });
@@ -1179,7 +1179,7 @@ describe("OcGoChatModelProvider", () => {
     expect(streamChatCompletion).toHaveBeenCalledTimes(3);
     expect(
       (streamChatCompletion as jest.Mock).mock.calls.map((call) => call[1]?.reasoning_effort),
-    ).toEqual(["xhigh", "high", "medium"]);
+    ).toEqual(["max", "high", "low"]);
 
     const emittedText = progress.report.mock.calls
       .map((call: any[]) => call[0]?.value)
@@ -1251,7 +1251,7 @@ describe("OcGoChatModelProvider", () => {
             attempt: 1,
             requestBody: expect.objectContaining({
               model: "deepseek-v4-flash",
-              reasoning_effort: "xhigh",
+              reasoning_effort: "max",
             }),
           }),
           expect.objectContaining({
@@ -1327,7 +1327,7 @@ describe("OcGoChatModelProvider", () => {
     expect(streamChatCompletion).toHaveBeenCalledTimes(3);
     expect(
       (streamChatCompletion as jest.Mock).mock.calls.map((call) => call[1]?.reasoning_effort),
-    ).toEqual(["xhigh", "high", "medium"]);
+    ).toEqual(["max", "high", "low"]);
 
     const emittedText = progress.report.mock.calls
       .map((call: any[]) => call[0]?.value)
@@ -3471,6 +3471,7 @@ describe("OcGoChatModelProvider", () => {
         "grok-4.5",
         "muse-spark-1.2-contributor",
         "ox-alpha-free",
+        "longcat-2.0",
       ];
 
       expect(FALLBACK_MODELS).toHaveLength(expectedModelIds.length);

@@ -17,7 +17,6 @@ import { OcGoChatRequest } from "../types";
 import {
   emitPendingToolCalls,
   getRetryReasoningEffort,
-  normalizeReasoningEffort,
   pushAttemptSnapshot,
   REASONING_EFFORT_FALLBACK_ORDER,
   reportTruncated,
@@ -62,8 +61,14 @@ export async function processOpenAIStream(
   );
 
   const toolConfig = convertTools(options);
-  const normalizedEffort = normalizeReasoningEffort(reasoningEffort, "xhigh");
+  // reasoningEffort is already validated per-model in provider.ts; keep as-is.
+  // Legacy "max" alias was handled there (max<->xhigh). No generic mapping here.
+  const normalizedEffort = reasoningEffort;
   const isThinkingModel = REASONING_CONTENT_WORKAROUND_MODELS.has(model.id);
+  const supportedEfforts = model.modelInfo?.supportedReasoningEfforts as string[] | undefined;
+  const fallbackOrder = supportedEfforts?.length
+    ? REASONING_EFFORT_FALLBACK_ORDER.filter((e) => supportedEfforts.includes(e))
+    : REASONING_EFFORT_FALLBACK_ORDER.filter((e) => ["xhigh", "high", "medium", "low"].includes(e));
 
   // Reasoning models may consume the entire output budget on internal thinking
   // before producing any visible text/tool calls.  Allow multiple retries with
@@ -97,7 +102,7 @@ export async function processOpenAIStream(
     // keeps its step-down schedule (xhigh → high → medium → low).
     const attemptReasoningEffort =
       normalizedEffort !== undefined
-        ? getRetryReasoningEffort(normalizedEffort, attempt, REASONING_EFFORT_FALLBACK_ORDER)
+        ? getRetryReasoningEffort(normalizedEffort, attempt, fallbackOrder)
         : attempt > 0 && isThinkingModel
           ? "low"
           : undefined;

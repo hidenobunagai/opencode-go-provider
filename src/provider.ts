@@ -25,7 +25,13 @@ import { handleAnthropicRequest } from "./streaming/anthropic";
 import { processOpenAIStream, type OpenAIModelInfo } from "./streaming/openai";
 import { handleResponsesRequest } from "./streaming/responses";
 import { estimateMessagesTokens, estimateTokens } from "./tokenizer";
-import { FALLBACK_MODELS, OcGoModelInfo, inferModelInfo } from "./types";
+import {
+  FALLBACK_MODELS,
+  OcGoModelInfo,
+  REASONING_EFFORT_ORDER,
+  ReasoningEffort,
+  inferModelInfo,
+} from "./types";
 
 export class OcGoChatModelProvider implements LanguageModelChatProvider {
   private readonly _onDidChangeLanguageModelChatInformation = new EventEmitter<void>();
@@ -318,27 +324,51 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
           imageInput: info.supportsVision,
         },
         ...(info.supportsThinking
-          ? {
-              configurationSchema: {
-                properties: {
-                  reasoningEffort: {
-                    type: "string",
-                    title: "Thinking Effort",
-                    enum: ["default", "max", "high", "medium", "low"],
-                    enumItemLabels: ["Default", "Max", "High", "Medium", "Low"],
-                    enumDescriptions: [
-                      "Let the model decide the reasoning effort",
-                      "Maximum reasoning effort (xhigh)",
-                      "High reasoning effort",
-                      "Medium reasoning effort",
-                      "Low reasoning effort",
-                    ],
-                    default: "default",
-                    group: "navigation",
+          ? (() => {
+              const supported = info.supportedReasoningEfforts;
+              const order = REASONING_EFFORT_ORDER;
+              const efforts: ReasoningEffort[] =
+                supported && supported.length > 0
+                  ? [...supported].sort((a, b) => order.indexOf(a) - order.indexOf(b))
+                  : (["low", "medium", "high", "max"] as ReasoningEffort[]);
+              const labels: Record<ReasoningEffort, string> = {
+                minimal: "Minimal",
+                low: "Low",
+                medium: "Medium",
+                high: "High",
+                xhigh: "XHigh",
+                max: "Max",
+              };
+              const descriptions: Record<ReasoningEffort, string> = {
+                minimal: "Minimal reasoning effort",
+                low: "Low reasoning effort",
+                medium: "Medium reasoning effort",
+                high: "High reasoning effort",
+                xhigh: "Maximum reasoning effort (xhigh)",
+                max: "Maximum reasoning effort",
+              };
+              const enumValues = ["default", ...efforts];
+              const enumItemLabels = ["Default", ...efforts.map((e) => labels[e])];
+              const enumDescriptions = [
+                "Let the model decide the reasoning effort",
+                ...efforts.map((e) => descriptions[e]),
+              ];
+              return {
+                configurationSchema: {
+                  properties: {
+                    reasoningEffort: {
+                      type: "string",
+                      title: "Thinking Effort",
+                      enum: enumValues,
+                      enumItemLabels,
+                      enumDescriptions,
+                      default: "default",
+                      group: "navigation",
+                    },
                   },
                 },
-              },
-            }
+              };
+            })()
           : {}),
       };
     });
@@ -444,7 +474,32 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         typeof modelConfig?.reasoningEffort === "string"
           ? (modelConfig.reasoningEffort as string)
           : undefined;
-      const reasoningEffort = rawReasoningEffort === "default" ? undefined : rawReasoningEffort;
+      let reasoningEffort: string | undefined =
+        rawReasoningEffort === "default" ? undefined : rawReasoningEffort;
+      // Validate per-model supported efforts; drop invalid selections (e.g. stale "max" for muse)
+      // and handle legacy alias max<->xhigh.
+      if (reasoningEffort && effectiveModelInfo?.supportedReasoningEfforts) {
+        const supported = effectiveModelInfo.supportedReasoningEfforts as string[];
+        if (!supported.includes(reasoningEffort)) {
+          if (reasoningEffort === "max" && supported.includes("xhigh")) {
+            reasoningEffort = "xhigh";
+          } else if (reasoningEffort === "xhigh" && supported.includes("max")) {
+            reasoningEffort = "max";
+          } else {
+            debugLog(
+              "provideLanguageModelChatResponse",
+              `Dropping unsupported reasoningEffort "${reasoningEffort}" for ${effectiveModelId} (supported: ${supported.join(",")})`,
+            );
+            reasoningEffort = undefined;
+          }
+        }
+      } else if (reasoningEffort && effectiveModelInfo && !effectiveModelInfo.supportsThinking) {
+        debugLog(
+          "provideLanguageModelChatResponse",
+          `Dropping reasoningEffort "${reasoningEffort}" for non-thinking model ${effectiveModelId}`,
+        );
+        reasoningEffort = undefined;
+      }
       const temperatureVal =
         typeof variantModelInfo?.fixedTemperature === "number"
           ? variantModelInfo.fixedTemperature

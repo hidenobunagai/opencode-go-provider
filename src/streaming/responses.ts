@@ -15,7 +15,6 @@ import { readSseLines } from "./sse";
 import {
   emitPendingToolCalls,
   getRetryReasoningEffort,
-  normalizeReasoningEffort,
   pushAttemptSnapshot,
   REASONING_EFFORT_FALLBACK_ORDER,
   reportTruncated,
@@ -70,7 +69,12 @@ export async function handleResponsesRequest(params: ResponsesRequestParams): Pr
     fallbackModels,
   );
   const { input: initialInput, instructions } = convertMessagesToResponses(convertedMessages);
-  const normalizedEffort = normalizeReasoningEffort(reasoningEffort, "high");
+  // reasoningEffort is already validated per-model in provider.ts; keep as-is.
+  const normalizedEffort = reasoningEffort;
+  const supportedEfforts = modelInfo?.supportedReasoningEfforts as string[] | undefined;
+  const fallbackOrder = supportedEfforts?.length
+    ? REASONING_EFFORT_FALLBACK_ORDER.filter((e) => supportedEfforts.includes(e))
+    : REASONING_EFFORT_FALLBACK_ORDER.filter((e) => ["high", "medium", "low"].includes(e));
 
   // Reasoning models may consume the entire output budget on internal thinking
   // before producing any visible text/tool calls.  Allow multiple retries with
@@ -100,7 +104,7 @@ export async function handleResponsesRequest(params: ResponsesRequestParams): Pr
 
     const attemptReasoningEffort =
       normalizedEffort !== undefined
-        ? getRetryReasoningEffort(normalizedEffort, attempt, REASONING_EFFORT_FALLBACK_ORDER)
+        ? getRetryReasoningEffort(normalizedEffort, attempt, fallbackOrder)
         : attempt > 0 && isThinkingModel
           ? "low"
           : undefined;
