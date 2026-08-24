@@ -2,6 +2,10 @@
 
 VS Code extension to use OpenCode Go models in Copilot Chat with your own OpenCode Go subscription.
 
+![OpenCode Go Provider 概要](images/opencode_go_provider_summary.png)
+
+> **概要**: Copilot Chat から OpenCode Go の 30+ モデルを、あなたのサブスクで直接使うための橋渡し拡張。メッセージを OpenAI / Anthropic / Responses の適切な形式に自動変換し、ツール呼び出しや画像解析も中継します。
+
 ## Requirements
 
 - VS Code 1.104.0 or later
