@@ -101,6 +101,8 @@
     "lint:fix": "eslint src/ tests/ --fix",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
     "check-changelog": "bun scripts/check-changelog.ts",
+    "sync:pi": "bun scripts/sync-from-pi.ts",
+    "sync:pi:write": "bun scripts/sync-from-pi.ts --write",
     "package:vsix": "bun run check-changelog && bun run compile && vsce package --allow-missing-repository"
   },
   "devDependencies": {

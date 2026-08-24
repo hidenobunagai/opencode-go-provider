@@ -31,7 +31,7 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 |-------|---------|------------|--------|-------|----------|-----|
 | MiMo-V2-Pro | 1,048,576 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | MiMo-V2-Omni | 262,144 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
-| MiMo-V2.5-Pro | 1,048,576 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| MiMo-V2.5-Pro | 1,048,576 | 128,000 | ✗ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | MiMo-V2.5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 
 ### MiniMax Series
@@ -51,7 +51,7 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | Qwen3.5 Plus | 1,000,000 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | Qwen3.6 Plus | 1,000,000 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | Qwen3.7 Plus | 1,000,000 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
-| Qwen3.7 Max | 1,000,000 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| Qwen3.7 Max | 1,000,000 | 65,536 | ✗ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | Qwen3.8 Max | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 
 > **Note**: Qwen models have a 1M context window — the largest in the lineup. The dynamic safety margin scales proportionally (~10,240 tokens). They send `temperature: 0.55` and `top_p: 1`, matching the OpenCode CLI's defaults.
