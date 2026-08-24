@@ -94,20 +94,20 @@ describe("OcGoChatModelProvider", () => {
     );
     const deepseekPro = infos.find((i: any) => i.id === "deepseek-v4-pro");
     expect(deepseekPro).toBeDefined();
-    expect(deepseekPro?.maxOutputTokens).toBe(65536);
+    expect(deepseekPro?.maxOutputTokens).toBe(384000);
 
     const kimi = infos.find((i: any) => i.id === "kimi-k2.6");
     expect(kimi).toBeDefined();
-    expect(kimi?.maxOutputTokens).toBe(262144);
+    expect(kimi?.maxOutputTokens).toBe(65536);
 
     const kimiK3 = infos.find((i: any) => i.id === "kimi-k3");
     expect(kimiK3).toBeDefined();
-    expect(kimiK3?.maxOutputTokens).toBe(262144);
-    expect(kimiK3?.maxInputTokens).toBe(1000000 - 65536);
+    expect(kimiK3?.maxOutputTokens).toBe(131072);
+    expect(kimiK3?.maxInputTokens).toBe(1048576 - 65536);
 
     const grok45 = infos.find((i: any) => i.id === "grok-4.5");
     expect(grok45).toBeDefined();
-    expect(grok45?.maxOutputTokens).toBe(65536);
+    expect(grok45?.maxOutputTokens).toBe(500000);
     expect(grok45?.maxInputTokens).toBe(500000 - 65536);
 
     const missing = infos.find((i: any) => i.id === "nonexistent-model");
@@ -207,8 +207,8 @@ describe("OcGoChatModelProvider", () => {
       const kimi = infos.find((i: any) => i.id === "kimi-k3-vision");
       expect(kimi).toBeDefined();
       expect(kimi?.capabilities?.imageInput).toBe(true); // kimi starts with kimi- is inferred as vision
-      expect(kimi?.maxOutputTokens).toBe(262144);
-      expect(kimi?.maxInputTokens).toBe(1000000 - 65536);
+      expect(kimi?.maxOutputTokens).toBe(131072);
+      expect(kimi?.maxInputTokens).toBe(1048576 - 65536);
 
       const deepseek = infos.find((i: any) => i.id === "deepseek-v5-pro");
       expect(deepseek).toBeDefined();
@@ -222,7 +222,7 @@ describe("OcGoChatModelProvider", () => {
       const grok = infos.find((i: any) => i.id === "grok-4.5-preview");
       expect(grok).toBeDefined();
       expect(grok?.capabilities?.imageInput).toBe(true);
-      expect(grok?.maxOutputTokens).toBe(65536);
+      expect(grok?.maxOutputTokens).toBe(500000);
       expect(grok?.maxInputTokens).toBe(500000 - 65536);
 
       const muse = infos.find((i: any) => i.id === "muse-spark-1.2-contributor");

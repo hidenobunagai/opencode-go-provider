@@ -8,19 +8,19 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| GLM-5 | 202,752 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
-| GLM-5.1 | 202,752 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
-| GLM-5.2 | 202,752 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
-| GLM-5.3 | 202,752 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
+| GLM-5 | 202,752 | 131,072 | ✗ | ✓ | ✓ (`high,max`) | OpenAI |
+| GLM-5.1 | 202,752 | 32,768 | ✗ | ✓ | ✓ (`high,max`) | OpenAI |
+| GLM-5.2 | 1,000,000 | 131,072 | ✗ | ✓ | ✓ (`high,max`) | OpenAI |
+| GLM-5.3 | 1,000,000 | 131,072 | ✗ | ✓ | ✓ (`low,high,max`) | OpenAI |
 
 ### Kimi Series (Moonshot AI)
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| Kimi K2.5 | 262,144 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
-| Kimi K2.6 | 262,144 | 262,144 | ✓ | ✓ | ✓ | OpenAI |
-| Kimi K2.7 Code | 262,144 | 262,144 | ✓ | ✓ | ✓ | OpenAI |
-| Kimi K3 | 1,000,000 | 262,144 | ✓ | ✓ | ✓ | OpenAI |
+| Kimi K2.5 | 262,144 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| Kimi K2.6 | 262,144 | 65,536 | ✓ | ✓ | ✗ | OpenAI |
+| Kimi K2.7 Code | 262,144 | 262,144 | ✓ | ✓ | ✗ | OpenAI |
+| Kimi K3 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`max`) | OpenAI |
 
 > **Note**: Kimi models use `fixedTemperature: 1` for optimal performance. Kimi K2.5 also sends `top_p: 0.95`, matching the OpenCode CLI's per-model sampling defaults.
 > Kimi models other than K2.5 (K2.6, K2.7 Code, K3, ...) require `REASONING_CONTENT_WORKAROUND_MODELS` for correct streaming output.
@@ -29,18 +29,18 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| MiMo-V2-Pro | 1,048,576 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
-| MiMo-V2-Omni | 262,144 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
-| MiMo-V2.5-Pro | 1,048,576 | 131,072 | ✓ | ✓ | ✓ | OpenAI |
-| MiMo-V2.5 | 262,144 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
+| MiMo-V2-Pro | 1,048,576 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| MiMo-V2-Omni | 262,144 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| MiMo-V2.5-Pro | 1,048,576 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| MiMo-V2.5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 
 ### MiniMax Series
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
 | MiniMax M2.5 | 196,608 | 131,072 | ✗ | ✓ | ✗ | Anthropic |
-| MiniMax M2.7 | 196,608 | 131,072 | ✗ | ✓ | ✗ | Anthropic |
-| MiniMax M3 | 196,608 | 131,072 | ✗ | ✓ | ✗ | Anthropic |
+| MiniMax M2.7 | 204,800 | 131,072 | ✗ | ✓ | ✗ | Anthropic |
+| MiniMax M3 | 1,000,000 | 131,072 | ✓ | ✓ | ✗ | Anthropic |
 
 > **Note**: MiniMax models use the **Anthropic Messages API** (`apiFormat: "anthropic"`). Tool calls and results use Anthropic's `tool_use` / `tool_result` block format rather than OpenAI's function calling. M2.5/M2.7 send `temperature: 1` and `top_p: 0.95`, matching the OpenCode CLI's defaults; M3 leaves sampling to the provider default.
 
@@ -48,11 +48,11 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| Qwen3.5 Plus | 1,000,000 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
-| Qwen3.6 Plus | 1,000,000 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
-| Qwen3.7 Plus | 1,000,000 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
-| Qwen3.7 Max | 1,000,000 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
-| Qwen3.8 Max | 1,000,000 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
+| Qwen3.5 Plus | 1,000,000 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| Qwen3.6 Plus | 1,000,000 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| Qwen3.7 Plus | 1,000,000 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| Qwen3.7 Max | 1,000,000 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| Qwen3.8 Max | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 
 > **Note**: Qwen models have a 1M context window — the largest in the lineup. The dynamic safety margin scales proportionally (~10,240 tokens). They send `temperature: 0.55` and `top_p: 1`, matching the OpenCode CLI's defaults.
 
@@ -60,8 +60,9 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| DeepSeek V4 Pro | 262,144 | 65,536 | ✗ | ✓ | ✓ | OpenAI |
-| DeepSeek V4 Flash | 262,144 | 65,536 | ✗ | ✓ | ✓ | OpenAI |
+| DeepSeek V4 Pro | 1,000,000 | 384,000 | ✗ | ✓ | ✓ (`high,max`) | OpenAI |
+| DeepSeek V4 Flash | 1,000,000 | 384,000 | ✗ | ✓ | ✓ (`low,high,max`) | OpenAI |
+| DeepSeek V4 Flash Vision Exp | 1,000,000 | 384,000 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
 
 > **Note**: DeepSeek models require `REASONING_CONTENT_WORKAROUND_MODELS` for correct streaming output. System prompts are sanitized to replace "Claude"/"Anthropic" references.
 
@@ -69,13 +70,13 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| Grok 4.5 | 500,000 | 65,536 | ✓ | ✓ | ✗ | OpenAI |
+| Grok 4.5 | 500,000 | 500,000 | ✓ | ✓ | ✓ (`low,medium,high`) | Responses |
 
 ### GPT Series (OpenAI)
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| GPT 5.6 Luna | 400,000 | 128,000 | ✓ | ✓ | ✓ | Responses |
+| GPT 5.6 Luna | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | Responses |
 
 > **Note**: GPT 5.6 Luna uses the **OpenAI Responses API** (`apiFormat: "responses"`) served from the `/responses` endpoint. Messages are converted to Responses input items (`message` / `function_call` / `function_call_output`), tool calls use `function_call` items, and reasoning is streamed via `response.reasoning_summary_text.delta` / `response.reasoning_text.delta`. `max_output_tokens` is used instead of `max_tokens` / `max_completion_tokens`.
 
@@ -83,16 +84,28 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| Muse Spark 1.2 Contributor | 1,048,576 | 131,072 | ✓ | ✓ | ✓ | Responses |
+| Muse Spark 1.2 Contributor | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | Responses |
 
 > **Note**: Muse Spark 1.2 Contributor uses the **OpenAI Responses API** (`apiFormat: "responses"`) served from the `/responses` endpoint, same as GPT 5.6 Luna. It has a 1M context window — the largest in the lineup — with text and image input. The Contributor tier offers heavily discounted token pricing in exchange for permission to use prompts/completions to train future Meta models.
 
-### HY3 Preview
+### HY3 Series
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| Hy3 | 262,144 | 65,536 | ✗ | ✓ | ✓ | OpenAI |
-| HY3 Preview | 262,144 | 65,536 | ✗ | ✓ | ✓ | OpenAI |
+| Hy3 | 256,000 | 64,000 | ✗ | ✓ | ✓ (`low,high`) | OpenAI |
+| HY3 Preview | 256,000 | 64,000 | ✗ | ✓ | ✓ (`low,high`) | OpenAI |
+
+### LongCat Series
+
+| Model | Context | Max Output | Vision | Tools | Thinking | API |
+|-------|---------|------------|--------|-------|----------|-----|
+| LongCat 2.0 | 1,000,000 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+
+### Ox Series
+
+| Model | Context | Max Output | Vision | Tools | Thinking | API |
+|-------|---------|------------|--------|-------|----------|-----|
+| Ox Alpha Free | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
 
 > **Note**: `hy3` is the current model ID; `hy3-preview` is kept for backward compatibility.
 
@@ -120,16 +133,24 @@ When adding a new model, check this matrix first and prefer registering quirks i
 
 ### Thinking (Reasoning Effort)
 
-Models with `supportsThinking: true` show a **Thinking Effort** dropdown in the model picker. This controls the `reasoning_effort` parameter, allowing users to trade reasoning depth for speed:
+Models with `supportsThinking: true` show a **Thinking Effort** dropdown in the model picker. This controls the `reasoning_effort` parameter, allowing users to trade reasoning depth for speed. The available levels are **per-model**, synced from `pi-ai`'s `thinkingLevelMap` for `opencode-go` (see `src/types.ts`):
 
-- `xhigh` — Maximum reasoning
-- `high` — Strong reasoning
-- `medium` — Balanced (default)
+- `minimal` — Minimal reasoning (e.g. Muse Spark)
 - `low` — Reduced reasoning
-- `minimal` — Minimal reasoning
-- `none` — No reasoning
+- `medium` — Balanced
+- `high` — Strong reasoning
+- `xhigh` — Extra-high reasoning (e.g. Muse, GPT Luna)
+- `max` — Maximum reasoning (e.g. DeepSeek, GPT Luna, Kimi K3)
 
-All models in the current lineup support thinking except MiniMax models and Grok 4.5. For Responses-API models (GPT 5.6 Luna, Muse Spark 1.2 Contributor) the effort is sent as `reasoning.effort` (with `max` mapped to the Responses-API `high` level, since `xhigh` is not supported).
+Examples (see tables above for the full list):
+
+- `muse-spark-1.2-contributor`: `minimal,low,medium,high,xhigh` — **no `max`**
+- `grok-4.5` / `longcat-2.0`: `low,medium,high` — **no `xhigh`/`max`**
+- `deepseek-v4-flash`: `low,high,max` — **no `medium`/`xhigh`**
+- `gpt-5.6-luna`: `low,medium,high,xhigh,max` — all levels
+- `kimi-k2.6` / `kimi-k2.7-code` / MiniMax: **no thinking UI** (`supportsThinking: false`)
+
+For Responses-API models (`grok-4.5`, `gpt-5.6-luna`, `muse-spark-1.2-contributor`) the effort is sent as `reasoning.effort` with `summary: "auto"`; for OpenAI `chat.completions` models it is sent as `reasoning_effort`. The extension validates the selection per model and drops unsupported values (with `max<->xhigh` alias for stale configs).
 
 ### Vision
 

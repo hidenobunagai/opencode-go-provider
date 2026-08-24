@@ -134,7 +134,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     name: "GLM-5.1",
     displayName: "GLM-5.1",
     contextWindow: 202752,
-    maxOutput: 131072,
+    maxOutput: 32768,
     supportsTools: true,
     supportsVision: false,
     apiFormat: "openai",
@@ -145,7 +145,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     id: "glm-5.2",
     name: "GLM-5.2",
     displayName: "GLM-5.2",
-    contextWindow: 202752,
+    contextWindow: 1000000,
     maxOutput: 131072,
     supportsTools: true,
     supportsVision: false,
@@ -157,7 +157,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     id: "glm-5.3",
     name: "GLM-5.3",
     displayName: "GLM-5.3",
-    contextWindow: 202752,
+    contextWindow: 1000000,
     maxOutput: 131072,
     supportsTools: true,
     supportsVision: false,
@@ -184,7 +184,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     name: "Kimi K2.6",
     displayName: "Kimi K2.6",
     contextWindow: 262144,
-    maxOutput: 262144,
+    maxOutput: 65536,
     supportsTools: true,
     supportsVision: true,
     apiFormat: "openai",
@@ -207,8 +207,8 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     id: "kimi-k3",
     name: "Kimi K3",
     displayName: "Kimi K3",
-    contextWindow: 1000000,
-    maxOutput: 262144,
+    contextWindow: 1048576,
+    maxOutput: 131072,
     supportsTools: true,
     supportsVision: true,
     apiFormat: "openai",
@@ -245,7 +245,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     name: "MiMo-V2.5-Pro",
     displayName: "MiMo-V2.5-Pro",
     contextWindow: 1048576,
-    maxOutput: 131072,
+    maxOutput: 128000,
     supportsTools: true,
     supportsVision: true,
     apiFormat: "openai",
@@ -256,8 +256,8 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     id: "mimo-v2.5",
     name: "MiMo-V2.5",
     displayName: "MiMo-V2.5",
-    contextWindow: 262144,
-    maxOutput: 65536,
+    contextWindow: 1000000,
+    maxOutput: 128000,
     supportsTools: true,
     supportsVision: true,
     apiFormat: "openai",
@@ -280,7 +280,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     id: "minimax-m2.7",
     name: "MiniMax M2.7",
     displayName: "MiniMax M2.7",
-    contextWindow: 196608,
+    contextWindow: 204800,
     maxOutput: 131072,
     supportsTools: true,
     supportsVision: false,
@@ -292,10 +292,10 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     id: "minimax-m3",
     name: "MiniMax M3",
     displayName: "MiniMax M3",
-    contextWindow: 196608,
+    contextWindow: 1000000,
     maxOutput: 131072,
     supportsTools: true,
-    supportsVision: false,
+    supportsVision: true,
     apiFormat: "anthropic",
   },
   {
@@ -359,7 +359,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     name: "Qwen3.8 Max",
     displayName: "Qwen3.8 Max",
     contextWindow: 1000000,
-    maxOutput: 65536,
+    maxOutput: 131072,
     supportsTools: true,
     supportsVision: true,
     apiFormat: "openai",
@@ -372,8 +372,8 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     id: "deepseek-v4-pro",
     name: "DeepSeek V4 Pro",
     displayName: "DeepSeek V4 Pro",
-    contextWindow: 262144,
-    maxOutput: 65536,
+    contextWindow: 1000000,
+    maxOutput: 384000,
     supportsTools: true,
     supportsVision: false,
     apiFormat: "openai",
@@ -384,8 +384,8 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     id: "deepseek-v4-flash",
     name: "DeepSeek V4 Flash",
     displayName: "DeepSeek V4 Flash",
-    contextWindow: 262144,
-    maxOutput: 65536,
+    contextWindow: 1000000,
+    maxOutput: 384000,
     supportsTools: true,
     supportsVision: false,
     apiFormat: "openai",
@@ -396,8 +396,8 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     id: "deepseek-v4-flash-vision-exp",
     name: "DeepSeek V4 Flash Vision Exp",
     displayName: "DeepSeek V4 Flash Vision Exp",
-    contextWindow: 262144,
-    maxOutput: 65536,
+    contextWindow: 1000000,
+    maxOutput: 384000,
     supportsTools: true,
     supportsVision: true,
     apiFormat: "openai",
@@ -408,8 +408,8 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     id: "hy3",
     name: "Hy3",
     displayName: "Hy3",
-    contextWindow: 262144,
-    maxOutput: 65536,
+    contextWindow: 256000,
+    maxOutput: 64000,
     supportsTools: true,
     supportsVision: false,
     apiFormat: "openai",
@@ -420,8 +420,8 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     id: "hy3-preview",
     name: "HY3 Preview",
     displayName: "HY3 Preview",
-    contextWindow: 262144,
-    maxOutput: 65536,
+    contextWindow: 256000,
+    maxOutput: 64000,
     supportsTools: true,
     supportsVision: false,
     apiFormat: "openai",
@@ -433,7 +433,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     name: "Grok 4.5",
     displayName: "Grok 4.5",
     contextWindow: 500000,
-    maxOutput: 65536,
+    maxOutput: 500000,
     supportsTools: true,
     supportsVision: true,
     apiFormat: "responses",
@@ -444,7 +444,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     id: "gpt-5.6-luna",
     name: "GPT 5.6 Luna",
     displayName: "GPT 5.6 Luna",
-    contextWindow: 400000,
+    contextWindow: 1050000,
     maxOutput: 128000,
     supportsTools: true,
     supportsVision: true,
@@ -456,8 +456,8 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     id: "ox-alpha-free",
     name: "Ox Alpha Free",
     displayName: "Ox Alpha Free",
-    contextWindow: 262144,
-    maxOutput: 65536,
+    contextWindow: 1000000,
+    maxOutput: 131072,
     supportsTools: true,
     supportsVision: true,
     apiFormat: "openai",
@@ -507,6 +507,7 @@ export function inferModelInfo(id: string): OcGoModelInfo {
   const isGpt = id.startsWith("gpt-5.6");
   const isMuse = id.startsWith("muse-");
   const isLongcat = id.startsWith("longcat-");
+  const isOx = id.startsWith("ox-");
 
   let contextWindow = 262144;
   let maxOutput = 65536;
@@ -520,14 +521,18 @@ export function inferModelInfo(id: string): OcGoModelInfo {
 
   if (isMinimax) {
     apiFormat = "anthropic";
-    contextWindow = id === "minimax-m3" ? 1000000 : 196608;
+    if (id === "minimax-m3") {
+      contextWindow = 1000000;
+      supportsVision = true;
+    } else if (id.includes("m2.7")) {
+      contextWindow = 204800;
+    } else {
+      contextWindow = 196608;
+    }
     maxOutput = 131072;
     if (id.includes("m2")) {
       fixedTemperature = 1;
       fixedTopP = 0.95;
-    }
-    if (id === "minimax-m3") {
-      supportsVision = true;
     }
     // MiniMax: no reasoning ui (anthropic adaptive thinking is internal)
   } else if (isKimi) {
@@ -537,20 +542,31 @@ export function inferModelInfo(id: string): OcGoModelInfo {
       supportsVision = true;
       supportsThinking = true;
       supportedReasoningEfforts = ["low", "medium", "high"];
-    } else if (id.includes("k2.6") || id.includes("k2.7")) {
+      contextWindow = 262144;
+      maxOutput = 65536;
+    } else if (id.includes("k2.6")) {
       supportsVision = true;
       supportsThinking = false;
+      contextWindow = 262144;
+      maxOutput = 65536;
+    } else if (id.includes("k2.7")) {
+      supportsVision = true;
+      supportsThinking = false;
+      contextWindow = 262144;
+      maxOutput = 262144;
     } else if (id.includes("k3")) {
       supportsVision = true;
       supportsThinking = true;
       supportedReasoningEfforts = ["max"];
+      contextWindow = 1048576;
+      maxOutput = 131072;
     } else {
       supportsVision = true;
       supportsThinking = true;
       supportedReasoningEfforts = ["low", "medium", "high"];
+      contextWindow = 262144;
+      maxOutput = 262144;
     }
-    contextWindow = id.includes("k3") ? 1000000 : 262144;
-    maxOutput = id.includes("k2.5") ? 65536 : 262144;
   } else if (isGlm) {
     supportsThinking = true;
     contextWindow = id.includes("5.3") ? 1000000 : id.includes("5.2") ? 1000000 : 202752;
@@ -577,7 +593,7 @@ export function inferModelInfo(id: string): OcGoModelInfo {
     supportsThinking = true;
     supportedReasoningEfforts = ["low", "medium", "high"];
     contextWindow = 1000000;
-    maxOutput = 65536;
+    maxOutput = id.includes("3.8") ? 131072 : 65536;
   } else if (isMimo) {
     supportsThinking = true;
     supportsVision = !id.includes("v2-pro");
@@ -596,7 +612,7 @@ export function inferModelInfo(id: string): OcGoModelInfo {
     supportsThinking = true;
     supportedReasoningEfforts = ["low", "medium", "high"];
     contextWindow = 500000;
-    maxOutput = 65536;
+    maxOutput = 500000;
   } else if (isGpt) {
     apiFormat = "responses";
     supportsVision = true;
@@ -614,6 +630,12 @@ export function inferModelInfo(id: string): OcGoModelInfo {
   } else if (isLongcat) {
     supportsThinking = true;
     supportedReasoningEfforts = ["low", "medium", "high"];
+    contextWindow = 1000000;
+    maxOutput = 131072;
+  } else if (isOx) {
+    supportsVision = true;
+    supportsThinking = true;
+    supportedReasoningEfforts = ["low", "high", "max"];
     contextWindow = 1000000;
     maxOutput = 131072;
   }
