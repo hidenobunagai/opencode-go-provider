@@ -38,6 +38,10 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
   readonly onDidChangeLanguageModelChatInformation: Event<void> =
     this._onDidChangeLanguageModelChatInformation.event;
 
+  private readonly _onDidCompleteResponse = new EventEmitter<void>();
+  /** Fires after every chat response completes (success or error). */
+  readonly onDidCompleteResponse: Event<void> = this._onDidCompleteResponse.event;
+
   private readonly _visionClient: OcGoVisionClient;
   private readonly _modelMap = new Map<string, OcGoModelInfo>();
   private _models: OcGoModelInfo[] = FALLBACK_MODELS;
@@ -578,6 +582,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
       throw err;
     } finally {
       cancellationSubscription.dispose();
+      this._onDidCompleteResponse.fire();
     }
   }
 

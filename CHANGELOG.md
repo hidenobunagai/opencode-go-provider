@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.72] - 2026-08-25
+
+### Added
+
+- **OpenCode Go quota in the status bar.** The extension now shows your remaining OpenCode Go usage (rolling 5h / weekly / monthly) in the VS Code status bar, mirroring the Pi go-usage extension: `Go 5h 1% · 週 16% · 月 76%`, with the full reset-countdown line in the tooltip. It refreshes on activation, after every chat response, and whenever the API key changes. The new `OpenCode Go: Show OpenCode Go Usage` command (or clicking the status item) shows the full quota line in a notification. When monthly usage crosses 80%, the status item turns warning-colored and a one-time warning toast is shown per crossing — no per-message spam.
+
 ## [0.1.71] - 2026-08-24
 
 ### Changed

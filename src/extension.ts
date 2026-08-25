@@ -3,6 +3,7 @@ import { EXTENSION_VERSION } from "./constants";
 import { debugLog, disposeOutputChannel, getOutputChannel } from "./output-channel";
 import { OcGoChatModelProvider } from "./provider";
 import { registerOcGoTools } from "./tools";
+import { OcGoUsageStatusBar } from "./usage-bar";
 
 let _provider: OcGoChatModelProvider | null = null;
 
@@ -20,13 +21,29 @@ export function activate(context: vscode.ExtensionContext) {
   const provider = new OcGoChatModelProvider(context.secrets, ua);
   _provider = provider;
 
+  const usageBar = new OcGoUsageStatusBar(context.secrets, ua);
+  context.subscriptions.push(usageBar);
+
   context.subscriptions.push(
     context.secrets.onDidChange((e) => {
       if (e.key === "opencode-go.apiKey") {
         _provider?.fireModelInfoChanged();
+        void usageBar.refresh();
       }
     }),
   );
+
+  context.subscriptions.push(
+    provider.onDidCompleteResponse(() => {
+      void usageBar.refresh();
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("opencode-go.showUsage", () => usageBar.showUsage()),
+  );
+
+  void usageBar.refresh();
 
   try {
     const registration = vscode.lm.registerLanguageModelChatProvider("opencode-go", provider);

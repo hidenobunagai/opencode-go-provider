@@ -42,6 +42,8 @@ Copilot Chat
 | `vision.ts` | Vision image-analysis client (`OcGoVisionClient`) used by non-vision models to delegate image requests to MiMo-V2-Omni. |
 | `guidance.ts` | Builds system-prompt guidance: provider identity, tool-use instructions, and DeepSeek-specific prompt sanitization. |
 | `output-channel.ts` | Centralized debug logging via `vscode.OutputChannel`. |
+| `usage.ts` | OpenCode Go quota fetch (`GET /zen/go/v1/usage`) and formatting (Pi-style line + compact status-bar text). |
+| `usage-bar.ts` | `OcGoUsageStatusBar`: always-visible quota in the VS Code status bar, warning toast when monthly usage crosses 80%, `opencode-go.showUsage` command. |
 | `constants.ts` | API base URL, timeout values, context window safety margins, and workaround model sets. |
 
 ## Data Flow

@@ -54,6 +54,8 @@ At runtime the extension fetches the current model list from the OpenCode Go API
 2. Select **OpenCode Go** from the provider selector.
 3. Choose a model (e.g., Kimi K2.6) and start chatting.
 
+Your OpenCode Go quota (rolling 5h / weekly / monthly usage) is shown in the VS Code status bar and refreshes after every chat response. Click the status item or run `OpenCode Go: Show OpenCode Go Usage` to see the full line with reset countdowns; when monthly usage crosses 80% you get a warning toast.
+
 ## Documentation
 
 - [Architecture](docs/architecture.md) — Module map, data flow, API formats, and design decisions

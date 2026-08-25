@@ -16,11 +16,26 @@ const mockRegisterCommand = jest.fn(
   },
 );
 const mockRegisterLanguageModelChatProvider = jest.fn(() => ({ dispose: jest.fn() }));
+const mockCreateStatusBarItem = jest.fn(() => ({
+  text: "",
+  tooltip: "",
+  command: "",
+  name: "",
+  backgroundColor: undefined,
+  show: jest.fn(),
+  hide: jest.fn(),
+  dispose: jest.fn(),
+}));
 
 jest.mock("../src/provider", () => ({
   OcGoChatModelProvider: jest.fn().mockImplementation(() => ({
     fireModelInfoChanged: jest.fn(),
+    onDidCompleteResponse: jest.fn(() => ({ dispose: jest.fn() })),
   })),
+}));
+
+jest.mock("../src/usage", () => ({
+  fetchOpenCodeGoUsage: jest.fn(async () => ({ line: null, usage: null })),
 }));
 
 jest.mock("../src/tools", () => ({
@@ -35,6 +50,11 @@ jest.mock("vscode", () => ({
     showWarningMessage: mockShowWarningMessage,
     showErrorMessage: mockShowErrorMessage,
     showInputBox: jest.fn(),
+    createStatusBarItem: mockCreateStatusBarItem,
+  },
+  StatusBarAlignment: { Right: 1 },
+  ThemeColor: class {
+    constructor(public id: string) {}
   },
   commands: {
     registerCommand: mockRegisterCommand,
@@ -76,7 +96,9 @@ describe("activate", () => {
     expect(registeredCommands.has("opencode-go.manage")).toBe(true);
     expect(registeredCommands.has("opencode-go.toggleDebugLogging")).toBe(true);
     expect(registeredCommands.has("opencode-go.openDebugLog")).toBe(true);
+    expect(registeredCommands.has("opencode-go.showUsage")).toBe(true);
     expect(registeredCommands.has("opencode-go.refreshModels")).toBe(false);
+    expect(mockCreateStatusBarItem).toHaveBeenCalled();
     expect(mockShowErrorMessage).not.toHaveBeenCalled();
   });
 
