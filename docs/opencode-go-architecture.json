@@ -1,0 +1,261 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "OpenCode Go Provider Architecture",
+    "output": "opencode-go-architecture.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "chat-flow",
+        "label": "Chat Request Flow",
+        "focus": ["vscode-chat", "provider-core", "openai-adapter", "gateway-api", "llm-models"],
+        "note": "Trace an interactive Copilot Chat prompt through adapter streaming to upstream model completion."
+      },
+      {
+        "id": "model-discovery",
+        "label": "Model Discovery & Auth",
+        "focus": ["secret-storage", "provider-core", "model-registry"],
+        "note": "Dynamic model catalog synchronization and secure SecretStorage API key resolution."
+      },
+      {
+        "id": "multimodal-tools",
+        "label": "Vision & Safety Guard",
+        "focus": ["provider-core", "vision-tool", "tokenizer-guard", "gateway-api"],
+        "note": "Multimodal image processing and context window safety margin validation."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "secret-storage",
+      "type": "security",
+      "label": "SecretStorage",
+      "sublabel": "opencode-go.apiKey",
+      "pos": [50, 100],
+      "size": [140, 60]
+    },
+    {
+      "id": "vscode-chat",
+      "type": "frontend",
+      "label": "VS Code Chat",
+      "sublabel": "Copilot Chat UI",
+      "pos": [50, 260],
+      "size": [140, 60]
+    },
+    {
+      "id": "usage-bar",
+      "type": "frontend",
+      "label": "Usage Status Bar",
+      "sublabel": "Quota & token display",
+      "pos": [50, 420],
+      "size": [140, 60]
+    },
+    {
+      "id": "model-registry",
+      "type": "backend",
+      "label": "Model Registry",
+      "sublabel": "Catalog & fallback cache",
+      "pos": [290, 100],
+      "size": [160, 60]
+    },
+    {
+      "id": "provider-core",
+      "type": "backend",
+      "label": "ChatModelProvider",
+      "sublabel": "vscode.lm bridge",
+      "pos": [290, 260],
+      "size": [160, 60],
+      "tag": "Core Router"
+    },
+    {
+      "id": "tokenizer-guard",
+      "type": "security",
+      "label": "Tokenizer Guard",
+      "sublabel": "Safety margin estimator",
+      "pos": [290, 420],
+      "size": [160, 60]
+    },
+    {
+      "id": "openai-adapter",
+      "type": "backend",
+      "label": "OpenAI Adapter",
+      "sublabel": "SSE stream & tool repair",
+      "pos": [550, 140],
+      "size": [160, 60]
+    },
+    {
+      "id": "anthropic-adapter",
+      "type": "backend",
+      "label": "Anthropic Adapter",
+      "sublabel": "Messages API converter",
+      "pos": [550, 280],
+      "size": [160, 60]
+    },
+    {
+      "id": "vision-tool",
+      "type": "backend",
+      "label": "Vision Client",
+      "sublabel": "Image analysis tool",
+      "pos": [550, 420],
+      "size": [160, 60]
+    },
+    {
+      "id": "gateway-api",
+      "type": "cloud",
+      "label": "OpenCode Go API",
+      "sublabel": "HTTPS Gateway",
+      "pos": [810, 250],
+      "size": [150, 80]
+    },
+    {
+      "id": "llm-models",
+      "type": "external",
+      "label": "Upstream LLMs",
+      "sublabel": "DeepSeek / Claude / Qwen",
+      "pos": [1050, 250],
+      "size": [150, 80]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "VS Code Host Environment",
+      "wraps": ["secret-storage", "vscode-chat", "usage-bar"]
+    },
+    {
+      "kind": "security-group",
+      "label": "Extension Core & Adapters",
+      "wraps": ["model-registry", "provider-core", "tokenizer-guard", "openai-adapter", "anthropic-adapter", "vision-tool"]
+    },
+    {
+      "kind": "region",
+      "label": "Cloud AI Infrastructure",
+      "wraps": ["gateway-api", "llm-models"]
+    }
+  ],
+  "connections": [
+    {
+      "id": "secrets-to-provider",
+      "from": "secret-storage",
+      "to": "provider-core",
+      "label": "API key",
+      "variant": "security",
+      "fromSide": "right",
+      "toSide": "top"
+    },
+    {
+      "id": "chat-to-provider",
+      "from": "vscode-chat",
+      "to": "provider-core",
+      "label": "chat prompt",
+      "variant": "emphasis"
+    },
+    {
+      "id": "provider-to-usage",
+      "from": "provider-core",
+      "to": "usage-bar",
+      "label": "onComplete",
+      "variant": "dashed",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "provider-to-models",
+      "from": "provider-core",
+      "to": "model-registry",
+      "label": "resolve model",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelDy": -30
+    },
+    {
+      "id": "provider-to-tokenizer",
+      "from": "provider-core",
+      "to": "tokenizer-guard",
+      "label": "budget check",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 40
+    },
+    {
+      "id": "provider-to-openai",
+      "from": "provider-core",
+      "to": "openai-adapter",
+      "label": "OpenAI flow"
+    },
+    {
+      "id": "provider-to-anthropic",
+      "from": "provider-core",
+      "to": "anthropic-adapter",
+      "label": "Anthropic flow"
+    },
+    {
+      "id": "provider-to-vision",
+      "from": "provider-core",
+      "to": "vision-tool",
+      "label": "analyze tool"
+    },
+    {
+      "id": "openai-to-gateway",
+      "from": "openai-adapter",
+      "to": "gateway-api",
+      "label": "/chat/completions",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "top"
+    },
+    {
+      "id": "anthropic-to-gateway",
+      "from": "anthropic-adapter",
+      "to": "gateway-api",
+      "label": "/messages",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "vision-to-gateway",
+      "from": "vision-tool",
+      "to": "gateway-api",
+      "label": "vision payload",
+      "fromSide": "right",
+      "toSide": "bottom"
+    },
+    {
+      "id": "gateway-to-llms",
+      "from": "gateway-api",
+      "to": "llm-models",
+      "label": "stream inference",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "VS Code Host Integration",
+      "items": [
+        "Implements vscode.lm.LanguageModelChatProvider for opencode-go",
+        "Reads and secures credentials through SecretStorage",
+        "Updates live usage and quota status in status bar"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Protocol Adapters & Safety",
+      "items": [
+        "Bi-directional stream transformation for OpenAI and Anthropic formats",
+        "Automated tool parsing, thinking block extraction, and JSON repair",
+        "Context window safety margin estimation and budget enforcement"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Upstream Cloud Gateway",
+      "items": [
+        "Dynamic model catalog discovery with resilient fallback defaults",
+        "LanguageModelTool support for multimodal vision image analysis",
+        "Dispatches requests to DeepSeek, Claude, Qwen, GLM, and GPT backends"
+      ]
+    }
+  ]
+}
