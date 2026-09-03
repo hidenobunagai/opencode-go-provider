@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.73] - 2026-09-03
+
+### Added
+
+- **`x-opencode-session` header on every OpenCode Go request.** Per request from OpenCode Go (requests missing this header may error starting 09/06), all API calls (`/chat/completions`, `/messages`, `/responses`, `/models`, `/usage`) now send a stable session ID. VS Code's language model provider API does not expose a conversation identifier, so the ID is generated once per extension activation (roughly one VS Code window session) — the closest stable "session" a third-party provider can attach. Manual `curl` calls against the API should add the same header.
+
 ## [0.1.72] - 2026-08-25
 
 ### Added

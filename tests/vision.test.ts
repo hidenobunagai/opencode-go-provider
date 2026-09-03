@@ -1,3 +1,4 @@
+import { SESSION_ID } from "../src/constants";
 import { OcGoVisionClient } from "../src/vision";
 
 const mockFetch = jest.fn();
@@ -31,6 +32,7 @@ describe("OcGoVisionClient", () => {
         headers: expect.objectContaining({
           Authorization: "Bearer test-key",
           "User-Agent": "test-ua",
+          "x-opencode-session": SESSION_ID,
         }),
         body: expect.stringContaining("mimo-v2-omni"),
       }),

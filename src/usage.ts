@@ -1,3 +1,4 @@
+import { SESSION_ID } from "./constants";
 import { debugLog } from "./output-channel";
 
 /** OpenCode Go quota endpoint: rolling (5h), weekly, monthly usage percentages. */
@@ -106,6 +107,7 @@ export async function fetchOpenCodeGoUsage(
     const response = await fetch(USAGE_ENDPOINT, {
       headers: {
         Authorization: `Bearer ${apiKey}`,
+        "x-opencode-session": SESSION_ID,
         ...(userAgent ? { "User-Agent": userAgent } : {}),
       },
       signal: AbortSignal.timeout(USAGE_FETCH_TIMEOUT_MS),

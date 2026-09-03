@@ -1,4 +1,10 @@
-import { BASE_RETRY_DELAY_MS, BASE_URL, MAX_RETRY_DELAY_MS, REQUEST_TIMEOUT_MS } from "./constants";
+import {
+  BASE_RETRY_DELAY_MS,
+  BASE_URL,
+  MAX_RETRY_DELAY_MS,
+  REQUEST_TIMEOUT_MS,
+  SESSION_ID,
+} from "./constants";
 import { debugLog } from "./output-channel";
 import { readSseLines } from "./streaming/sse";
 import { OcGoChatCompletionResponse, OcGoChatRequest, OcGoStreamResponse } from "./types";
@@ -96,6 +102,7 @@ function buildChatCompletionHeaders(apiKey: string, userAgent?: string): Record<
   return {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json",
+    "x-opencode-session": SESSION_ID,
     ...(userAgent ? { "User-Agent": userAgent } : {}),
   };
 }

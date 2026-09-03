@@ -15,6 +15,7 @@ import {
 import {
   BASE_URL,
   DEFAULT_MAX_OUTPUT_TOKENS,
+  SESSION_ID,
   THINKING_MODELS,
   getContextWindowSafetyMargin,
 } from "./constants";
@@ -77,6 +78,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         headers: {
           Authorization: `Bearer ${apiKey}`,
           "User-Agent": this.userAgent,
+          "x-opencode-session": SESSION_ID,
         },
       });
 

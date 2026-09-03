@@ -4,7 +4,7 @@
 import * as vscode from "vscode";
 import { buildMissingToolCallNudge, looksLikeActionAnnouncement } from "../announcement";
 import { fetchWithRetry, throwApiError } from "../api";
-import { BASE_URL, REQUEST_TIMEOUT_MS } from "../constants";
+import { BASE_URL, REQUEST_TIMEOUT_MS, SESSION_ID } from "../constants";
 import { applyOpenAiSystemPromptGuidance } from "../guidance";
 import { convertMessages, reasoningCache } from "../openai-conversion";
 import { captureLog, debugLog } from "../output-channel";
@@ -159,6 +159,7 @@ export async function handleResponsesRequest(params: ResponsesRequestParams): Pr
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
           "User-Agent": userAgent,
+          "x-opencode-session": SESSION_ID,
         },
         signal: combinedSignal,
         body: JSON.stringify(requestBody),

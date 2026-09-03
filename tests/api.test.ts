@@ -1,5 +1,5 @@
 import { fetchWithRetry, streamChatCompletion } from "../src/api";
-import { BASE_URL } from "../src/constants";
+import { BASE_URL, SESSION_ID } from "../src/constants";
 import { OcGoStreamResponse } from "../src/types";
 
 describe("fetchWithRetry", () => {
@@ -79,6 +79,15 @@ describe("streamChatCompletion", () => {
 
     expect(results).toHaveLength(1);
     expect(results[0].choices[0].delta.content).toBe("Hello");
+    expect(fetch).toHaveBeenCalledWith(
+      `${BASE_URL}/chat/completions`,
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: "Bearer key",
+          "x-opencode-session": SESSION_ID,
+        }),
+      }),
+    );
   });
 
   it("throws on non-ok response", async () => {

@@ -1,7 +1,17 @@
+import { randomUUID } from "node:crypto";
 import { version } from "../package.json";
 
 export const BASE_URL = "https://opencode.ai/zen/go/v1";
 export const EXTENSION_VERSION: string = version;
+
+/**
+ * Stable session ID sent as `x-opencode-session` on every OpenCode Go
+ * request. VS Code's language model provider API exposes no conversation
+ * identifier, so this ID is generated once per extension activation
+ * (roughly one VS Code window session) — the closest stable "session"
+ * available to a third-party provider.
+ */
+export const SESSION_ID: string = randomUUID();
 
 /** Compute a dynamic safety margin: 1% of context window, minimum 2048 tokens.
  * Larger models need proportionally larger margins for system overhead. */

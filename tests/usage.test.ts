@@ -1,3 +1,4 @@
+import { SESSION_ID } from "../src/constants";
 import {
   buildStatusBarText,
   buildUsageLine,
@@ -101,6 +102,7 @@ describe("fetchOpenCodeGoUsage", () => {
         headers: expect.objectContaining({
           Authorization: "Bearer test-key",
           "User-Agent": "test-ua/1.0",
+          "x-opencode-session": SESSION_ID,
         }),
       }),
     );

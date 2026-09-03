@@ -3,7 +3,12 @@ import * as vscode from "vscode";
 import { buildMissingToolCallNudge, looksLikeActionAnnouncement } from "../announcement";
 import { convertMessagesToAnthropic, convertToolsToAnthropic } from "../anthropic-conversion";
 import { fetchWithRetry, throwApiError } from "../api";
-import { BASE_URL, ANTHROPIC_MAX_TOOL_RESULT_CHARS, REQUEST_TIMEOUT_MS } from "../constants";
+import {
+  ANTHROPIC_MAX_TOOL_RESULT_CHARS,
+  BASE_URL,
+  REQUEST_TIMEOUT_MS,
+  SESSION_ID,
+} from "../constants";
 import { buildProviderIdentityGuidance, sanitizeSystemPromptForModel } from "../guidance";
 import { convertTools } from "../openai-conversion";
 import { captureLog, debugLog } from "../output-channel";
@@ -171,6 +176,7 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
           "anthropic-version": "2023-06-01",
           "Content-Type": "application/json",
           "User-Agent": userAgent,
+          "x-opencode-session": SESSION_ID,
         },
         signal: combinedSignal,
         body: JSON.stringify(requestBody),
