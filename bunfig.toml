@@ -1,3 +1,6 @@
 [install]
 minimumReleaseAge = 604800
-minimumReleaseAgeExcludes = ["typescript", "@types/node", "@types/vscode", "@types/jest", "jest", "ts-jest", "jest-util"]
+# fast-uri/qs: dev-only (vsce publishing toolchain) security fixes; fast-uri 3.1.6
+# and qs 6.16.0 fix GHSA advisories flagged by OSV scan and are trusted
+# widely-used packages, so exempt them from the 7-day release-age buffer.
+minimumReleaseAgeExcludes = ["typescript", "@types/node", "@types/vscode", "@types/jest", "jest", "ts-jest", "jest-util", "fast-uri", "qs"]
