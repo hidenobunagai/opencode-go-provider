@@ -92,7 +92,7 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| Hy3 | 256,000 | 64,000 | ✗ | ✓ | ✓ (`low,high`) | OpenAI |
+| Hy3 | 256,000 | 128,000 | ✗ | ✓ | ✓ (`low,high`) | OpenAI |
 | HY3 Preview | 256,000 | 64,000 | ✗ | ✓ | ✓ (`low,high`) | OpenAI |
 
 ### LongCat Series

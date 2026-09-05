@@ -409,7 +409,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     name: "Hy3",
     displayName: "Hy3",
     contextWindow: 256000,
-    maxOutput: 64000,
+    maxOutput: 128000,
     supportsTools: true,
     supportsVision: false,
     apiFormat: "openai",
