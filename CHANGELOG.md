@@ -1,5 +1,16 @@
 # Change Log
 
+## [0.1.74] - 2026-09-09
+
+### Changed
+
+- **Hy3 max output synced with Pi / OpenCode Go.** `hy3` maxOutput is now 128,000 tokens (was 64,000), matching the current Pi AI catalog and the `inferModelInfo` fallback.
+- **Dev dependencies updated.** `@dotenvx/dotenvx` 2.23.0, `eslint` 10.9.1, `typescript-eslint` 8.69.0.
+
+### Fixed
+
+- **Security: bumped `js-yaml` to clear OSV advisories.** `js-yaml` 4.3.1 → 4.3.2 and 3.15.1 → 3.15.2 (GHSA-2883-xcg3-v3hh), both transitive via the vsce publishing toolchain and Jest.
+
 ## [0.1.73] - 2026-09-03
 
 ### Added
