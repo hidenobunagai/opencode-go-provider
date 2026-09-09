@@ -409,7 +409,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     name: "Hy3",
     displayName: "Hy3",
     contextWindow: 256000,
-    maxOutput: 64000,
+    maxOutput: 128000,
     supportsTools: true,
     supportsVision: false,
     apiFormat: "openai",
@@ -604,7 +604,7 @@ export function inferModelInfo(id: string): OcGoModelInfo {
     supportsThinking = true;
     supportedReasoningEfforts = ["low", "high"];
     contextWindow = 256000;
-    maxOutput = 64000;
+    maxOutput = 128000;
   } else if (isGrok) {
     // grok-4.5 uses Responses API in Pi (openai-responses)
     apiFormat = "responses";
