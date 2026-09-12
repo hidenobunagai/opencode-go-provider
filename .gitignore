@@ -42,3 +42,6 @@ QODER.md
 .cursorrules
 opencode.jsonc
 .mcp.json
+
+# Local agent config synced from the Mac (not part of the extension)
+.commandcode/

@@ -37,3 +37,4 @@ eslint.config.mjs
 .prettierrc
 .DS_Store
 out/**/*.map
+.commandcode/**
