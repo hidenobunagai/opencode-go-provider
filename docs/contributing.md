@@ -50,8 +50,11 @@ Test files live in `tests/` and mirror the `src/` structure:
 - `tests/guidance.test.ts` — System prompt sanitization and guidance
 - `tests/vision.test.ts` — Vision client integration
 - `tests/tools.test.ts` — Language model tool registration
-- `tests/utils.test.ts` — Shared utility functions
 - `tests/extension.test.ts` — Extension activation/deactivation
+- `tests/openai-conversion.test.ts` — OpenAI message/tool conversion and token estimation
+- `tests/responses-conversion.test.ts` — Responses API message conversion
+- `tests/usage.test.ts` — Usage/quota fetching
+- `tests/usage-bar.test.ts` — Status bar usage display
 
 ### Linting & Formatting
 
