@@ -165,8 +165,6 @@ opencode-go-provider/
 │   ├── api.ts                # HTTP client + retry
 │   ├── openai-conversion.ts  # OpenAI message conversion
 │   ├── anthropic-conversion.ts # Anthropic message conversion
-│   ├── openai-conversion.ts  # OpenAI message conversion
-│   ├── anthropic-conversion.ts # Anthropic message conversion
 │   ├── responses-conversion.ts # Responses API message conversion
 │   ├── streaming/
 │   │   ├── sse.ts            # Shared SSE line reader
@@ -183,6 +181,8 @@ opencode-go-provider/
 │   ├── vision.ts             # Vision image-analysis client
 │   ├── guidance.ts           # System prompt guidance
 │   ├── output-channel.ts     # Debug logging
+│   ├── usage.ts              # Quota fetch + status-bar text
+│   ├── usage-bar.ts          # Status bar quota display
 │   └── constants.ts          # Constants + workarounds
 ├── tests/                    # Jest test files
 ├── scripts/                  # Release helper scripts
