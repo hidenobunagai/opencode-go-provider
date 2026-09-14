@@ -1,5 +1,20 @@
 # Change Log
 
+## [0.1.75] - 2026-09-15
+
+### Changed
+
+- **Release infrastructure and docs only — no extension runtime changes.** Everything in this version touches `publish.yml`, `sync-cron.yml`, the Jest config, `.gitignore` / `.vscodeignore`, and `docs/contributing.md`; `src/` is untouched, so there is nothing to re-verify in Copilot Chat.
+- **Publishing is now tag-gated, and the release CLIs are pinned.** `publish.yml` runs `vsce publish` only when the ref is a `v*` tag, so a manual `workflow_dispatch` run validates the build instead of re-publishing the version already on the Marketplace and failing with "already exists". `vsce` now runs through `bunx` (the lockfile-pinned `@vscode/vsce`, the same tool `package:vsix` builds with).
+- **Open VSX publishing dropped.** This extension only registers a GitHub Copilot Chat model provider (`languageModelChatProviders`), and Copilot Chat does not exist in the editors Open VSX serves, so a listing there cannot work.
+- **Scheduled Pi sync dropped — the homepi watch publishes directly.** `sync-cron.yml` lost its daily cron and is now manual-only (`workflow_dispatch`, renamed "Pi Sync (manual)"); a second automatic path would open duplicate PRs for the same drift. The bundled model catalog is unchanged in this release.
+- **Jest coverage now sees untested `src` modules.** `roots` gained `<rootDir>/src`, so `collectCoverageFrom: ["src/**/*.ts"]` can report a module no test imports yet at 0% — `CoverageReporter._addUntestedFiles` walks `context.hasteFS`, which `roots` scopes. Verified with a throwaway unimported module: it now shows up at 0% instead of vanishing from the report, and the normal run is unchanged (13 suites / 256 tests, 83.01% statements / 84.08% lines, thresholds intact).
+- **`.commandcode/` ignored in git and in the VSIX.** It is local agent config synced from the Mac, so it no longer shows as an untracked leftover or ships in a local package.
+
+### Fixed
+
+- **`docs/contributing.md` corrected and given a maintenance stance.** Added the as-is / no-support / fork-first note (MIT) at the top. The project-structure tree no longer repeats `openai-conversion.ts` and `anthropic-conversion.ts`, and now lists the missing `usage.ts` and `usage-bar.ts` (24 modules, matching `docs/architecture.md`). The test list dropped the never-existing `tests/utils.test.ts` and now matches all 13 suites.
+
 ## [0.1.74] - 2026-09-09
 
 ### Changed
