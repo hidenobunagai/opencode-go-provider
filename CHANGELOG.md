@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.1.76] - 2026-09-16
+
+### Fixed
+
+- **Documentation only — no extension runtime changes (`src/` is untouched), so there is nothing to re-verify in Copilot Chat.** The release contains a single change: the `docs/architecture.md` module map.
+- **`docs/architecture.md` module map now lists all 24 modules.** The hand-written table covered 23 of the modules under `src/`: diffing its rows against `src/*.ts` plus `src/streaming/*.ts` found exactly one gap (`streaming/shared.ts`) and no stale rows, while `docs/contributing.md` already listed that module — so the two documents disagreed. The missing row documents the shared `StreamState` (pending text/reasoning flush, tool-call emission and dedup), retry step-down (`getRetryReasoningEffort`, `REASONING_EFFORT_FALLBACK_ORDER`), pending-call emission, attempt snapshots, and truncation reporting that `streaming/openai.ts`, `streaming/anthropic.ts`, and `streaming/responses.ts` all import. Placed directly below `streaming/sse.ts` so the shared streaming infrastructure stays grouped ahead of the per-format parsers. Re-measured after the edit: 24 rows vs 24 files, no gap in either direction.
+
 ## [0.1.75] - 2026-09-15
 
 ### Changed
