@@ -1,5 +1,17 @@
 # Change Log
 
+## [0.1.77] - 2026-09-17
+
+### Changed
+
+- **Tooling and tests only — no extension runtime changes (`src/` is untouched), so there is nothing to re-verify in Copilot Chat.** Everything in this version touches `.github/workflows/`, `package.json`'s `format` script, the two files in `scripts/`, `docs/contributing.md`, and a new test suite. Validation on this tree: lint, compile, 14 suites / 259 tests with coverage (thresholds intact), `bun run sync:pi` (27 models, in sync), and `bun run package:vsix`.
+- **GitHub Actions moved to the majors that clear the Node 20 deprecation annotation.** `actions/checkout` v4 → v7 (`ci.yml`, `publish.yml`, `sync-cron.yml`), `actions/upload-artifact` v4 → v7 (`ci.yml`), and `peter-evans/create-pull-request` v6 → v8 (`sync-cron.yml`). The annotation comes from the actions themselves: only a version whose `action.yml` declares `using: node24` clears it, and no environment switch suppresses it — which is `checkout` v5, `upload-artifact` v6, and `create-pull-request` v8 at the minimum — so `upload-artifact` v6, which an earlier note had suggested, would have left the artifact upload annotated. These are the majors the house already runs (`opencode-zen-provider` and `commandcode-goat-provider` are on v7). The only `checkout` v7 change that could touch this repo is refusing fork-PR checkouts under `pull_request_target`/`workflow_run`, neither of which is used here; `publish.yml` picks the change up on this tag push, and `sync-cron.yml` is manual-only.
+- **`bun run format` now covers `scripts/**/*.ts`.** The script covered `src/**` and `tests/**` only, so the two files in `scripts/` had drifted out of Prettier's shape (long lines in `check-changelog.ts`, wrapped calls in `sync-from-pi.ts`) while the house's other providers, which do include `scripts/**` in the same script, stayed clean. The glob is part of the script now and both files are formatted — formatting only, no behavior change, and no formatting gate is added to CI.
+
+### Added
+
+- **`tests/docs-inventories.test.ts` — the hand-written file lists are now held to what is on disk.** The three inventories in the docs are written by hand, and each had already rotted once: the test list in `docs/contributing.md` named a suite that never existed and omitted the four added since it was written (`6e056c8`), the module table in `docs/architecture.md` was one row short of the 24 modules (`f26d160`), and the project tree in `docs/contributing.md` repeated two rows while omitting `usage.ts` and `usage-bar.ts` (`3213651`). One new suite (3 tests) now compares all three against `src/**/*.ts` and `tests/*.test.ts`. Only membership is compared — what a row says about its module cannot be read off the tree — so a docs edit that adds or removes a row has to carry its list along; that coupling is the point, and a list that stops parsing fails loudly (an empty match set never equals a non-empty tree). `docs/contributing.md` gained the matching row for the new suite. Suite count 13 → 14, tests 256 → 259.
+
 ## [0.1.76] - 2026-09-16
 
 ### Fixed
