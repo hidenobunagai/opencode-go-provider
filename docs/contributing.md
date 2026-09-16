@@ -55,6 +55,7 @@ Test files live in `tests/` and mirror the `src/` structure:
 - `tests/responses-conversion.test.ts` — Responses API message conversion
 - `tests/usage.test.ts` — Usage/quota fetching
 - `tests/usage-bar.test.ts` — Status bar usage display
+- `tests/docs-inventories.test.ts` — Holds the hand-written file lists in this doc and `architecture.md` to what is on disk
 
 ### Linting & Formatting
 
