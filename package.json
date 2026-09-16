@@ -104,7 +104,7 @@
     "test:watch": "jest --watch",
     "lint": "eslint src/ tests/",
     "lint:fix": "eslint src/ tests/ --fix",
-    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.ts\"",
     "check-changelog": "bun scripts/check-changelog.ts",
     "sync:pi": "bun scripts/sync-from-pi.ts",
     "sync:pi:write": "bun scripts/sync-from-pi.ts --write",

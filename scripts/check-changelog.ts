@@ -20,7 +20,9 @@ function main() {
   try {
     packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
   } catch (err) {
-    console.error(`Error parsing package.json: ${err instanceof Error ? err.message : String(err)}`);
+    console.error(
+      `Error parsing package.json: ${err instanceof Error ? err.message : String(err)}`,
+    );
     process.exit(1);
   }
 
@@ -37,14 +39,20 @@ function main() {
   const versionHeaderRegex = new RegExp(`^##\\s*\\[\\s*${escapedVersion}\\s*\\]`, "m");
 
   if (!versionHeaderRegex.test(changelog)) {
-    console.error("================================================================================");
+    console.error(
+      "================================================================================",
+    );
     console.error("❌ RELEASE CHECK FAILED: package.json version is ahead of CHANGELOG.md");
-    console.error("================================================================================");
+    console.error(
+      "================================================================================",
+    );
     console.error(`Current package.json version: ${version}`);
     console.error(`No entry found in CHANGELOG.md for version [${version}].`);
     console.error(`Please update CHANGELOG.md with release notes in the following format:`);
     console.error(`  ## [${version}] - YYYY-MM-DD`);
-    console.error("================================================================================");
+    console.error(
+      "================================================================================",
+    );
     process.exit(1);
   }
 

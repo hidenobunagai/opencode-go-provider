@@ -48,7 +48,10 @@ function vlog(...args: unknown[]) {
 function findPiJsonLocal(): string | null {
   const homedir = os.homedir();
   const candidates = [
-    path.join(homedir, ".bun/install/global/node_modules/@earendil-works/pi-ai/dist/providers/data/opencode-go.json"),
+    path.join(
+      homedir,
+      ".bun/install/global/node_modules/@earendil-works/pi-ai/dist/providers/data/opencode-go.json",
+    ),
     path.join(homedir, ".bun/install/cache"),
   ];
   for (const c of candidates) {
@@ -81,9 +84,12 @@ function findPiJsonLocal(): string | null {
   }
   // also try via bun pm view? fallback to find command
   try {
-    const proc = Bun.spawnSync(["find", homedir + "/.bun", "-name", "opencode-go.json", "-path", "*pi-ai*"], {
-      stdout: "pipe",
-    });
+    const proc = Bun.spawnSync(
+      ["find", homedir + "/.bun", "-name", "opencode-go.json", "-path", "*pi-ai*"],
+      {
+        stdout: "pipe",
+      },
+    );
     const out = proc.stdout.toString().trim().split("\n").filter(Boolean);
     if (out.length > 0) {
       // prefer global
@@ -217,7 +223,10 @@ function syncTypes(
     if (!idRegex.test(content)) continue;
 
     // Extract block for this id
-    const blockRegex = new RegExp(`\\{\\s*id:\\s*"${piId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[\\s\\S]*?\\},`, "m");
+    const blockRegex = new RegExp(
+      `\\{\\s*id:\\s*"${piId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[\\s\\S]*?\\},`,
+      "m",
+    );
     const match = content.match(blockRegex);
     if (!match) continue;
     let block = match[0];
@@ -291,7 +300,14 @@ function syncTypes(
       // For kimi-k2.6 etc, Pi reasoning true but map all null => we treat as no UI (false)
       // piThinkingToEfforts returns [] for those, which we handle below
       // So we should set supportsThinking based on expThinking && expEfforts !== []
-      const shouldThink = expThinking && expEfforts !== null && expEfforts.length !== 0 ? true : expThinking ? (expEfforts === null ? true : expEfforts.length > 0) : false;
+      const shouldThink =
+        expThinking && expEfforts !== null && expEfforts.length !== 0
+          ? true
+          : expThinking
+            ? expEfforts === null
+              ? true
+              : expEfforts.length > 0
+            : false;
       // Actually for kimi-k2.6, expThinking true but efforts [] => should be false
       const finalThink = expEfforts !== null ? expEfforts.length > 0 : expThinking;
       // For models where Pi has no map, we keep as true (generic)
@@ -299,10 +315,16 @@ function syncTypes(
       if (curThinking !== targetThinking) {
         diffs.push(`${piId}: supportsThinking ${curThinking} -> ${targetThinking}`);
         if (thinkingMatch) {
-          block = block.replace(/supportsThinking:\s*(true|false),?/, `supportsThinking: ${targetThinking},`);
+          block = block.replace(
+            /supportsThinking:\s*(true|false),?/,
+            `supportsThinking: ${targetThinking},`,
+          );
         } else {
           // add
-          block = block.replace(/apiFormat:\s*"[^"]+",/, `$&\n    supportsThinking: ${targetThinking},`);
+          block = block.replace(
+            /apiFormat:\s*"[^"]+",/,
+            `$&\n    supportsThinking: ${targetThinking},`,
+          );
         }
       }
     }
@@ -327,15 +349,24 @@ function syncTypes(
           const expNorm = expEfforts.join(",");
           if (curNorm !== expNorm) {
             diffs.push(`${piId}: supportedReasoningEfforts [${cur}] -> [${expEfforts.join(",")}]`);
-            block = block.replace(/supportedReasoningEfforts:\s*\[[^\]]*\],?/, `supportedReasoningEfforts: ${expStr},`);
+            block = block.replace(
+              /supportedReasoningEfforts:\s*\[[^\]]*\],?/,
+              `supportedReasoningEfforts: ${expStr},`,
+            );
           }
         } else {
           // insert after supportsThinking
           diffs.push(`${piId}: add supportedReasoningEfforts ${expStr}`);
           if (block.includes("supportsThinking:")) {
-            block = block.replace(/(supportsThinking:\s*(true|false),?)/, `$1\n    supportedReasoningEfforts: ${expStr},`);
+            block = block.replace(
+              /(supportsThinking:\s*(true|false),?)/,
+              `$1\n    supportedReasoningEfforts: ${expStr},`,
+            );
           } else {
-            block = block.replace(/(apiFormat:\s*"[^"]+",)/, `$1\n    supportedReasoningEfforts: ${expStr},`);
+            block = block.replace(
+              /(apiFormat:\s*"[^"]+",)/,
+              `$1\n    supportedReasoningEfforts: ${expStr},`,
+            );
           }
         }
       }
@@ -422,11 +453,17 @@ function syncDocs(
     const expCtxStr = formatNumber(piModel.contextWindow);
     const expMaxStr = formatNumber(piModel.maxTokens);
     const expVision = piModel.input.includes("image") ? "✓" : "✗";
-    const expApi = piApiToOurs(piModel.api) === "anthropic" ? "Anthropic" : piApiToOurs(piModel.api) === "responses" ? "Responses" : "OpenAI";
+    const expApi =
+      piApiToOurs(piModel.api) === "anthropic"
+        ? "Anthropic"
+        : piApiToOurs(piModel.api) === "responses"
+          ? "Responses"
+          : "OpenAI";
     const expEfforts = piThinkingToEfforts(piModel);
     let expThinking: string;
     if (!piModel.reasoning) expThinking = "✗";
-    else if (expEfforts === null) expThinking = "✓"; // generic
+    else if (expEfforts === null)
+      expThinking = "✓"; // generic
     else if (expEfforts.length === 0) expThinking = "✗";
     else expThinking = `✓ (\`${expEfforts.join(",")}\`)`;
 
@@ -453,7 +490,9 @@ function syncDocs(
       diffs.push(`${piId}: docs Vision ${curVision} -> ${expVision}`);
       // need to replace the vision cell: it's 4th column. Use split approach
       // Simpler: replace the exact row's vision segment
-      const visionRe = new RegExp(`(\\|\\s*${cells[1].replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\|\\s*${curCtx.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\|\\s*${curMax.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\|\\s*)${curVision.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\s*\\|)`);
+      const visionRe = new RegExp(
+        `(\\|\\s*${cells[1].replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\|\\s*${curCtx.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\|\\s*${curMax.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\|\\s*)${curVision.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\s*\\|)`,
+      );
       // fallback simple
       newRow = newRow.replace(`| ${curVision} |`, `| ${expVision} |`);
       rowChanged = true;
