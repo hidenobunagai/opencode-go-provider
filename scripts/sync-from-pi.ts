@@ -18,6 +18,7 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
+import { loadDecisions, resolveEfforts, unverifiedEfforts, type EffortDecisionSet } from "./effort-decisions";
 
 const WRITE = process.argv.includes("--write");
 const VERBOSE = process.argv.includes("--verbose");
@@ -155,8 +156,11 @@ async function loadPiData(): Promise<{ data: PiData; source: string }> {
 function flattenPi(data: PiData): Map<string, PiModel> {
   const map = new Map<string, PiModel>();
   for (const apiGroup of Object.values(data)) {
-    for (const [id, model] of Object.entries(apiGroup)) {
-      map.set(id, model);
+    for (const [key, model] of Object.entries(apiGroup)) {
+      // pi-ai's keys carry a kind prefix (`chat:gpt-5.2`, `classifier:jev-1.13`) while
+      // FALLBACK_MODELS writes the bare id. Keyed on the raw key every lookup missed, so the
+      // whole comparison was a silent no-op (measured 2026-10-04: 0 of 29 ids matched).
+      map.set(model.id || key.replace(/^[a-z-]+:/, ""), model);
     }
   }
   return map;
@@ -210,6 +214,7 @@ function syncTypes(
   piMap: Map<string, PiModel>,
   typesPath: string,
   write: boolean,
+  decisions: EffortDecisionSet = {},
 ): { changed: number; diffs: string[] } {
   let content = fs.readFileSync(typesPath, "utf8");
   const original = content;
@@ -238,7 +243,13 @@ function syncTypes(
     const expVision = piModel.input.includes("image");
     const expApi = piApiToOurs(piModel.api);
     const expThinking = piModel.reasoning;
-    const expEfforts = piThinkingToEfforts(piModel); // null => generic, [] => no UI, string[] => specific
+    // null => Pi is generic and no decision exists: leave the entry alone rather than guess
+    const expEfforts = resolveEfforts(
+      piId,
+      piModel.reasoning,
+      piThinkingToEfforts(piModel),
+      decisions,
+    ).efforts;
 
     // Helper to replace or insert field
     const replaceField = (field: string, value: string, isString = false) => {
@@ -395,6 +406,7 @@ function syncDocs(
   typesPath: string,
   docsPath: string,
   write: boolean,
+  decisions: EffortDecisionSet = {},
 ): { changed: number; diffs: string[] } {
   // Load current fallback to generate expected tables
   // Instead of parsing TS, we can generate expected rows from Pi + existing fallback
@@ -459,7 +471,12 @@ function syncDocs(
         : piApiToOurs(piModel.api) === "responses"
           ? "Responses"
           : "OpenAI";
-    const expEfforts = piThinkingToEfforts(piModel);
+    const expEfforts = resolveEfforts(
+      piId,
+      piModel.reasoning,
+      piThinkingToEfforts(piModel),
+      decisions,
+    ).efforts;
     let expThinking: string;
     if (!piModel.reasoning) expThinking = "✗";
     else if (expEfforts === null)
@@ -535,10 +552,16 @@ async function main() {
   const piMap = flattenPi(data);
   log(`Pi models: ${piMap.size}`);
 
+  // Researched ladders win over Pi's map; without the file every model falls back to Pi.
+  const decisionsPath = path.resolve(import.meta.dir, "../docs/effort-decisions.json");
+  const decisions = loadDecisions(decisionsPath);
+  const decided = Object.keys(decisions).length;
+  if (decided > 0) log(`Effort decisions: ${decided} (${decisionsPath})`);
+
   // Types sync
-  const typesRes = syncTypes(piMap, typesPath, WRITE);
+  const typesRes = syncTypes(piMap, typesPath, WRITE, decisions);
   // Docs sync
-  const docsRes = syncDocs(piMap, typesPath, docsPath, WRITE);
+  const docsRes = syncDocs(piMap, typesPath, docsPath, WRITE, decisions);
 
   const allDiffs = [...typesRes.diffs, ...docsRes.diffs];
   if (allDiffs.length === 0) {
@@ -556,6 +579,23 @@ async function main() {
     }
   }
   if (!WRITE && allDiffs.length > 0) process.exit(1);
+
+  // Warn-only: Pi carries only its generic reasoning default for these models and no decision
+  // records a ladder, so their picker is unverified. Research one model at a time (see
+  // docs/contributing.md "Thinking efforts") rather than failing the gate over all of them.
+  const syncedIds = [...piMap.keys()].filter((id) =>
+    new RegExp(`id:\\s*"${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`).test(
+      fs.readFileSync(typesPath, "utf8"),
+    ),
+  );
+  const unverified = unverifiedEfforts(syncedIds, piMap, piThinkingToEfforts, decisions);
+  if (unverified.length > 0) {
+    log(`\n⚠️  ${unverified.length} catalog models have no ladder evidence (Pi is generic, no decision):`);
+    log(`  ${unverified.join(", ")}`);
+    log(
+      `  Record one in docs/effort-decisions.json (docs/contributing.md "Thinking efforts") when touching them.`,
+    );
+  }
 }
 
 await main();

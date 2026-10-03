@@ -56,6 +56,7 @@ Test files live in `tests/` and mirror the `src/` structure:
 - `tests/usage.test.ts` — Usage/quota fetching
 - `tests/usage-bar.test.ts` — Status bar usage display
 - `tests/docs-inventories.test.ts` — Holds the hand-written file lists in this doc and `architecture.md` to what is on disk
+- `tests/effort-decisions.test.ts` — Researched effort ladders: decisions file, resolution order, unverified reporting
 
 ### Linting & Formatting
 
@@ -140,6 +141,26 @@ bun run package:vsix   # Creates opencode-go-provider-<version>.vsix
 | `apiFormat` | `"openai"` \| `"anthropic"` | API format (default: `"openai"`) |
 | `fixedTemperature` | `number` \| `undefined` | Fixed temperature value (e.g., `1` for Kimi models) |
 | `supportsThinking` | `boolean` \| `undefined` | Shows Thinking Effort selector in model picker |
+
+## Thinking efforts
+
+`supportedReasoningEfforts` (the model picker's Thinking Effort dropdown) comes from one of
+three sources, in this order:
+
+1. **`docs/effort-decisions.json`** — researched ladders, one entry per model:
+   `"<id>": { "efforts": ["low", "high", "max"], "source": "<vendor doc URL / probe date>", "decided": "YYYY-MM-DD" }`.
+   A decision always wins, so a researched ladder also survives a Pi regression.
+   `"efforts": []` is a decision too: it records that the vendor offers no ladder (no picker).
+2. **Pi's explicit `thinkingLevelMap`** (`opencode-go.json` in the pi-ai install) — the levels the
+   vendor's own provider file declares; `sync:pi` copies them.
+3. **Pi's generic default** (`reasoning: true`, no map) — nothing states the rungs. The sync
+   leaves such an entry alone and `bun run sync:pi` ends with
+   `⚠️ … no ladder evidence: <ids>`. Research the model (vendor docs; probe the gateway's
+   `reasoning_effort` values if it has an endpoint that takes one) before changing its picker,
+   then record a decision. One model at a time is fine — the warning never fails `--check`.
+
+The rungs are the gateway's own enum (`minimal`, `low`, `medium`, `high`, `xhigh`, `max`); the
+provider drops a configured value that is not in `supportedReasoningEfforts` at request time.
 
 ## Debugging
 
