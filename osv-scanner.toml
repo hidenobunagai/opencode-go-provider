@@ -1,0 +1,6 @@
+# OSV-Scanner configuration
+# https://google.github.io/osv-scanner/configuration/
+
+[[IgnoredVulns]]
+id = "GHSA-vfj7-8cjw-p6xm"
+reason = "Transitive dev dependency from jest/fast-glob via micromatch; no upstream fix available yet"
