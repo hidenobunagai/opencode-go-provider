@@ -18,7 +18,12 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { loadDecisions, resolveEfforts, unverifiedEfforts, type EffortDecisionSet } from "./effort-decisions";
+import {
+  loadDecisions,
+  resolveEfforts,
+  unverifiedEfforts,
+  type EffortDecisionSet,
+} from "./effort-decisions";
 
 const WRITE = process.argv.includes("--write");
 const VERBOSE = process.argv.includes("--verbose");

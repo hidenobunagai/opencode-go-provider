@@ -111,7 +111,9 @@ export function resolveEfforts(
  * surface. `sync-from-pi.ts` prints it as a warning (never as drift): a model added in a hurry
  * keeps its current picker, but the gap stays visible until someone records a decision.
  */
-export function unverifiedEfforts<M extends { reasoning: boolean; thinkingLevelMap?: Record<string, string | null> }>(
+export function unverifiedEfforts<
+  M extends { reasoning: boolean; thinkingLevelMap?: Record<string, string | null> },
+>(
   syncedIds: Iterable<string>,
   piMap: Map<string, M>,
   piEffortsOf: (model: M) => string[] | null,

@@ -1,5 +1,14 @@
 # Change Log
 
+## [0.1.78] - 2026-10-09
+
+### Changed
+
+- **Synced model catalog with Pi AI.** Updated API format for `qwen3.7-plus` and `qwen3.8-max` from OpenAI to Anthropic Messages in bundled fallback models (`src/types.ts`) and documentation (`docs/models.md`), matching Pi's upstream provider data.
+- **Pi comparison gate and thinking effort ladder records.** Fixed `sync-from-pi.ts` lookup keying to match bare model IDs rather than prefixed keys, and introduced `docs/effort-decisions.json` alongside `scripts/effort-decisions.ts` and `tests/effort-decisions.test.ts` to track and resolve researched reasoning effort ladders.
+- **Documentation and maintenance.** Removed obsolete overview graphic and translated README to English.
+- **Dependencies and CI.** Bumped dependencies (`brace-expansion`, `fast-uri`, `markdown-it`, `undici`) to clear OSV vulnerability scan, and updated `osv-scanner.toml` suppressions.
+
 ## [0.1.77] - 2026-09-17
 
 ### Changed
