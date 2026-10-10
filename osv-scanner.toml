@@ -6,18 +6,5 @@ id = "GHSA-vfj7-8cjw-p6xm"
 reason = "Transitive dev dependency from jest/fast-glob via micromatch; no upstream fix available yet"
 
 [[IgnoredVulns]]
-id = "GHSA-8r5x-fm3f-whwj"
-reason = "Transitive dev dependency from ts-jest via handlebars; 4.7.10 released recently and blocked by bun minimum-release-age"
-
-[[IgnoredVulns]]
-id = "GHSA-p8wg-vrv2-v86f"
-reason = "Transitive dev dependency from ts-jest via handlebars; 4.7.10 released recently and blocked by bun minimum-release-age"
-
-[[IgnoredVulns]]
-id = "GHSA-xw65-4hp5-5hc7"
-reason = "Transitive dev dependency from ts-jest via handlebars; 4.7.10 released recently and blocked by bun minimum-release-age"
-
-[[IgnoredVulns]]
 id = "GHSA-hp3w-g68c-fv3c"
 reason = "Transitive dev dependency from istanbuljs/argparse via sprintf-js 1.0.3; no 1.0.x upstream fix"
-
