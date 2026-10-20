@@ -35,16 +35,19 @@ VS Code extension to use OpenCode Go models in Copilot Chat with your own OpenCo
 
 At runtime the extension fetches the current model list from the OpenCode Go API (`GET /models`) and infers each model's capabilities automatically, so newly released models usually work without an extension update. A bundled `FALLBACK_MODELS` list (in `src/types.ts`) is used when the API cannot be reached or no API key is configured yet. Currently bundled fallback models include:
 
-- GLM-5, GLM-5.1, **GLM-5.2**, **GLM-5.3**
-- DeepSeek V4 Pro, DeepSeek V4 Flash
+- GLM-5, GLM-5.1, **GLM-5.2**, **GLM-5.3**, **GLM-5.3 Flash**
+- DeepSeek V4 Pro, DeepSeek V4 Flash, **DeepSeek V4.1 Flash**
 - Kimi K2.5, Kimi K2.6, Kimi K2.7 Code, **Kimi K3**
-- MiMo-V2-Pro, MiMo-V2-Omni, MiMo-V2.5-Pro, MiMo-V2.5
+- MiMo-V2-Pro, MiMo-V2-Omni, MiMo-V2.5-Pro, MiMo-V2.5, **MiMo-V2.6 Flash**, **MiMo-V2.6 Pro**
 - MiniMax M2.5, MiniMax M2.7, **MiniMax M3**
-- Qwen3.5 Plus, Qwen3.6 Plus, Qwen3.7 Plus, **Qwen3.7 Max**, **Qwen3.8 Max**
-- **Grok 4.5**
-- **GPT 5.6 Luna**
-- **Muse Spark 1.2 Contributor**
-- **Hy3**, HY3 Preview
+- Qwen3.5 Plus, Qwen3.6 Plus, Qwen3.7 Plus, **Qwen3.7 Max**, **Qwen3.8 Max**, **Qwen3.8 Flash**
+- **Grok 4.5**, **Grok 4.7**
+- **GPT 5.6 Luna**, **GPT-6 Luna**
+- **Muse Spark 1.2 Contributor**, **Muse Spark 1.3 Contributor**
+- **Claude Haiku 5.5**
+- **Hy3**, HY3 Preview, **Hy4 Preview**
+- **LongCat 2.0**, **LongCat 2.5 Preview Free**
+- **Cat Jam Free**, **Space Bunny**, **Step 5 Preview Free**
 
 ## Usage
 

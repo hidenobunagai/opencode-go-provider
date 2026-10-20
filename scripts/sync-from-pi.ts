@@ -98,8 +98,56 @@ function piApiToOurs(api: string): string {
   return "openai";
 }
 
+/**
+ * Pi transport names this extension has no client for (`google-generative-ai`,
+ * `typesafe-system-one`). `piApiToOurs` would fold them into `openai` and the model would be
+ * listed and then fail at request time, so a model we would have to add is reported as
+ * skipped instead. Models already in the catalog are still compared field by field — their
+ * stored format is a deliberate choice, not something this list decides.
+ */
+const UNSUPPORTED_PI_APIS = new Set(["google-generative-ai", "typesafe-system-one"]);
+
 function formatNumber(n: number): string {
   return n.toLocaleString("en-US");
+}
+
+/** Renders one `FALLBACK_MODELS` entry from Pi's data, for a model the catalog lacks. */
+function renderModelBlock(piId: string, piModel: PiModel, efforts: string[] | null): string {
+  const apiFormat = piApiToOurs(piModel.api);
+  const supportsVision = piModel.input.includes("image");
+  // Mirrors the rule the field-by-field path applies: no ladder evidence means no effort UI.
+  const supportsThinking = piModel.reasoning && (efforts === null || efforts.length > 0);
+  const lines = [
+    "  {",
+    `    id: "${piId}",`,
+    `    name: "${piModel.name}",`,
+    `    displayName: "${piModel.name}",`,
+    `    contextWindow: ${piModel.contextWindow},`,
+    `    maxOutput: ${piModel.maxTokens},`,
+    "    supportsTools: true,",
+    `    supportsVision: ${supportsVision},`,
+    `    apiFormat: "${apiFormat}",`,
+    `    supportsThinking: ${supportsThinking},`,
+  ];
+  if (efforts !== null && efforts.length > 0) {
+    lines.push(`    supportedReasoningEfforts: [${efforts.map((e) => `"${e}"`).join(", ")}],`);
+  }
+  lines.push("  },");
+  return lines.join("\n");
+}
+
+/** Appends rendered blocks to the end of `FALLBACK_MODELS`, before its closing `];`. */
+function appendModelBlocks(content: string, blocks: string[]): string {
+  if (blocks.length === 0) return content;
+  const anchor = content.match(/export const FALLBACK_MODELS[^=]*=\s*\[/);
+  if (!anchor || anchor.index === undefined) {
+    throw new Error("FALLBACK_MODELS not found in src/types.ts");
+  }
+  const close = content.lastIndexOf("\n];");
+  if (close < anchor.index) {
+    throw new Error("FALLBACK_MODELS closing bracket not found in src/types.ts");
+  }
+  return `${content.slice(0, close)}\n${blocks.join("\n")}${content.slice(close)}`;
 }
 
 // --- src/types.ts sync ---
@@ -108,17 +156,40 @@ function syncTypes(
   typesPath: string,
   write: boolean,
   decisions: EffortDecisionSet = {},
-): { changed: number; diffs: string[] } {
+): { changed: number; diffs: string[]; skipped: string[] } {
   let content = fs.readFileSync(typesPath, "utf8");
   const original = content;
   const diffs: string[] = [];
+  const skipped: string[] = [];
   let changed = 0;
+  // A model Pi serves that the catalog has never carried has no block to compare field by
+  // field, so the loop below used to skip it in silence and the gate still exited 0 — the
+  // extension kept shipping a stale model list while every daily run reported "no drift"
+  // (measured 2026-10-20: 15 models had piled up since the 2026-10-05 release). Count them
+  // as drift, and build the blocks on --write so the gate can actually close the gap.
+  const newBlocks: string[] = [];
 
   // Find all fallback blocks via regex for each id that exists in Pi
   for (const [piId, piModel] of piMap.entries()) {
     // Only sync if this id exists in FALLBACK
     const idRegex = new RegExp(`id:\\s*"${piId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`);
-    if (!idRegex.test(content)) continue;
+    if (!idRegex.test(content)) {
+      if (UNSUPPORTED_PI_APIS.has(piModel.api)) {
+        // Not drift: no amount of --write makes a transport we cannot speak work. Shown
+        // separately so the daily run does not keep waking an agent over a dead end.
+        skipped.push(`${piId} (${piModel.api})`);
+        continue;
+      }
+      const efforts = resolveEfforts(
+        piId,
+        piModel.reasoning,
+        piThinkingToEfforts(piModel),
+        decisions,
+      ).efforts;
+      diffs.push(`${piId}: missing from FALLBACK_MODELS — new in Pi, not in the catalog yet`);
+      newBlocks.push(renderModelBlock(piId, piModel, efforts));
+      continue;
+    }
 
     // Extract block for this id
     const blockRegex = new RegExp(
@@ -286,11 +357,16 @@ function syncTypes(
     }
   }
 
+  if (newBlocks.length > 0) {
+    content = appendModelBlocks(content, newBlocks);
+    changed += newBlocks.length;
+  }
+
   if (write && changed > 0) {
     fs.writeFileSync(typesPath, content, "utf8");
     log(`Updated ${typesPath} (${changed} blocks)`);
   }
-  return { changed, diffs };
+  return { changed, diffs, skipped };
 }
 
 // --- docs/models.md sync ---
@@ -470,6 +546,11 @@ async function main() {
       log(`\n✅ Applied ${typesRes.changed} type blocks and ${docsRes.changed} doc rows`);
       log(`Next: bun run test && bun run compile`);
     }
+  }
+  if (typesRes.skipped.length > 0) {
+    log(
+      `\nℹ️  ${typesRes.skipped.length} Pi model(s) have no client here, so they are neither in the catalog nor part of the diff: ${typesRes.skipped.join(", ")}`,
+    );
   }
   if (!WRITE && allDiffs.length > 0) process.exit(1);
 

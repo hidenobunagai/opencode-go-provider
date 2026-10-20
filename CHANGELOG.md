@@ -1,5 +1,17 @@
 # Change Log
 
+## [0.1.79] - 2026-10-20
+
+### Added
+
+- **14 models the daily sync had been dropping, now in the bundled fallback catalog (`src/types.ts`) and documented in `docs/models.md`.** `claude-haiku-5-5`, `glm-5.3-flash`, `deepseek-v4.1-flash`, `qwen3.8-flash`, `mimo-v2.6-flash`, `mimo-v2.6-pro`, `grok-4.7`, `gpt-6-luna`, `muse-spark-1.3-contributor`, `hy4-preview`, `longcat-2.5-preview-free`, `cat-jam-free`, `space-bunny`, and `step-5-preview-free`. Values come from Pi's `opencode-go` data. Runtime `/models` discovery already listed these models, but with values guessed by `inferModelInfo`; the catalog now carries the real context windows, output limits, vision flags, and API formats, so they survive an API outage and appear correctly in `docs/models.md`. Four of them (`qwen3.8-flash`, `mimo-v2.6-flash`, `mimo-v2.6-pro`, `longcat-2.5-preview-free`) carry no `thinkingLevelMap` in Pi, so they fall back to the picker's default ladder and are marked as such in the docs.
+
+### Fixed
+
+- **`bun run sync:pi` no longer reports "in sync" while the catalog is missing models.** The comparison loop looked up each id Pi serves and skipped any id the catalog did not contain, so a newly released model produced no diff and the gate exited 0 — the daily job on homepi therefore saw "no drift" every morning and never woke the updater. Measured on 2026-10-20: 15 models had accumulated since 2026-10-05, 11 of them already present in Pi when that release was cut. Missing ids are now reported as drift (exit 1), and `--write` builds and appends their blocks instead of leaving the work to hand editing.
+- **Transports this extension cannot speak are reported separately, not as drift.** `gemini-4-argon-contributor` is served by Pi over `google-generative-ai`, which has no client here; folding it into the diff would have woken an agent every day over something `--write` can never fix, and `piApiToOurs` would have misfiled it as OpenAI. Such models are listed as skipped instead. `typesafe-system-one` is treated the same way.
+- **`tests/provider.test.ts` now ties the catalog to `docs/models.md`.** The existing completeness test compared against a hand-written id list, so adding a model to `src/types.ts` and forgetting the docs table passed CI — the same class of gap that let the catalog drift. Every bundled model's `displayName` must now appear as a row in the docs (44 models, 270 tests).
+
 ## [0.1.78] - 2026-10-09
 
 ### Changed

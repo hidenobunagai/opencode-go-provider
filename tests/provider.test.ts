@@ -1,4 +1,6 @@
 import * as vscode from "vscode";
+import fs from "node:fs";
+import path from "node:path";
 import { fetchWithRetry, streamChatCompletion } from "../src/api";
 import { REASONING_CONTENT_WORKAROUND_MODELS, THINKING_MODELS } from "../src/constants";
 import * as outputChannel from "../src/output-channel";
@@ -3440,44 +3442,65 @@ describe("OcGoChatModelProvider", () => {
   });
 
   describe("OpenCode Go Models & Capability Inference", () => {
-    it("bundles all 29 OpenCode Go models in FALLBACK_MODELS", () => {
+    it("bundles every OpenCode Go model in FALLBACK_MODELS", () => {
       const expectedModelIds = [
         "minimax-m3",
         "minimax-m2.7",
         "minimax-m2.5",
+        "claude-haiku-5-5",
         "kimi-k3",
         "kimi-k2.7-code",
         "kimi-k2.6",
         "kimi-k2.5",
         "glm-5.2",
         "glm-5.3",
+        "glm-5.3-flash",
         "glm-5.1",
         "glm-5",
+        "deepseek-v4.1-flash",
         "deepseek-v4-pro",
         "deepseek-v4-flash",
         "deepseek-v4-flash-vision-exp",
         "qwen3.7-max",
         "qwen3.8-max",
+        "qwen3.8-flash",
         "qwen3.7-plus",
         "qwen3.6-plus",
         "qwen3.5-plus",
+        "mimo-v2.6-flash",
+        "mimo-v2.6-pro",
         "mimo-v2-pro",
         "mimo-v2-omni",
         "mimo-v2.5-pro",
         "mimo-v2.5",
+        "hy4-preview",
         "hy3",
         "hy3-preview",
+        "gpt-6-luna",
         "gpt-5.6-luna",
+        "grok-4.7",
         "grok-4.5",
+        "muse-spark-1.3-contributor",
         "muse-spark-1.2-contributor",
         "ox-alpha-free",
+        "longcat-2.5-preview-free",
         "longcat-2.0",
+        "cat-jam-free",
+        "space-bunny",
+        "step-5-preview-free",
       ];
 
       expect(FALLBACK_MODELS).toHaveLength(expectedModelIds.length);
       for (const id of expectedModelIds) {
         const found = FALLBACK_MODELS.find((m) => m.id === id);
         expect(found).toBeDefined();
+      }
+      // A model added to the array without landing in `docs/models.md` (or vice versa) is
+      // what let the catalog drift for weeks: `sync:pi` only ever compared ids it already
+      // knew, so nothing failed. Tie the two files together here.
+      const docs = fs.readFileSync(path.join(__dirname, "../docs/models.md"), "utf8");
+      for (const model of FALLBACK_MODELS) {
+        expect(docs).toContain(`| ${model.displayName} |`);
       }
     });
 

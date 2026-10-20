@@ -12,6 +12,7 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | GLM-5.1 | 202,752 | 32,768 | ✗ | ✓ | ✓ (`high,max`) | OpenAI |
 | GLM-5.2 | 1,000,000 | 131,072 | ✗ | ✓ | ✓ (`high,max`) | OpenAI |
 | GLM-5.3 | 1,000,000 | 131,072 | ✗ | ✓ | ✓ (`low,high,max`) | OpenAI |
+| GLM-5.3-Flash | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
 
 ### Kimi Series (Moonshot AI)
 
@@ -33,6 +34,8 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | MiMo-V2-Omni | 262,144 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | MiMo-V2.5-Pro | 1,048,576 | 128,000 | ✗ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | MiMo-V2.5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| MiMo-V2.6-Flash | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high,max` default — no Pi ladder) | OpenAI |
+| MiMo-V2.6-Pro | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high,max` default — no Pi ladder) | OpenAI |
 
 ### MiniMax Series
 
@@ -53,6 +56,7 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | Qwen3.7 Plus | 1,000,000 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | Anthropic |
 | Qwen3.7 Max | 1,000,000 | 65,536 | ✗ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | Qwen3.8 Max | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,xhigh`) | Anthropic |
+| Qwen3.8 Flash | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high,max` default — no Pi ladder) | Anthropic |
 
 > **Note**: Qwen models have a 1M context window — the largest in the lineup. The dynamic safety margin scales proportionally (~10,240 tokens). They send `temperature: 0.55` and `top_p: 1`, matching the OpenCode CLI's defaults.
 
@@ -63,6 +67,7 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | DeepSeek V4 Pro | 1,000,000 | 384,000 | ✗ | ✓ | ✓ (`high,max`) | OpenAI |
 | DeepSeek V4 Flash | 1,000,000 | 384,000 | ✗ | ✓ | ✓ (`low,high,max`) | OpenAI |
 | DeepSeek V4 Flash Vision Exp | 1,000,000 | 384,000 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
+| DeepSeek V4.1 Flash | 1,000,000 | 384,000 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
 
 > **Note**: DeepSeek models require `REASONING_CONTENT_WORKAROUND_MODELS` for correct streaming output. System prompts are sanitized to replace "Claude"/"Anthropic" references.
 
@@ -71,12 +76,14 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
 | Grok 4.5 | 500,000 | 500,000 | ✓ | ✓ | ✓ (`low,medium,high`) | Responses |
+| Grok 4.7 | 500,000 | 500,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Responses |
 
 ### GPT Series (OpenAI)
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
 | GPT 5.6 Luna | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | Responses |
+| GPT-6 Luna | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | Responses |
 
 > **Note**: GPT 5.6 Luna uses the **OpenAI Responses API** (`apiFormat: "responses"`) served from the `/responses` endpoint. Messages are converted to Responses input items (`message` / `function_call` / `function_call_output`), tool calls use `function_call` items, and reasoning is streamed via `response.reasoning_summary_text.delta` / `response.reasoning_text.delta`. `max_output_tokens` is used instead of `max_tokens` / `max_completion_tokens`.
 
@@ -85,6 +92,7 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
 | Muse Spark 1.2 Contributor | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | Responses |
+| Muse Spark 1.3 Contributor | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | Responses |
 
 > **Note**: Muse Spark 1.2 Contributor uses the **OpenAI Responses API** (`apiFormat: "responses"`) served from the `/responses` endpoint, same as GPT 5.6 Luna. It has a 1M context window — the largest in the lineup — with text and image input. The Contributor tier offers heavily discounted token pricing in exchange for permission to use prompts/completions to train future Meta models.
 
@@ -94,12 +102,28 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 |-------|---------|------------|--------|-------|----------|-----|
 | Hy3 | 256,000 | 128,000 | ✗ | ✓ | ✓ (`low,high`) | OpenAI |
 | HY3 Preview | 256,000 | 64,000 | ✗ | ✓ | ✓ (`low,high`) | OpenAI |
+| Hy4 preview | 1,024,000 | 64,000 | ✗ | ✓ | ✓ (`high`) | OpenAI |
 
 ### LongCat Series
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
 | LongCat 2.0 | 1,000,000 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| LongCat 2.5 Preview Free | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high,max` default — no Pi ladder) | OpenAI |
+
+### Anthropic Series
+
+| Model | Context | Max Output | Vision | Tools | Thinking | API |
+|-------|---------|------------|--------|-------|----------|-----|
+| Claude Haiku 5.5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
+
+### Other Models
+
+| Model | Context | Max Output | Vision | Tools | Thinking | API |
+|-------|---------|------------|--------|-------|----------|-----|
+| Cat Jam Free | 262,144 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |
+| Space Bunny | 1,048,576 | 524,288 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |
+| Step 5 Preview Free | 1,000,000 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 
 ### Ox Series
 
