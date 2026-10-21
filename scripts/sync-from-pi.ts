@@ -552,11 +552,31 @@ async function main() {
       `\nℹ️  ${typesRes.skipped.length} Pi model(s) have no client here, so they are neither in the catalog nor part of the diff: ${typesRes.skipped.join(", ")}`,
     );
   }
-  if (!WRITE && allDiffs.length > 0) process.exit(1);
+  if (!WRITE && allDiffs.length > 0) {
+    // Report the ladder gaps here too: exiting on the field diffs alone would send the agent off
+    // to `--write` and it would never learn which models still need research.
+    const unverifiedNow = unverifiedEfforts(
+      [...piMap.keys()].filter((id) =>
+        new RegExp(`id:\\s*"${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`).test(
+          fs.readFileSync(typesPath, "utf8"),
+        ),
+      ),
+      piMap,
+      piThinkingToEfforts,
+      decisions,
+    );
+    if (unverifiedNow.length > 0) {
+      log(`\n⚠️  ${unverifiedNow.length} catalog models rest on no ladder evidence as well:`);
+      log(`  ${unverifiedNow.join(", ")}`);
+    }
+    process.exit(1);
+  }
 
-  // Warn-only: Pi carries only its generic reasoning default for these models and no decision
-  // records a ladder, so their picker is unverified. Research one model at a time (see
-  // docs/contributing.md "Thinking efforts") rather than failing the gate over all of them.
+  // Drift, the way commandcode-goat-provider's gate treats it: a reasoning model whose ladder is
+  // neither a recorded decision nor an explicit pi-ai map has an unverified picker. Leaving that
+  // as a warning is why 11 of them were never researched — the daily job exited 0 and moved on.
+  // `--write` cannot fix it (the rungs have to come from the vendor's docs), so the agent
+  // researches, records a decision, and re-runs the gate.
   const syncedIds = [...piMap.keys()].filter((id) =>
     new RegExp(`id:\\s*"${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`).test(
       fs.readFileSync(typesPath, "utf8"),
@@ -565,10 +585,16 @@ async function main() {
   const unverified = unverifiedEfforts(syncedIds, piMap, piThinkingToEfforts, decisions);
   if (unverified.length > 0) {
     log(
-      `\n⚠️  ${unverified.length} catalog models rest on no ladder evidence (Pi is generic, no decision) — record one in docs/effort-decisions.json (docs/contributing.md "Thinking efforts") when touching them:`,
+      `\n⚠️  ${unverified.length} catalog models rest on no ladder evidence (Pi is generic, no decision):`,
     );
     log(`  ${unverified.join(", ")}`);
+    log(
+      `  Research each one (vendor docs; bun scripts/probe-efforts.ts <id> corroborates), then record { efforts, source, decided } in docs/effort-decisions.json.`,
+    );
+    log(`  "efforts": [] is a valid decision when the vendor offers no ladder.`);
   }
+
+  if (!WRITE && unverified.length > 0) process.exit(1);
 }
 
 await main();

@@ -34,8 +34,8 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | MiMo-V2-Omni | 262,144 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | MiMo-V2.5-Pro | 1,048,576 | 128,000 | ✗ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | MiMo-V2.5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
-| MiMo-V2.6-Flash | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high,max` default — no Pi ladder) | OpenAI |
-| MiMo-V2.6-Pro | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high,max` default — no Pi ladder) | OpenAI |
+| MiMo-V2.6-Flash | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| MiMo-V2.6-Pro | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 
 ### MiniMax Series
 
@@ -43,7 +43,7 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 |-------|---------|------------|--------|-------|----------|-----|
 | MiniMax M2.5 | 196,608 | 131,072 | ✗ | ✓ | ✗ | Anthropic |
 | MiniMax M2.7 | 204,800 | 131,072 | ✗ | ✓ | ✗ | Anthropic |
-| MiniMax M3 | 1,000,000 | 131,072 | ✓ | ✓ | ✗ | Anthropic |
+| MiniMax M3 | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high`) | Anthropic |
 
 > **Note**: MiniMax models use the **Anthropic Messages API** (`apiFormat: "anthropic"`). Tool calls and results use Anthropic's `tool_use` / `tool_result` block format rather than OpenAI's function calling. M2.5/M2.7 send `temperature: 1` and `top_p: 0.95`, matching the OpenCode CLI's defaults; M3 leaves sampling to the provider default.
 
@@ -55,8 +55,8 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | Qwen3.6 Plus | 1,000,000 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | Qwen3.7 Plus | 1,000,000 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | Anthropic |
 | Qwen3.7 Max | 1,000,000 | 65,536 | ✗ | ✓ | ✓ (`low,medium,high`) | OpenAI |
-| Qwen3.8 Max | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,xhigh`) | Anthropic |
-| Qwen3.8 Flash | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high,max` default — no Pi ladder) | Anthropic |
+| Qwen3.8 Max | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Anthropic |
+| Qwen3.8 Flash | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Anthropic |
 
 > **Note**: Qwen models have a 1M context window — the largest in the lineup. The dynamic safety margin scales proportionally (~10,240 tokens). They send `temperature: 0.55` and `top_p: 1`, matching the OpenCode CLI's defaults.
 
@@ -109,7 +109,7 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
 | LongCat 2.0 | 1,000,000 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high`) | OpenAI |
-| LongCat 2.5 Preview Free | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high,max` default — no Pi ladder) | OpenAI |
+| LongCat 2.5 Preview Free | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 
 ### Anthropic Series
 

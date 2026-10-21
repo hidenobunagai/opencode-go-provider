@@ -297,6 +297,8 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsTools: true,
     supportsVision: true,
     apiFormat: "anthropic",
+    supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "qwen3.5-plus",
@@ -366,7 +368,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     fixedTemperature: 0.55,
     fixedTopP: 1,
     supportsThinking: true,
-    supportedReasoningEfforts: ["low", "medium", "xhigh"],
+    supportedReasoningEfforts: ["low", "medium", "high", "xhigh"],
   },
   {
     id: "deepseek-v4-pro",
@@ -510,6 +512,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: true,
     apiFormat: "anthropic",
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high", "xhigh"],
   },
   {
     id: "cat-jam-free",
@@ -569,6 +572,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: true,
     apiFormat: "openai",
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "mimo-v2.6-flash",
@@ -580,6 +584,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: true,
     apiFormat: "openai",
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "mimo-v2.6-pro",
@@ -591,6 +596,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: true,
     apiFormat: "openai",
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "space-bunny",

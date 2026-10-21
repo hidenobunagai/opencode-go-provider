@@ -1,5 +1,21 @@
 # Change Log
 
+## [0.1.80] - 2026-10-21
+
+### Fixed
+
+- **Every bundled model now has a researched thinking-effort ladder, and an unresearched one fails the gate.** `docs/effort-decisions.json` was empty, so 11 reasoning models shipped whatever `inferModelInfo` guessed and `bun run sync:pi` only printed a warning — which the daily job treated as success. All 11 are now recorded with their sources: `qwen3.7-plus`, `qwen3.5-plus`-family default `low,medium,high`; `qwen3.8-flash` and `qwen3.8-max` `low,medium,high,xhigh` (pi-ai `openrouter:qwen/qwen3.8-max-0902` carries the explicit map, and models.dev's `low,medium,xhigh` is missing `high` for the documented `high: null` data-entry reason); `minimax-m3` and the MiMo family `low,medium,high`; `longcat-2.0` and `longcat-2.5-preview-free` `low,medium,high`; `kimi-k2.7-code` **no ladder**.
+- **`kimi-k2.7-code` no longer offers a Thinking Effort picker.** Moonshot's docs are explicit that `reasoning_effort` is `Not supported` on K2.7 Code — thinking is always on and only `kimi-k3` takes `low`/`high`/`max`. An empty ladder is a decision, not a missing one.
+- **`minimax-m3` now exposes thinking.** Its entry had no `supportsThinking`; pi-ai and models.dev both report `reasoning: true`, and the decision supplies the ladder.
+
+### Added
+
+- **`scripts/probe-efforts.ts`** — probes each `reasoning_effort` rung against the gateway with a live key, to corroborate vendor docs. It deliberately does not read OpenCode's credential store (there is no supported way to borrow the key) and says so instead of failing obscurely.
+
+### Changed
+
+- **`no ladder evidence` is drift, not a warning.** It exits 1 like commandcode-goat-provider's `EFFORTS UNVERIFIED`, and it is reported even when field diffs already failed the run, so the agent learns every gap in one pass. `--write` cannot resolve it — the rungs have to come from the vendor.
+
 ## [0.1.79] - 2026-10-20
 
 ### Added

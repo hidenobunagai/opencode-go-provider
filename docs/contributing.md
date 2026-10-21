@@ -155,10 +155,15 @@ three sources, in this order:
 2. **Pi's explicit `thinkingLevelMap`** (`opencode-go.json` in the pi-ai install) — the levels the
    vendor's own provider file declares; `sync:pi` copies them.
 3. **Pi's generic default** (`reasoning: true`, no map) — nothing states the rungs. The sync
-   leaves such an entry alone and `bun run sync:pi` ends with
-   `⚠️ … no ladder evidence: <ids>`. Research the model (vendor docs; probe the gateway's
-   `reasoning_effort` values if it has an endpoint that takes one) before changing its picker,
-   then record a decision. One model at a time is fine — the warning never fails `--check`.
+   leaves such an entry alone and lists it under `no ladder evidence`. That list fails
+   `bun run sync:pi` (exit 1) on purpose: a warning was ignored for months, so every unverified
+   ladder is now treated as drift. Research the model (vendor docs first; `bun scripts/probe-efforts.ts <id>`
+   corroborates with a live key when one is available), then record a decision — `--write` cannot
+   fix this, because the rungs have to come from the vendor.
+
+`efforts: []` does not mean "does not think": it means the vendor exposes no effort parameter
+(Sonnet 4.5, GLM-5, Kimi K2.6 and K2.7 Code have thinking on/off but no ladder), so the picker
+stays off and the gateway default applies.
 
 The rungs are the gateway's own enum (`minimal`, `low`, `medium`, `high`, `xhigh`, `max`); the
 provider drops a configured value that is not in `supportedReasoningEfforts` at request time.
