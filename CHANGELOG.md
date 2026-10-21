@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.83] - 2026-10-21
+
+### Fixed
+
+- **Restored the MiMo thinking ladders that 0.1.82 wrongly removed.** `mimo-v2.5`, `mimo-v2.5-pro`, `mimo-v2.6-flash` and `mimo-v2.6-pro` take `low,medium,high` after all. Xiaomi's **Responses API** reference documents `reasoning.effort` with `none, minimal, low, medium, high, xhigh, max, ultra` (`minimal`→`low`, `xhigh`/`max`/`ultra`→`high`), so all three rungs are accepted. 0.1.82 dropped them because only the Chat Completions and Anthropic pages had been read — both of those document `thinking: { type: enabled | disabled }` and no effort parameter at all. A vendor splits its API reference by protocol and the effort parameter may appear on just one page; read them all.
+
 ## [0.1.82] - 2026-10-21
 
 ### Fixed

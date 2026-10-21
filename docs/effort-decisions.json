@@ -1,12 +1,56 @@
 {
   "qwen3.8-flash": {
-    "efforts": ["low", "medium", "xhigh"],
+    "efforts": [
+      "low",
+      "medium",
+      "xhigh"
+    ],
     "source": "models.dev provider opencode-go — the gateway's own published catalog — lists effort values low/medium/xhigh for this id. pi-ai carries no thinkingLevelMap here, so this is single-source; it replaces the low/medium/high/xhigh that had been borrowed from Command Code's gateway, which was a guess for a different gateway rather than evidence for this one.",
     "decided": "2026-10-21"
   },
   "qwen3.8-max": {
-    "efforts": ["low", "medium", "xhigh"],
+    "efforts": [
+      "low",
+      "medium",
+      "xhigh"
+    ],
     "source": "models.dev provider opencode-go lists effort values low/medium/xhigh for this id (pi-ai is generic here, so single-source). Replaces the low/medium/high/xhigh borrowed from Command Code's gateway.",
+    "decided": "2026-10-21"
+  },
+  "mimo-v2.5": {
+    "efforts": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "source": "Xiaomi MiMo Responses API reference (mimo.mi.com/docs/en-US/api/chat/responses): reasoning.effort lists none/minimal/low/medium/high/xhigh/max/ultra, minimal mapped to low and xhigh/max/ultra mapped to high, so low/medium/high are accepted rungs. The chat-completions and anthropic pages document only thinking.enabled|disabled, which is why this ladder had been dropped in 0.1.82 — the Responses page was missed.",
+    "decided": "2026-10-21"
+  },
+  "mimo-v2.5-pro": {
+    "efforts": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "source": "Xiaomi MiMo Responses API reference (mimo.mi.com/docs/en-US/api/chat/responses): reasoning.effort lists none/minimal/low/medium/high/xhigh/max/ultra, minimal mapped to low and xhigh/max/ultra mapped to high, so low/medium/high are accepted rungs. The chat-completions and anthropic pages document only thinking.enabled|disabled, which is why this ladder had been dropped in 0.1.82 — the Responses page was missed.",
+    "decided": "2026-10-21"
+  },
+  "mimo-v2.6-flash": {
+    "efforts": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "source": "Xiaomi MiMo Responses API reference (mimo.mi.com/docs/en-US/api/chat/responses): reasoning.effort lists none/minimal/low/medium/high/xhigh/max/ultra, minimal mapped to low and xhigh/max/ultra mapped to high, so low/medium/high are accepted rungs. The chat-completions and anthropic pages document only thinking.enabled|disabled, which is why this ladder had been dropped in 0.1.82 — the Responses page was missed.",
+    "decided": "2026-10-21"
+  },
+  "mimo-v2.6-pro": {
+    "efforts": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "source": "Xiaomi MiMo Responses API reference (mimo.mi.com/docs/en-US/api/chat/responses): reasoning.effort lists none/minimal/low/medium/high/xhigh/max/ultra, minimal mapped to low and xhigh/max/ultra mapped to high, so low/medium/high are accepted rungs. The chat-completions and anthropic pages document only thinking.enabled|disabled, which is why this ladder had been dropped in 0.1.82 — the Responses page was missed.",
     "decided": "2026-10-21"
   }
 }

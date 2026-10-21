@@ -160,7 +160,14 @@ three sources, in this order:
    neither source states cannot be measured from this repo at all, and failing the gate would
    wake the daily agent every morning for work it has no way to finish.
 
-   Record a decision only when a primary source states the ladder, and only **this** gateway's.
+   **Read every protocol page, not just one.** A vendor splits its API reference by protocol
+   (Chat Completions / Responses / Anthropic Messages) and the effort parameter may be
+   documented on only one of them. Xiaomi documents `thinking: { type: enabled | disabled }`
+   on the chat-completions and anthropic pages and `reasoning.effort` — with
+   `none,minimal,low,medium,high,xhigh,max,ultra` — only on the Responses page.
+
+   Record a decision only when a primary source states the ladder, and only for this gateway's
+   transport (a ladder from another gateway does not carry over).
    A ladder published for Command Code, OpenRouter or a vendor's own endpoints does not transfer:
    each gateway accepts its own set of rungs. That mistake shipped once (11 ids recorded from
    Command Code's research on 2026-10-21) and had to be reverted.
