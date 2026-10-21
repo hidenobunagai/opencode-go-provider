@@ -126,5 +126,8 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.69.0"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "overrides": {
+    "markdown-it": "^14.3.3"
+  }
 }

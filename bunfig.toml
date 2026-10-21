@@ -1,6 +1,7 @@
 [install]
 minimumReleaseAge = 604800
+# markdown-it: vsce -> markdown-it 14.3.3 fixes GHSA-gfr2-rv44-r23c / GHSA-vfgh-jcmw-g37q.
 # fast-uri/qs: dev-only (vsce publishing toolchain) security fixes; fast-uri 3.1.6
 # and qs 6.16.0 fix GHSA advisories flagged by OSV scan and are trusted
 # widely-used packages, so exempt them from the 7-day release-age buffer.
-minimumReleaseAgeExcludes = ["typescript", "@types/node", "@types/vscode", "@types/jest", "jest", "ts-jest", "jest-util", "fast-uri", "qs"]
+minimumReleaseAgeExcludes = ["typescript", "@types/node", "@types/vscode", "@types/jest", "jest", "ts-jest", "jest-util", "fast-uri", "qs", "markdown-it"]
