@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.81] - 2026-10-21
+
+### Fixed
+
+- **Pinned `markdown-it` to 14.3.3 so the OSV scan passes.** Two advisories (GHSA-gfr2-rv44-r23c, GHSA-vfgh-jcmw-g37q) landed against 14.3.2, reached through `@vscode/vsce`. 14.3.3 carries the fix but was still inside the 7-day `minimumReleaseAge` cooldown, so `markdown-it` joins `minimumReleaseAgeExcludes` and `overrides` pins it.
+
 ## [0.1.80] - 2026-10-21
 
 ### Fixed
