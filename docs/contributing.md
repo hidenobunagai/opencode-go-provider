@@ -155,11 +155,15 @@ three sources, in this order:
 2. **Pi's explicit `thinkingLevelMap`** (`opencode-go.json` in the pi-ai install) — the levels the
    vendor's own provider file declares; `sync:pi` copies them.
 3. **Pi's generic default** (`reasoning: true`, no map) — nothing states the rungs. The sync
-   leaves such an entry alone and lists it under `no ladder evidence`. That list fails
-   `bun run sync:pi` (exit 1) on purpose: a warning was ignored for months, so every unverified
-   ladder is now treated as drift. Research the model (vendor docs first; `bun scripts/probe-efforts.ts <id>`
-   corroborates with a live key when one is available), then record a decision — `--write` cannot
-   fix this, because the rungs have to come from the vendor.
+   leaves such an entry alone and lists it under `no ladder evidence`. That list is a **warning,
+   not drift**: the Go gateway refuses every request without an active subscription, so a ladder
+   neither source states cannot be measured from this repo at all, and failing the gate would
+   wake the daily agent every morning for work it has no way to finish.
+
+   Record a decision only when a primary source states the ladder, and only **this** gateway's.
+   A ladder published for Command Code, OpenRouter or a vendor's own endpoints does not transfer:
+   each gateway accepts its own set of rungs. That mistake shipped once (11 ids recorded from
+   Command Code's research on 2026-10-21) and had to be reverted.
 
 `efforts: []` does not mean "does not think": it means the vendor exposes no effort parameter
 (Sonnet 4.5, GLM-5, Kimi K2.6 and K2.7 Code have thinking on/off but no ladder), so the picker

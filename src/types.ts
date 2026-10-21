@@ -368,7 +368,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     fixedTemperature: 0.55,
     fixedTopP: 1,
     supportsThinking: true,
-    supportedReasoningEfforts: ["low", "medium", "high", "xhigh"],
+    supportedReasoningEfforts: ["low", "medium", "xhigh"],
   },
   {
     id: "deepseek-v4-pro",
@@ -512,7 +512,7 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsVision: true,
     apiFormat: "anthropic",
     supportsThinking: true,
-    supportedReasoningEfforts: ["low", "medium", "high", "xhigh"],
+    supportedReasoningEfforts: ["low", "medium", "xhigh"],
   },
   {
     id: "cat-jam-free",

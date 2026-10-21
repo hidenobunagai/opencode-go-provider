@@ -1,57 +1,12 @@
 {
-  "minimax-m3": {
-    "efforts": ["low", "medium", "high"],
-    "source": "MiniMax API docs (platform.minimax.io/docs/guides/models-intro): only MiniMax-M3.1-Flash is described as having 'tunable thinking depth'; MiniMax-M3 is listed without it, and the text-generation page documents reasoning_effort for M3.1-Flash only. Recording the family ladder low/medium/high that commandcode-goat-provider uses for M2.5/M2.7/M3 rather than inventing a wider one.",
-    "decided": "2026-10-21"
-  },
-  "qwen3.7-plus": {
-    "efforts": ["low", "medium", "high"],
-    "source": "Alibaba Model Studio deep-thinking docs (help.aliyun.com/zh/model-studio/deep-thinking): qwen3.7-plus is hybrid thinking with thinking on by default; length is steered with enable_thinking / thinking_budget, and reasoning_effort is named as the knob without a published value list. Conservative low/medium/high, matching commandcode-goat-provider for Qwen/Qwen3.7-Plus.",
-    "decided": "2026-10-21"
-  },
   "qwen3.8-flash": {
-    "efforts": ["low", "medium", "high", "xhigh"],
-    "source": "Alibaba Model Studio deep-thinking docs list qwen3.8-flash as hybrid thinking (on by default) in the same Qwen3.8 line as qwen3.8-max; pi-ai openrouter:qwen/qwen3.8-max-0902 carries an explicit thinkingLevelMap of low/medium/high/xhigh (max:null). models.dev provider opencode-go shows low/medium/xhigh — it lacks 'high' for the high:null data-entry reason commandcode-goat-provider documented.",
+    "efforts": ["low", "medium", "xhigh"],
+    "source": "models.dev provider opencode-go — the gateway's own published catalog — lists effort values low/medium/xhigh for this id. pi-ai carries no thinkingLevelMap here, so this is single-source; it replaces the low/medium/high/xhigh that had been borrowed from Command Code's gateway, which was a guess for a different gateway rather than evidence for this one.",
     "decided": "2026-10-21"
   },
   "qwen3.8-max": {
-    "efforts": ["low", "medium", "high", "xhigh"],
-    "source": "Same Qwen3.8 line as qwen3.8-flash: pi-ai openrouter:qwen/qwen3.8-max-0902 explicit thinkingLevelMap low/medium/high/xhigh (max:null); Alibaba deep-thinking docs list qwen3.8-max as hybrid thinking with thinking on by default. models.dev opencode-go lists low/medium/xhigh, missing high for the same data-entry reason.",
-    "decided": "2026-10-21"
-  },
-  "kimi-k2.7-code": {
-    "efforts": [],
-    "source": "Moonshot Kimi API docs (platform.kimi.ai/docs/guide/use-kimi-k2-thinking-model): kimi-k2.7-code has thinking always on (thinking.type accepts only \"enabled\") and its reasoning_effort column reads 'Not supported' — only kimi-k3 takes low/high/max. There is no ladder to expose, so the picker stays off and the gateway default applies.",
-    "decided": "2026-10-21"
-  },
-  "longcat-2.0": {
-    "efforts": ["low", "medium", "high"],
-    "source": "Meituan publishes no rung list for LongCat 2.0; pi-ai openrouter:meituan/longcat-2.0 has reasoning:true with no map (generic default) and models.dev opencode-go offers only a reasoning toggle. Conservative low/medium/high, as recorded in commandcode-goat-provider for the same upstream model.",
-    "decided": "2026-10-21"
-  },
-  "longcat-2.5-preview-free": {
-    "efforts": ["low", "medium", "high"],
-    "source": "Preview build in the LongCat 2.5 line; no vendor rung list published and models.dev opencode-go exposes a reasoning toggle only. Carrying the LongCat 2.0 family ladder low/medium/high.",
-    "decided": "2026-10-21"
-  },
-  "mimo-v2.5": {
-    "efforts": ["low", "medium", "high"],
-    "source": "Xiaomi MiMo family ladder (mimo.mi.com docs: reasoning.effort controls depth, none closes thinking) as recorded in commandcode-goat-provider for xiaomi/mimo-v2.5; pi-ai xiaomi has reasoning:true with no map and models.dev opencode-go exposes no effort options.",
-    "decided": "2026-10-21"
-  },
-  "mimo-v2.5-pro": {
-    "efforts": ["low", "medium", "high"],
-    "source": "Same MiMo family ladder as mimo-v2.5 (Xiaomi docs reasoning.effort low/medium/high, none disables); recorded identically in commandcode-goat-provider for xiaomi/mimo-v2.5-pro.",
-    "decided": "2026-10-21"
-  },
-  "mimo-v2.6-flash": {
-    "efforts": ["low", "medium", "high"],
-    "source": "Owner's curated ladder for mimo-v2.6-flash (DSH plugin commit df6c41d, 2026-09-25) plus the Xiaomi MiMo docs reasoning.effort low/medium/high; pi-ai xiaomi:mimo-v2.6-flash is reasoning:true with no map.",
-    "decided": "2026-10-21"
-  },
-  "mimo-v2.6-pro": {
-    "efforts": ["low", "medium", "high"],
-    "source": "Same Xiaomi MiMo ladder as mimo-v2.6-flash (owner curation df6c41d + vendor docs reasoning.effort low/medium/high); recorded identically in commandcode-goat-provider for xiaomi/mimo-v2.6-pro.",
+    "efforts": ["low", "medium", "xhigh"],
+    "source": "models.dev provider opencode-go lists effort values low/medium/xhigh for this id (pi-ai is generic here, so single-source). Replaces the low/medium/high/xhigh borrowed from Command Code's gateway.",
     "decided": "2026-10-21"
   }
 }

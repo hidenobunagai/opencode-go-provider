@@ -572,11 +572,13 @@ async function main() {
     process.exit(1);
   }
 
-  // Drift, the way commandcode-goat-provider's gate treats it: a reasoning model whose ladder is
-  // neither a recorded decision nor an explicit pi-ai map has an unverified picker. Leaving that
-  // as a warning is why 11 of them were never researched — the daily job exited 0 and moved on.
-  // `--write` cannot fix it (the rungs have to come from the vendor's docs), so the agent
-  // researches, records a decision, and re-runs the gate.
+  // Warning only, unlike commandcode-goat-provider where it is drift. The Go gateway needs an
+  // active subscription to answer a single request (measured 2026-10-21: every id returns "An
+  // active OpenCode Go subscription is required"), and this owner does not hold one, so a ladder
+  // that neither pi-ai nor models.dev states cannot be measured here at all. Failing the gate
+  // over it would wake the daily agent every morning for work it has no way to finish. Keep the
+  // list visible so a gap is not forgotten, and leave the shipped ladder alone rather than
+  // replacing it with a guess.
   const syncedIds = [...piMap.keys()].filter((id) =>
     new RegExp(`id:\\s*"${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`).test(
       fs.readFileSync(typesPath, "utf8"),
@@ -589,12 +591,12 @@ async function main() {
     );
     log(`  ${unverified.join(", ")}`);
     log(
-      `  Research each one (vendor docs; bun scripts/probe-efforts.ts <id> corroborates), then record { efforts, source, decided } in docs/effort-decisions.json.`,
+      `  Left as they are: measuring them needs an OpenCode Go subscription, which this repo does not have.`,
     );
-    log(`  "efforts": [] is a valid decision when the vendor offers no ladder.`);
+    log(
+      `  Record { efforts, source, decided } in docs/effort-decisions.json only when vendor docs actually state a ladder, and only from this gateway — a ladder from another gateway (Command Code, OpenRouter, ...) does not carry over.`,
+    );
   }
-
-  if (!WRITE && unverified.length > 0) process.exit(1);
 }
 
 await main();

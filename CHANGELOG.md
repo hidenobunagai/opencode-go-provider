@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.1.82] - 2026-10-21
+
+### Fixed
+
+- **Reverted 9 thinking-effort ladders that had been copied from a different gateway.** `minimax-m3`, `qwen3.7-plus`, `longcat-2.0`, `longcat-2.5-preview-free`, `mimo-v2.5`, `mimo-v2.5-pro`, `mimo-v2.6-flash` and `mimo-v2.6-pro` had been given `low,medium,high` from commandcode-goat-provider's research, and `qwen3.8-flash`/`qwen3.8-max` `low,medium,high,xhigh` the same way. Each gateway accepts its own set of `reasoning_effort` rungs, so another gateway's ladder is not evidence for this one — it was a guess. Those nine entries now carry no decision and keep whatever pi-ai implies; the two Qwen3.8 ids take `low,medium,xhigh`, which is what models.dev's `opencode-go` catalog (the gateway's own published data) states.
+- **An unverified ladder no longer fails the gate.** It went to exit 1 in 0.1.80 on the reasoning that a warning had been ignored for months. That was wrong for this repo: the Go gateway answers "An active OpenCode Go subscription is required" to every request without one, so a ladder neither pi-ai nor models.dev states cannot be measured here at all. Failing would wake the daily agent every morning for work it cannot finish. The nine ids stay listed as a warning so the gap is not forgotten.
+
 ## [0.1.81] - 2026-10-21
 
 ### Fixed
