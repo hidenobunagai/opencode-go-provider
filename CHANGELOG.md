@@ -1,5 +1,19 @@
 # Change Log
 
+## [0.1.84] - 2026-10-23
+
+### Added
+
+- **Three models the daily sync found in Pi's catalog are now bundled and documented: `beam-free`, `minimax-m3.1-flash-free` and `step-5-preview`.** Their context windows, output limits, vision flags and API formats come from pi-ai 1.4.0; `beam-free` is Reflection AI's Beam 1.0 (501B/23B active, 1M context), `minimax-m3.1-flash-free` is the 1M-context M3.1 Flash tier (512K output), and `step-5-preview` is StepFun's three-rung flagship. All three appear in `FALLBACK_MODELS`, the docs table, and the README list.
+
+### Changed
+
+- **Every previously unverified thinking ladder is now researched and recorded in `docs/effort-decisions.json`.** The new models take `low,medium,high,xhigh,max` (`beam-free`, `minimax-m3.1-flash-free`) and `low,medium,high` (`step-5-preview`), from Reflection's model reference, MiniMax's Responses API and StepFun's reasoning guide respectively. Of the five ids the sync still flagged, `minimax-m3`, `qwen3.7-plus`, `longcat-2.0` and `longcat-2.5-preview-free` are recorded with an empty ladder: all four expose thinking as a toggle (Qwen/LongCat also a token budget), not as `reasoning_effort` rungs, so their Thinking Effort pickers are turned off and the gateway default applies. `kimi-k2.7-code` keeps its empty ladder — Moonshot only accepts `thinking.type=enabled` for it. `bun run sync:pi` now reports no ladder gaps.
+
+### Fixed
+
+- **`sync:pi --write` no longer leaves an empty-ladder decision half applied.** It dropped `supportedReasoningEfforts` but left `supportsThinking: true`, and the provider then fell back to a generic `low,medium,high,max` picker — silently undoing a recorded "no rungs" decision. The write path now turns the picker off when the resolved ladder is empty, while still leaving Pi-generic models alone when no decision exists.
+
 ## [0.1.83] - 2026-10-21
 
 ### Fixed

@@ -3445,6 +3445,7 @@ describe("OcGoChatModelProvider", () => {
     it("bundles every OpenCode Go model in FALLBACK_MODELS", () => {
       const expectedModelIds = [
         "minimax-m3",
+        "minimax-m3.1-flash-free",
         "minimax-m2.7",
         "minimax-m2.5",
         "claude-haiku-5-5",
@@ -3487,6 +3488,8 @@ describe("OcGoChatModelProvider", () => {
         "longcat-2.0",
         "cat-jam-free",
         "space-bunny",
+        "beam-free",
+        "step-5-preview",
         "step-5-preview-free",
       ];
 

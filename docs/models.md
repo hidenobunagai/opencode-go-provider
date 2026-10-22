@@ -43,9 +43,10 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 |-------|---------|------------|--------|-------|----------|-----|
 | MiniMax M2.5 | 196,608 | 131,072 | ✗ | ✓ | ✗ | Anthropic |
 | MiniMax M2.7 | 204,800 | 131,072 | ✗ | ✓ | ✗ | Anthropic |
-| MiniMax M3 | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high`) | Anthropic |
+| MiniMax M3 | 1,000,000 | 131,072 | ✓ | ✓ | ✗ | Anthropic |
+| MiniMax M3.1 Flash Free | 1,000,000 | 512,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |
 
-> **Note**: MiniMax models use the **Anthropic Messages API** (`apiFormat: "anthropic"`). Tool calls and results use Anthropic's `tool_use` / `tool_result` block format rather than OpenAI's function calling. M2.5/M2.7 send `temperature: 1` and `top_p: 0.95`, matching the OpenCode CLI's defaults; M3 leaves sampling to the provider default.
+> **Note**: M2.5, M2.7 and M3 use the **Anthropic Messages API** (`apiFormat: "anthropic"`); M3.1 Flash Free is served over OpenAI chat completions. Tool calls and results use Anthropic's `tool_use` / `tool_result` block format rather than OpenAI's function calling on the Anthropic path. M2.5/M2.7 send `temperature: 1` and `top_p: 0.95`, matching the OpenCode CLI's defaults; M3 and M3.1 leave sampling to the provider default.
 
 ### Qwen Series (Alibaba)
 
@@ -53,7 +54,7 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 |-------|---------|------------|--------|-------|----------|-----|
 | Qwen3.5 Plus | 1,000,000 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | Qwen3.6 Plus | 1,000,000 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
-| Qwen3.7 Plus | 1,000,000 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | Anthropic |
+| Qwen3.7 Plus | 1,000,000 | 65,536 | ✓ | ✓ | ✗ | Anthropic |
 | Qwen3.7 Max | 1,000,000 | 65,536 | ✗ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | Qwen3.8 Max | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,xhigh`) | Anthropic |
 | Qwen3.8 Flash | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,xhigh`) | Anthropic |
@@ -108,8 +109,8 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| LongCat 2.0 | 1,000,000 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high`) | OpenAI |
-| LongCat 2.5 Preview Free | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| LongCat 2.0 | 1,000,000 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
+| LongCat 2.5 Preview Free | 1,000,000 | 131,072 | ✓ | ✓ | ✗ | OpenAI |
 
 ### Anthropic Series
 
@@ -123,7 +124,11 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 |-------|---------|------------|--------|-------|----------|-----|
 | Cat Jam Free | 262,144 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |
 | Space Bunny | 1,048,576 | 524,288 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |
+| Beam Free | 1,048,576 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |
+| Step 5 Preview | 1,000,000 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | Step 5 Preview Free | 1,000,000 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+
+> **Note**: Beam Free serves Reflection AI's Beam 1.0 (501B total / 23B active, 1M context); reasoning is mandatory and the ladder is Reflection's `supported_efforts`. Step 5 Preview and its free tier are StepFun models with a three-rung `low,medium,high` ladder.
 
 ### Ox Series
 
@@ -157,7 +162,7 @@ When adding a new model, check this matrix first and prefer registering quirks i
 
 ### Thinking (Reasoning Effort)
 
-Models with `supportsThinking: true` show a **Thinking Effort** dropdown in the model picker. This controls the `reasoning_effort` parameter, allowing users to trade reasoning depth for speed. The available levels are **per-model**, synced from `pi-ai`'s `thinkingLevelMap` for `opencode-go` (see `src/types.ts`):
+Models with `supportsThinking: true` show a **Thinking Effort** dropdown in the model picker. This controls the `reasoning_effort` parameter, allowing users to trade reasoning depth for speed. The available levels are **per-model**, taken from `pi-ai`'s `thinkingLevelMap` for `opencode-go` or from a researched decision in `docs/effort-decisions.json` (see `src/types.ts`):
 
 - `minimal` — Minimal reasoning (e.g. Muse Spark)
 - `low` — Reduced reasoning
@@ -169,10 +174,12 @@ Models with `supportsThinking: true` show a **Thinking Effort** dropdown in the 
 Examples (see tables above for the full list):
 
 - `muse-spark-1.2-contributor`: `minimal,low,medium,high,xhigh` — **no `max`**
-- `grok-4.5` / `longcat-2.0`: `low,medium,high` — **no `xhigh`/`max`**
+- `grok-4.5`: `low,medium,high` — **no `xhigh`/`max`**
 - `deepseek-v4-flash`: `low,high,max` — **no `medium`/`xhigh`**
 - `gpt-5.6-luna`: `low,medium,high,xhigh,max` — all levels
-- `kimi-k2.6` / `kimi-k2.7-code` / MiniMax: **no thinking UI** (`supportsThinking: false`)
+- `kimi-k2.6` / `kimi-k2.7-code` / `minimax-m3` / MiniMax M2.x / `qwen3.7-plus` / `longcat-2.0` / `longcat-2.5-preview-free`: **no thinking UI** (`supportsThinking: false` — the vendor exposes only a thinking on/off toggle or a token budget, not effort rungs)
+- `step-5-preview` / `step-5-preview-free`: `low,medium,high` — StepFun's three-rung ladder
+- `beam-free` / `minimax-m3.1-flash-free`: `low,medium,high,xhigh,max` — all levels
 
 For Responses-API models (`grok-4.5`, `gpt-5.6-luna`, `muse-spark-1.2-contributor`) the effort is sent as `reasoning.effort` with `summary: "auto"`; for OpenAI `chat.completions` models it is sent as `reasoning_effort`. The extension validates the selection per model and drops unsupported values (with `max<->xhigh` alias for stale configs).
 

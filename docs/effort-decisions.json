@@ -1,4 +1,60 @@
 {
+  "beam-free": {
+    "efforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ],
+    "source": "Reflection developer docs, Models (https://developers.reflection.ai/models): Beam-1.0-501B-A23B reports reasoning.supported_efforts max/xhigh/high/medium/low with reasoning mandatory, and the free tier serves the same model. models.dev's opencode-go entry lists the same five rungs, so this gateway exposes them for beam-free.",
+    "decided": "2026-10-23"
+  },
+  "minimax-m3.1-flash-free": {
+    "efforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ],
+    "source": "MiniMax Responses API reference (https://platform.minimax.io/docs/api-reference/responses-create): MiniMax-M3.1-Flash always reasons and reasoning.effort accepts low/medium/high/xhigh/max (none returns HTTP 400). models.dev's opencode-go entry lists the same five rungs.",
+    "decided": "2026-10-23"
+  },
+  "step-5-preview": {
+    "efforts": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "source": "StepFun Step Plan reasoning guide (https://platform.stepfun.ai/docs/en/step-plan/integrations/reasoning-api): models with three effort levels accept low/medium/high through reasoning_effort, and step-5-preview is listed in the Step Plan model table. models.dev's opencode-go entry lists low/medium/high.",
+    "decided": "2026-10-23"
+  },
+  "minimax-m3": {
+    "efforts": [],
+    "source": "MiniMax Responses API reference (https://platform.minimax.io/docs/api-reference/responses-create): for MiniMax-M3, effort only turns reasoning on (any non-none value) and does not tune its depth. models.dev's opencode-go entry exposes a toggle with no effort values, so there is no ladder to send.",
+    "decided": "2026-10-23"
+  },
+  "qwen3.7-plus": {
+    "efforts": [],
+    "source": "Alibaba Cloud Model Studio qwen3.7-plus (https://www.alibabacloud.com/help/en/model-studio/qwen3-7-plus) documents thinking mode but no effort enum for this id; reasoning.effort exists only on the Responses API. models.dev's opencode-go entry exposes a toggle plus a thinking budget (max 262144) and no effort values, and this extension reaches the model over Anthropic Messages, so there is no ladder to send.",
+    "decided": "2026-10-23"
+  },
+  "kimi-k2.7-code": {
+    "efforts": [],
+    "source": "Moonshot Kimi API reference (https://platform.moonshot.ai/docs/api/chat): kimi-k2.7-code accepts thinking.type=enabled only (thinking is always on; disabled is an error) and no reasoning_effort; the low/high/max ladder belongs to kimi-k3. models.dev's opencode-go entry lists no reasoning options.",
+    "decided": "2026-10-23"
+  },
+  "longcat-2.0": {
+    "efforts": [],
+    "source": "LongCat API docs, Model Parameters (https://longcat.chat/platform/docs/api/model-params): thinking is a binary switch (thinking.type enabled/disabled) plus thinking_budget up to 262144, and the Chat Completions reference exposes no reasoning_effort. models.dev's opencode-go entry lists a toggle only.",
+    "decided": "2026-10-23"
+  },
+  "longcat-2.5-preview-free": {
+    "efforts": [],
+    "source": "LongCat API docs, Model Parameters (https://longcat.chat/platform/docs/api/model-params): thinking is a binary switch (thinking.type enabled/disabled) plus thinking_budget up to 262144, and the Chat Completions reference exposes no reasoning_effort. models.dev's opencode-go entry lists a toggle only.",
+    "decided": "2026-10-23"
+  },
   "qwen3.8-flash": {
     "efforts": [
       "low",

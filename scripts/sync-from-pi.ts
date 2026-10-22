@@ -206,7 +206,6 @@ function syncTypes(
     const expMax = piModel.maxTokens;
     const expVision = piModel.input.includes("image");
     const expApi = piApiToOurs(piModel.api);
-    const expThinking = piModel.reasoning;
     // null => Pi is generic and no decision exists: leave the entry alone rather than guess
     const expEfforts = resolveEfforts(
       piId,
@@ -268,39 +267,31 @@ function syncTypes(
       }
     }
 
-    // supportsThinking
+    // supportsThinking. A researched ladder (or Pi's explicit empty map) decides the picker;
+    // Pi's generic default carries no evidence, so keep the current value instead of guessing.
+    // A decision of [] must turn the picker off here as well as dropping the ladder below:
+    // provider.ts re-applies its generic fallback whenever supportsThinking stays true with an
+    // empty supportedReasoningEfforts, which would silently undo a "no ladder" decision.
     const thinkingMatch = block.match(/supportsThinking:\s*(true|false),?/);
     const curThinking = thinkingMatch ? thinkingMatch[1] === "true" : false;
-    if (curThinking !== expThinking) {
-      // For kimi-k2.6 etc, Pi reasoning true but map all null => we treat as no UI (false)
-      // piThinkingToEfforts returns [] for those, which we handle below
-      // So we should set supportsThinking based on expThinking && expEfforts !== []
-      const shouldThink =
-        expThinking && expEfforts !== null && expEfforts.length !== 0
-          ? true
-          : expThinking
-            ? expEfforts === null
-              ? true
-              : expEfforts.length > 0
-            : false;
-      // Actually for kimi-k2.6, expThinking true but efforts [] => should be false
-      const finalThink = expEfforts !== null ? expEfforts.length > 0 : expThinking;
-      // For models where Pi has no map, we keep as true (generic)
-      const targetThinking = expThinking && expEfforts === null ? curThinking : finalThink;
-      if (curThinking !== targetThinking) {
-        diffs.push(`${piId}: supportsThinking ${curThinking} -> ${targetThinking}`);
-        if (thinkingMatch) {
-          block = block.replace(
-            /supportsThinking:\s*(true|false),?/,
-            `supportsThinking: ${targetThinking},`,
-          );
-        } else {
-          // add
-          block = block.replace(
-            /apiFormat:\s*"[^"]+",/,
-            `$&\n    supportsThinking: ${targetThinking},`,
-          );
-        }
+    const targetThinking = !piModel.reasoning
+      ? false
+      : expEfforts === null
+        ? curThinking
+        : expEfforts.length > 0;
+    if (curThinking !== targetThinking) {
+      diffs.push(`${piId}: supportsThinking ${curThinking} -> ${targetThinking}`);
+      if (thinkingMatch) {
+        block = block.replace(
+          /supportsThinking:\s*(true|false),?/,
+          `supportsThinking: ${targetThinking},`,
+        );
+      } else {
+        // add
+        block = block.replace(
+          /apiFormat:\s*"[^"]+",/,
+          `$&\n    supportsThinking: ${targetThinking},`,
+        );
       }
     }
 
