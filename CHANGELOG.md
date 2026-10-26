@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.85] - 2026-10-27
+
+### Fixed
+
+- **Tool-call and tool-result token estimation is now accurate, and the request-size pre-guard works as intended.** A new per-part estimator in the tokenizer replaces the flat fallback that under-counted tool payloads, so requests carrying large tool results in their history are measured correctly and the pre-flight guard can stop oversized requests before they are sent.
+
 ## [0.1.84] - 2026-10-23
 
 ### Added
