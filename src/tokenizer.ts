@@ -1,5 +1,15 @@
 import * as vscode from "vscode";
-import { getDataPartTextValue, getTextPartValue, type LegacyPart } from "./message-parts";
+import {
+  extractImageData,
+  getDataPartTextValue,
+  getTextPartValue,
+  getToolCallInfo,
+  getToolResultEntries,
+  type LegacyPart,
+} from "./message-parts";
+
+export const IMAGE_BASELINE_TOKENS = 1000;
+export const TOOL_CALL_BASE_TOKENS = 8;
 
 /**
  * CJK and full-width characters.  Modern tokenizers typically encode these at
@@ -18,7 +28,7 @@ const CJK_CHAR_PATTERN =
  *   this estimator for Latin-heavy text).
  */
 export function estimateTokens(text: string): number {
-  if (!text) return 0;
+  if (!text || text.trim().length === 0) return 0;
   let cjkCount = 0;
   let otherCount = 0;
   for (const ch of text) {
@@ -31,19 +41,69 @@ export function estimateTokens(text: string): number {
   return cjkCount + Math.ceil(otherCount / 2);
 }
 
+export function estimatePartTokens(part: vscode.LanguageModelInputPart | LegacyPart): number {
+  const textValue = getTextPartValue(part);
+  if (textValue !== undefined) {
+    return estimateTokens(textValue);
+  }
+
+  const dataTextValue = getDataPartTextValue(part);
+  if (dataTextValue !== undefined) {
+    return estimateTokens(dataTextValue);
+  }
+
+  const toolCall = getToolCallInfo(part);
+  if (toolCall !== undefined) {
+    const nameTokens = toolCall.name ? estimateTokens(toolCall.name) : 0;
+    let argsText = "";
+    if (toolCall.args !== undefined) {
+      try {
+        argsText = JSON.stringify(toolCall.args);
+      } catch {
+        argsText = String(toolCall.args);
+      }
+    } else {
+      argsText = "{}";
+    }
+    const argsTokens = estimateTokens(argsText);
+    return TOOL_CALL_BASE_TOKENS + nameTokens + argsTokens;
+  }
+
+  const toolResults = getToolResultEntries([part]);
+  if (toolResults.length > 0) {
+    return toolResults.reduce((sum, entry) => sum + estimateTokens(entry.content), 0);
+  }
+
+  const image = extractImageData(part);
+  if (image !== undefined) {
+    return IMAGE_BASELINE_TOKENS;
+  }
+
+  return 0;
+}
+
+export function estimateMessageTokens(message: {
+  content: readonly (vscode.LanguageModelInputPart | LegacyPart)[];
+}): number {
+  if (!message || !Array.isArray(message.content)) {
+    return 0;
+  }
+  let total = 0;
+  for (const part of message.content) {
+    total += estimatePartTokens(part);
+  }
+  return total;
+}
+
 export function estimateMessagesTokens(
   messages: readonly { content: (vscode.LanguageModelInputPart | LegacyPart)[] }[],
 ): number {
-  let total = 0;
-
-  for (const message of messages) {
-    for (const part of message.content) {
-      const textValue = getTextPartValue(part) ?? getDataPartTextValue(part);
-      if (textValue !== undefined) {
-        total += estimateTokens(textValue);
-      }
-    }
+  if (!Array.isArray(messages)) {
+    return 0;
   }
-
+  let total = 0;
+  for (const message of messages) {
+    total += estimateMessageTokens(message);
+  }
   return total;
 }

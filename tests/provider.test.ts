@@ -322,6 +322,38 @@ describe("OcGoChatModelProvider", () => {
     ).rejects.toThrow("Message exceeds token limit");
   });
 
+  it("throws when message exceeds token limit due to large tool result", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    const largeContent = "console.log('output');\n".repeat(500);
+    const messages = [
+      {
+        role: 1,
+        content: [
+          new (vscode as any).LanguageModelToolResultPart("call_1", [
+            new (vscode as any).LanguageModelTextPart(largeContent),
+          ]),
+        ],
+      },
+    ];
+
+    await expect(
+      provider.provideLanguageModelChatResponse(
+        { id: "kimi-k2.6", maxInputTokens: 50, maxOutputTokens: 65536 } as any,
+        messages as any,
+        { modelOptions: {} } as any,
+        progress,
+        token as any,
+      ),
+    ).rejects.toThrow("Message exceeds token limit");
+  });
+
   it("prompts for an API key during chat and continues the request when one is provided", async () => {
     (secrets.get as jest.Mock).mockResolvedValue(undefined);
     ((vscode as any).window.showInputBox as jest.Mock).mockResolvedValue("new-api-key");
@@ -3549,6 +3581,36 @@ describe("OcGoChatModelProvider", () => {
       const futureMinimax = inferModelInfo("minimax-m4");
       expect(futureMinimax.apiFormat).toBe("anthropic");
       expect(futureMinimax.maxOutput).toBe(131072);
+    });
+  });
+
+  describe("provideTokenCount", () => {
+    const dummyModel = { id: "kimi-k2.6", maxInputTokens: 100000, maxOutputTokens: 65536 } as any;
+    const dummyToken = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    } as any;
+
+    it("returns estimateTokens when input is a string", async () => {
+      const count = await provider.provideTokenCount(dummyModel, "Hello world", dummyToken);
+      expect(count).toBe(6);
+    });
+
+    it("returns accurate token count for message containing only tool results instead of legacy 2 tokens", async () => {
+      const toolOutput = "Line 1\nLine 2\nLine 3: result data";
+      const message = {
+        role: 1,
+        content: [
+          new (vscode as any).LanguageModelToolResultPart("call_1", [
+            new (vscode as any).LanguageModelTextPart(toolOutput),
+          ]),
+        ],
+      };
+
+      const count = await provider.provideTokenCount(dummyModel, message as any, dummyToken);
+      // "Line 1\nLine 2\nLine 3: result data" has 32 chars -> ceil(32/2) = 16 tokens
+      expect(count).toBeGreaterThan(10);
+      expect(count).not.toBe(2);
     });
   });
 });

@@ -53,6 +53,7 @@ Test files live in `tests/` and mirror the `src/` structure:
 - `tests/extension.test.ts` — Extension activation/deactivation
 - `tests/openai-conversion.test.ts` — OpenAI message/tool conversion and token estimation
 - `tests/responses-conversion.test.ts` — Responses API message conversion
+- `tests/tokenizer.test.ts` — Token estimation for text, tool calls, tool results, and images
 - `tests/usage.test.ts` — Usage/quota fetching
 - `tests/usage-bar.test.ts` — Status bar usage display
 - `tests/docs-inventories.test.ts` — Holds the hand-written file lists in this doc and `architecture.md` to what is on disk

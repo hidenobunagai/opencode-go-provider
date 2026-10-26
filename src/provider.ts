@@ -25,7 +25,7 @@ import { debugLog } from "./output-channel";
 import { handleAnthropicRequest } from "./streaming/anthropic";
 import { processOpenAIStream, type OpenAIModelInfo } from "./streaming/openai";
 import { handleResponsesRequest } from "./streaming/responses";
-import { estimateMessagesTokens, estimateTokens } from "./tokenizer";
+import { estimateMessageTokens, estimateMessagesTokens, estimateTokens } from "./tokenizer";
 import {
   FALLBACK_MODELS,
   OcGoModelInfo,
@@ -596,17 +596,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
     if (typeof text === "string") {
       return Promise.resolve(estimateTokens(text));
     }
-    const textParts: string[] = [];
-    for (const part of text.content) {
-      const value = getTextPartValue(part as never);
-      if (value !== undefined) {
-        textParts.push(value);
-      }
-    }
-    if (textParts.length === 0) {
-      return Promise.resolve(2 * text.content.length);
-    }
-    return Promise.resolve(estimateTokens(textParts.join(" ")));
+    return Promise.resolve(estimateMessageTokens(text as never));
   }
 
   private async ensureApiKey(options: unknown, silent: boolean): Promise<string | undefined> {
