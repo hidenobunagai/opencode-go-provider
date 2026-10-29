@@ -8,3 +8,7 @@ reason = "Transitive dev dependency from jest/fast-glob via micromatch; no upstr
 [[IgnoredVulns]]
 id = "GHSA-hp3w-g68c-fv3c"
 reason = "Transitive dev dependency from istanbuljs/argparse via sprintf-js 1.0.3; no 1.0.x upstream fix"
+
+[[IgnoredVulns]]
+id = "GHSA-gcqx-w48m-w2h4"
+reason = "Transitive dev dependency from jest via jest-config -> deepmerge 4.3.1 (test tooling only, not shipped in the extension); no fixed version published (CVE-2026-93753)"
