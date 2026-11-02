@@ -12,3 +12,13 @@ reason = "Transitive dev dependency from istanbuljs/argparse via sprintf-js 1.0.
 [[IgnoredVulns]]
 id = "GHSA-gcqx-w48m-w2h4"
 reason = "Transitive dev dependency from jest via jest-config -> deepmerge 4.3.1 (test tooling only, not shipped in the extension); no fixed version published (CVE-2026-93753)"
+
+[[IgnoredVulns]]
+id = "GHSA-3g3m-2fjr-6pw4"
+ignoreUntil = 2026-12-03T00:00:00Z
+reason = "glob 13.0.6 is a dev-only dependency of @vscode/vsce (publishing toolchain, not shipped: node_modules is excluded from the VSIX). The fix is only in glob 14 (a new major outside vsce's ^13 range, released 2026-10-27 and still inside the 7-day release-age cooldown); revisit when vsce moves to glob 14."
+
+[[IgnoredVulns]]
+id = "GHSA-g3hv-75wg-m249"
+ignoreUntil = 2026-12-03T00:00:00Z
+reason = "minimatch 10.2.6 (eslint, typescript-eslint, vsce, glob) and 3.1.5 (jest's glob@7, test-exclude) are dev-only, not shipped in the VSIX. The fix is only in minimatch 11 (a new major released 2026-10-27); forcing it onto glob@7 / test-exclude, which call the v3 default export, would break jest. Revisit when the consuming tools move to minimatch 11."

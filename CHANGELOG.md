@@ -13,7 +13,7 @@
 
 ### Fixed
 
-- **Dependency advisories cleared so the OSV scan passes.** `@azure/msal-node`, `fast-uri` and `undici` are bumped and pinned via `overrides`, and `qs` is bumped. The `deepmerge` advisory (GHSA-gcqx-w48m-w2h4) is ignored in `osv-scanner.toml`: it comes only from jest's test tooling, is not shipped in the extension, and has no fixed version.
+- **Dependency advisories cleared so the OSV scan passes.** `@azure/msal-node`, `fast-uri` and `undici` are bumped and pinned via `overrides`, and `qs` is bumped. The `deepmerge` advisory (GHSA-gcqx-w48m-w2h4) is ignored in `osv-scanner.toml`: it comes only from jest's test tooling, is not shipped in the extension, and has no fixed version. Two advisories published on 2026-10-30 against `glob` 13 (GHSA-3g3m-2fjr-6pw4) and `minimatch` 10/3 (GHSA-g3hv-75wg-m249) are ignored until 2026-12-03 for the same reason: they arrive only through vsce, eslint and jest, and the fixes exist only in new majors (`glob` 14, `minimatch` 11) that those tools do not accept yet.
 
 ## [0.1.85] - 2026-10-27
 
