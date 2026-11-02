@@ -1,32 +1,16 @@
 {
   "beam-free": {
-    "efforts": [
-      "low",
-      "medium",
-      "high",
-      "xhigh",
-      "max"
-    ],
+    "efforts": ["low", "medium", "high", "xhigh", "max"],
     "source": "Reflection developer docs, Models (https://developers.reflection.ai/models): Beam-1.0-501B-A23B reports reasoning.supported_efforts max/xhigh/high/medium/low with reasoning mandatory, and the free tier serves the same model. models.dev's opencode-go entry lists the same five rungs, so this gateway exposes them for beam-free.",
     "decided": "2026-10-23"
   },
   "minimax-m3.1-flash-free": {
-    "efforts": [
-      "low",
-      "medium",
-      "high",
-      "xhigh",
-      "max"
-    ],
+    "efforts": ["low", "medium", "high", "xhigh", "max"],
     "source": "MiniMax Responses API reference (https://platform.minimax.io/docs/api-reference/responses-create): MiniMax-M3.1-Flash always reasons and reasoning.effort accepts low/medium/high/xhigh/max (none returns HTTP 400). models.dev's opencode-go entry lists the same five rungs.",
     "decided": "2026-10-23"
   },
   "step-5-preview": {
-    "efforts": [
-      "low",
-      "medium",
-      "high"
-    ],
+    "efforts": ["low", "medium", "high"],
     "source": "StepFun Step Plan reasoning guide (https://platform.stepfun.ai/docs/en/step-plan/integrations/reasoning-api): models with three effort levels accept low/medium/high through reasoning_effort, and step-5-preview is listed in the Step Plan model table. models.dev's opencode-go entry lists low/medium/high.",
     "decided": "2026-10-23"
   },
@@ -56,57 +40,43 @@
     "decided": "2026-10-23"
   },
   "qwen3.8-flash": {
-    "efforts": [
-      "low",
-      "medium",
-      "xhigh"
-    ],
+    "efforts": ["low", "medium", "xhigh"],
     "source": "models.dev provider opencode-go — the gateway's own published catalog — lists effort values low/medium/xhigh for this id. pi-ai carries no thinkingLevelMap here, so this is single-source; it replaces the low/medium/high/xhigh that had been borrowed from Command Code's gateway, which was a guess for a different gateway rather than evidence for this one.",
     "decided": "2026-10-21"
   },
   "qwen3.8-max": {
-    "efforts": [
-      "low",
-      "medium",
-      "xhigh"
-    ],
+    "efforts": ["low", "medium", "xhigh"],
     "source": "models.dev provider opencode-go lists effort values low/medium/xhigh for this id (pi-ai is generic here, so single-source). Replaces the low/medium/high/xhigh borrowed from Command Code's gateway.",
     "decided": "2026-10-21"
   },
   "mimo-v2.5": {
-    "efforts": [
-      "low",
-      "medium",
-      "high"
-    ],
+    "efforts": ["low", "medium", "high"],
     "source": "Xiaomi MiMo Responses API reference (mimo.mi.com/docs/en-US/api/chat/responses): reasoning.effort lists none/minimal/low/medium/high/xhigh/max/ultra, minimal mapped to low and xhigh/max/ultra mapped to high, so low/medium/high are accepted rungs. The chat-completions and anthropic pages document only thinking.enabled|disabled, which is why this ladder had been dropped in 0.1.82 — the Responses page was missed.",
     "decided": "2026-10-21"
   },
   "mimo-v2.5-pro": {
-    "efforts": [
-      "low",
-      "medium",
-      "high"
-    ],
+    "efforts": ["low", "medium", "high"],
     "source": "Xiaomi MiMo Responses API reference (mimo.mi.com/docs/en-US/api/chat/responses): reasoning.effort lists none/minimal/low/medium/high/xhigh/max/ultra, minimal mapped to low and xhigh/max/ultra mapped to high, so low/medium/high are accepted rungs. The chat-completions and anthropic pages document only thinking.enabled|disabled, which is why this ladder had been dropped in 0.1.82 — the Responses page was missed.",
     "decided": "2026-10-21"
   },
   "mimo-v2.6-flash": {
-    "efforts": [
-      "low",
-      "medium",
-      "high"
-    ],
+    "efforts": ["low", "medium", "high"],
     "source": "Xiaomi MiMo Responses API reference (mimo.mi.com/docs/en-US/api/chat/responses): reasoning.effort lists none/minimal/low/medium/high/xhigh/max/ultra, minimal mapped to low and xhigh/max/ultra mapped to high, so low/medium/high are accepted rungs. The chat-completions and anthropic pages document only thinking.enabled|disabled, which is why this ladder had been dropped in 0.1.82 — the Responses page was missed.",
     "decided": "2026-10-21"
   },
   "mimo-v2.6-pro": {
-    "efforts": [
-      "low",
-      "medium",
-      "high"
-    ],
+    "efforts": ["low", "medium", "high"],
     "source": "Xiaomi MiMo Responses API reference (mimo.mi.com/docs/en-US/api/chat/responses): reasoning.effort lists none/minimal/low/medium/high/xhigh/max/ultra, minimal mapped to low and xhigh/max/ultra mapped to high, so low/medium/high are accepted rungs. The chat-completions and anthropic pages document only thinking.enabled|disabled, which is why this ladder had been dropped in 0.1.82 — the Responses page was missed.",
     "decided": "2026-10-21"
+  },
+  "kimi-k3.1-pro": {
+    "efforts": ["low", "high", "max"],
+    "source": "Moonshot Kimi API reference, Chat Completions (https://platform.moonshot.ai/docs/api/chat): the kimi-k3.1-pro series schema takes a top-level reasoning_effort enum of low/high/max (default max), with thinking always on. pi-ai 1.5.0's thinkingLevelMap for this id and models.dev's opencode-go entry list the same three rungs for this gateway.",
+    "decided": "2026-11-03"
+  },
+  "minimax-m3.1-flash": {
+    "efforts": ["low", "medium", "high", "xhigh", "max"],
+    "source": "MiniMax Responses API reference (https://platform.minimax.io/docs/api-reference/responses-create): MiniMax-M3.1-Flash always reasons and reasoning.effort accepts low/medium/high/xhigh/max. This is the paid tier of the model already recorded for minimax-m3.1-flash-free; pi-ai 1.5.0's thinkingLevelMap and models.dev's opencode-go entry list the same five rungs.",
+    "decided": "2026-11-03"
   }
 }

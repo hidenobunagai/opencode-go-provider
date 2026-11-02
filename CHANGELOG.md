@@ -1,5 +1,20 @@
 # Change Log
 
+## [0.1.86] - 2026-11-03
+
+### Added
+
+- **Three models the daily sync found in Pi's catalog are now bundled and documented: `kimi-k3.1-pro`, `minimax-m3.1-flash` and `iceman-contributor-free`.** Their context windows, output limits, vision flags and API formats come from pi-ai 1.5.0. `kimi-k3.1-pro` is Moonshot's 1M-context K3.1 Pro (131K output, vision) and, like the other Kimi models, sends `temperature: 1` and goes through the `reasoning_content` workaround. `minimax-m3.1-flash` is the paid tier of the M3.1 Flash model already bundled as `minimax-m3.1-flash-free` (1M context, 512K output, vision, OpenAI chat completions). `iceman-contributor-free` is an undisclosed stealth model, free for a limited time (262K context, 131K output, text only). All three appear in `FALLBACK_MODELS`, the docs tables, and the README list.
+
+### Changed
+
+- **The new models' thinking ladders are researched and recorded in `docs/effort-decisions.json`.** `kimi-k3.1-pro` takes `low,high,max`: Moonshot's Chat Completions reference gives the K3.1 Pro series a `reasoning_effort` enum of exactly those three rungs, and pi-ai and models.dev's `opencode-go` entry agree for this gateway (where `kimi-k3` stays `max` only). `minimax-m3.1-flash` takes `low,medium,high,xhigh,max`, the same MiniMax Responses API ladder as its free tier. `iceman-contributor-free` has no recorded decision: the vendor is undisclosed, pi-ai gives it no `thinkingLevelMap`, and models.dev's empty `reasoning_options` is not evidence of "no ladder" (the MiMo ids, whose ladders Xiaomi documents, are listed the same way). It keeps the generic picker and `sync:pi` lists it under `no ladder evidence` until a primary source states its rungs.
+- **A format/lint gate now runs in CI on changed files.** `.github/workflows/format.yml` and `scripts/format-check.sh` check the files a push or PR touches with oxfmt and oxlint (`.oxfmtrc.json`, with `dist/` skipped via `.formatignore`).
+
+### Fixed
+
+- **Dependency advisories cleared so the OSV scan passes.** `@azure/msal-node`, `fast-uri` and `undici` are bumped and pinned via `overrides`, and `qs` is bumped. The `deepmerge` advisory (GHSA-gcqx-w48m-w2h4) is ignored in `osv-scanner.toml`: it comes only from jest's test tooling, is not shipped in the extension, and has no fixed version.
+
 ## [0.1.85] - 2026-10-27
 
 ### Fixed

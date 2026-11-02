@@ -22,9 +22,10 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | Kimi K2.6 | 262,144 | 65,536 | ✓ | ✓ | ✗ | OpenAI |
 | Kimi K2.7 Code | 262,144 | 262,144 | ✓ | ✓ | ✗ | OpenAI |
 | Kimi K3 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`max`) | OpenAI |
+| Kimi K3.1 Pro | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
 
 > **Note**: Kimi models use `fixedTemperature: 1` for optimal performance. Kimi K2.5 also sends `top_p: 0.95`, matching the OpenCode CLI's per-model sampling defaults.
-> Kimi models other than K2.5 (K2.6, K2.7 Code, K3, ...) require `REASONING_CONTENT_WORKAROUND_MODELS` for correct streaming output.
+> Kimi models other than K2.5 (K2.6, K2.7 Code, K3, K3.1 Pro, ...) require `REASONING_CONTENT_WORKAROUND_MODELS` for correct streaming output.
 
 ### MiMo Series
 
@@ -44,9 +45,10 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | MiniMax M2.5 | 196,608 | 131,072 | ✗ | ✓ | ✗ | Anthropic |
 | MiniMax M2.7 | 204,800 | 131,072 | ✗ | ✓ | ✗ | Anthropic |
 | MiniMax M3 | 1,000,000 | 131,072 | ✓ | ✓ | ✗ | Anthropic |
+| MiniMax M3.1 Flash | 1,000,000 | 512,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |
 | MiniMax M3.1 Flash Free | 1,000,000 | 512,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |
 
-> **Note**: M2.5, M2.7 and M3 use the **Anthropic Messages API** (`apiFormat: "anthropic"`); M3.1 Flash Free is served over OpenAI chat completions. Tool calls and results use Anthropic's `tool_use` / `tool_result` block format rather than OpenAI's function calling on the Anthropic path. M2.5/M2.7 send `temperature: 1` and `top_p: 0.95`, matching the OpenCode CLI's defaults; M3 and M3.1 leave sampling to the provider default.
+> **Note**: M2.5, M2.7 and M3 use the **Anthropic Messages API** (`apiFormat: "anthropic"`); M3.1 Flash and its free tier are served over OpenAI chat completions. Tool calls and results use Anthropic's `tool_use` / `tool_result` block format rather than OpenAI's function calling on the Anthropic path. M2.5/M2.7 send `temperature: 1` and `top_p: 0.95`, matching the OpenCode CLI's defaults; M3 and M3.1 leave sampling to the provider default.
 
 ### Qwen Series (Alibaba)
 
@@ -123,12 +125,13 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
 | Cat Jam Free | 262,144 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |
+| Iceman Contributor Free | 262,144 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high,max`, unverified) | OpenAI |
 | Space Bunny | 1,048,576 | 524,288 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |
 | Beam Free | 1,048,576 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |
 | Step 5 Preview | 1,000,000 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | Step 5 Preview Free | 1,000,000 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 
-> **Note**: Beam Free serves Reflection AI's Beam 1.0 (501B total / 23B active, 1M context); reasoning is mandatory and the ladder is Reflection's `supported_efforts`. Step 5 Preview and its free tier are StepFun models with a three-rung `low,medium,high` ladder.
+> **Note**: Beam Free serves Reflection AI's Beam 1.0 (501B total / 23B active, 1M context); reasoning is mandatory and the ladder is Reflection's `supported_efforts`. Step 5 Preview and its free tier are StepFun models with a three-rung `low,medium,high` ladder. Iceman Contributor Free is an undisclosed stealth model, free for a limited time; it reasons, but neither pi-ai nor a vendor document states its effort ladder, so it keeps the generic `low,medium,high,max` picker and `sync:pi` lists it under `no ladder evidence`.
 
 ### Ox Series
 
@@ -169,7 +172,7 @@ Models with `supportsThinking: true` show a **Thinking Effort** dropdown in the 
 - `medium` — Balanced
 - `high` — Strong reasoning
 - `xhigh` — Extra-high reasoning (e.g. Muse, GPT Luna)
-- `max` — Maximum reasoning (e.g. DeepSeek, GPT Luna, Kimi K3)
+- `max` — Maximum reasoning (e.g. DeepSeek, GPT Luna, Kimi K3 / K3.1 Pro)
 
 Examples (see tables above for the full list):
 
@@ -179,7 +182,8 @@ Examples (see tables above for the full list):
 - `gpt-5.6-luna`: `low,medium,high,xhigh,max` — all levels
 - `kimi-k2.6` / `kimi-k2.7-code` / `minimax-m3` / MiniMax M2.x / `qwen3.7-plus` / `longcat-2.0` / `longcat-2.5-preview-free`: **no thinking UI** (`supportsThinking: false` — the vendor exposes only a thinking on/off toggle or a token budget, not effort rungs)
 - `step-5-preview` / `step-5-preview-free`: `low,medium,high` — StepFun's three-rung ladder
-- `beam-free` / `minimax-m3.1-flash-free`: `low,medium,high,xhigh,max` — all levels
+- `kimi-k3.1-pro`: `low,high,max` — Moonshot's K3-series `reasoning_effort` (on this gateway `kimi-k3` takes only `max`)
+- `beam-free` / `minimax-m3.1-flash` / `minimax-m3.1-flash-free`: `low,medium,high,xhigh,max` — all levels
 
 For Responses-API models (`grok-4.5`, `gpt-5.6-luna`, `muse-spark-1.2-contributor`) the effort is sent as `reasoning.effort` with `summary: "auto"`; for OpenAI `chat.completions` models it is sent as `reasoning_effort`. The extension validates the selection per model and drops unsupported values (with `max<->xhigh` alias for stale configs).
 
