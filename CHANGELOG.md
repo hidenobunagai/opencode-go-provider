@@ -1,5 +1,15 @@
 # Change Log
 
+## [0.1.87] - 2026-11-11
+
+### Added
+
+- **Two models the daily sync found in Pi's catalog are now bundled and documented: `hy4` and `longcat-2.5-free`.** Their context windows, output limits, vision flags and API formats come from pi-ai 1.5.2. `hy4` is Tencent's GA release of Hy4 (released 2026-11-04), succeeding `hy4-preview` with image input and a 1,048,576-token context (65,536 output, OpenAI chat completions). `longcat-2.5-free` is the free tier of Meituan's LongCat 2.5 (1M context, 262,144 output, vision). Both appear in `FALLBACK_MODELS`, the docs tables, and the README list; `hy4-preview` and `longcat-2.5-preview-free` stay bundled.
+
+### Changed
+
+- **The new models' thinking ladders are researched and recorded in `docs/effort-decisions.json`.** `hy4` takes `high` only: pi-ai's `thinkingLevelMap` maps only `off` and `high`, and models.dev's `opencode-go` entry lists effort values `none,high`, the same single rung as `hy4-preview`. `longcat-2.5-free` gets an empty ladder (no Thinking Effort picker): LongCat's Chat Completions and Anthropic Messages references expose thinking only as an on/off switch plus a token budget, and the gateway serves this id over chat completions with a toggle, so the `reasoning.effort` enum on LongCat's Responses page does not apply. This matches `longcat-2.0` and `longcat-2.5-preview-free`. `iceman-contributor-free` is unchanged: its vendor is still undisclosed and no source states its rungs, so `sync:pi` still lists it under `no ladder evidence`.
+
 ## [0.1.86] - 2026-11-03
 
 ### Added

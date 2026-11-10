@@ -105,6 +105,7 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 |-------|---------|------------|--------|-------|----------|-----|
 | Hy3 | 256,000 | 128,000 | ✗ | ✓ | ✓ (`low,high`) | OpenAI |
 | HY3 Preview | 256,000 | 64,000 | ✗ | ✓ | ✓ (`low,high`) | OpenAI |
+| Hy4 | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`high`) | OpenAI |
 | Hy4 preview | 1,024,000 | 64,000 | ✗ | ✓ | ✓ (`high`) | OpenAI |
 
 ### LongCat Series
@@ -112,6 +113,7 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
 | LongCat 2.0 | 1,000,000 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
+| LongCat 2.5 Free | 1,000,000 | 262,144 | ✓ | ✓ | ✗ | OpenAI |
 | LongCat 2.5 Preview Free | 1,000,000 | 131,072 | ✓ | ✓ | ✗ | OpenAI |
 
 ### Anthropic Series
@@ -139,7 +141,7 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 |-------|---------|------------|--------|-------|----------|-----|
 | Ox Alpha Free | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
 
-> **Note**: `hy3` is the current model ID; `hy3-preview` is kept for backward compatibility.
+> **Note**: `hy3` is the current model ID; `hy3-preview` is kept for backward compatibility. `hy4` is Tencent's GA release of Hy4 (adds image input and a 1,048,576-token context); `hy4-preview` stays bundled while the gateway still serves it.
 
 ## Model Quirks & Workarounds
 
@@ -180,9 +182,10 @@ Examples (see tables above for the full list):
 - `grok-4.5`: `low,medium,high` — **no `xhigh`/`max`**
 - `deepseek-v4-flash`: `low,high,max` — **no `medium`/`xhigh`**
 - `gpt-5.6-luna`: `low,medium,high,xhigh,max` — all levels
-- `kimi-k2.6` / `kimi-k2.7-code` / `minimax-m3` / MiniMax M2.x / `qwen3.7-plus` / `longcat-2.0` / `longcat-2.5-preview-free`: **no thinking UI** (`supportsThinking: false` — the vendor exposes only a thinking on/off toggle or a token budget, not effort rungs)
+- `kimi-k2.6` / `kimi-k2.7-code` / `minimax-m3` / MiniMax M2.x / `qwen3.7-plus` / `longcat-2.0` / `longcat-2.5-free` / `longcat-2.5-preview-free`: **no thinking UI** (`supportsThinking: false` — the vendor exposes only a thinking on/off toggle or a token budget, not effort rungs)
 - `step-5-preview` / `step-5-preview-free`: `low,medium,high` — StepFun's three-rung ladder
 - `kimi-k3.1-pro`: `low,high,max` — Moonshot's K3-series `reasoning_effort` (on this gateway `kimi-k3` takes only `max`)
+- `hy4` / `hy4-preview`: `high` only — a single rung (the gateway's other value is `none`, i.e. thinking off)
 - `beam-free` / `minimax-m3.1-flash` / `minimax-m3.1-flash-free`: `low,medium,high,xhigh,max` — all levels
 
 For Responses-API models (`grok-4.5`, `gpt-5.6-luna`, `muse-spark-1.2-contributor`) the effort is sent as `reasoning.effort` with `summary: "auto"`; for OpenAI `chat.completions` models it is sent as `reasoning_effort`. The extension validates the selection per model and drops unsupported values (with `max<->xhigh` alias for stale configs).

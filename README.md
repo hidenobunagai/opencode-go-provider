@@ -45,8 +45,8 @@ At runtime the extension fetches the current model list from the OpenCode Go API
 - **GPT 5.6 Luna**, **GPT-6 Luna**
 - **Muse Spark 1.2 Contributor**, **Muse Spark 1.3 Contributor**
 - **Claude Haiku 5.5**
-- **Hy3**, HY3 Preview, **Hy4 Preview**
-- **LongCat 2.0**, **LongCat 2.5 Preview Free**
+- **Hy3**, HY3 Preview, **Hy4**, **Hy4 Preview**
+- **LongCat 2.0**, **LongCat 2.5 Free**, **LongCat 2.5 Preview Free**
 - **Cat Jam Free**, **Iceman Contributor Free**, **Space Bunny**, **Beam Free**, **Step 5 Preview**, **Step 5 Preview Free**
 
 ## Usage

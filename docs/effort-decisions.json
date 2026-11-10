@@ -78,5 +78,15 @@
     "efforts": ["low", "medium", "high", "xhigh", "max"],
     "source": "MiniMax Responses API reference (https://platform.minimax.io/docs/api-reference/responses-create): MiniMax-M3.1-Flash always reasons and reasoning.effort accepts low/medium/high/xhigh/max. This is the paid tier of the model already recorded for minimax-m3.1-flash-free; pi-ai 1.5.0's thinkingLevelMap and models.dev's opencode-go entry list the same five rungs.",
     "decided": "2026-11-03"
+  },
+  "hy4": {
+    "efforts": ["high"],
+    "source": "Both catalogs for this gateway agree: pi-ai 1.5.2's opencode-go thinkingLevelMap for hy4 maps off to none and high to high and nulls every other rung, and models.dev's opencode-go entry lists reasoning effort values none/high. Hy4 is Tencent's GA successor to hy4-preview (released 2026-11-04), which carries the same single-rung ladder. No public Tencent API reference stating the effort enum was found (searched 2026-11-11), so this rests on the two gateway catalogs.",
+    "decided": "2026-11-11"
+  },
+  "longcat-2.5-free": {
+    "efforts": [],
+    "source": "LongCat API docs (https://longcat.chat/platform/docs/api/chat and /api/messages, checked 2026-11-11): Chat Completions and Anthropic Messages expose thinking only as thinking.type enabled/disabled plus thinking_budget (max 262144) and no reasoning_effort. The Responses page (/api/responses) does list reasoning.effort none/minimal/low/medium/high/xhigh, but without any per-model mapping, and that transport does not apply here: pi-ai 1.5.2 and models.dev both serve this id over openai-completions, and models.dev's opencode-go entry explicitly marks its reasoning option as a toggle (not effort). Same decision as longcat-2.0 and longcat-2.5-preview-free.",
+    "decided": "2026-11-11"
   }
 }

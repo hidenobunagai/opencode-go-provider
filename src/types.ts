@@ -726,6 +726,29 @@ export const FALLBACK_MODELS: OcGoModelInfo[] = [
     supportsThinking: true,
     supportedReasoningEfforts: ["low", "medium", "high", "xhigh", "max"],
   },
+  {
+    id: "hy4",
+    name: "Hy4",
+    displayName: "Hy4",
+    contextWindow: 1048576,
+    maxOutput: 65536,
+    supportsTools: true,
+    supportsVision: true,
+    apiFormat: "openai",
+    supportsThinking: true,
+    supportedReasoningEfforts: ["high"],
+  },
+  {
+    id: "longcat-2.5-free",
+    name: "LongCat 2.5 Free",
+    displayName: "LongCat 2.5 Free",
+    contextWindow: 1000000,
+    maxOutput: 262144,
+    supportsTools: true,
+    supportsVision: true,
+    apiFormat: "openai",
+    supportsThinking: false,
+  },
 ];
 
 export function inferModelInfo(id: string): OcGoModelInfo {
