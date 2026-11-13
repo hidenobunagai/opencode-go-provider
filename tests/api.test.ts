@@ -1,6 +1,15 @@
 import { fetchWithRetry, streamChatCompletion } from "../src/api";
-import { BASE_URL, SESSION_ID } from "../src/constants";
+import { BASE_URL, REQUEST_TIMEOUT_MS, SESSION_ID } from "../src/constants";
 import { OcGoStreamResponse } from "../src/types";
+
+function holdRetryTimer(): Promise<void> {
+  return new Promise((resolve) => {
+    jest.spyOn(global, "setTimeout").mockImplementation(() => {
+      resolve();
+      return 0 as unknown as NodeJS.Timeout;
+    });
+  });
+}
 
 describe("fetchWithRetry", () => {
   afterEach(() => {
@@ -41,6 +50,72 @@ describe("fetchWithRetry", () => {
     const result = await fetchWithRetry(`${BASE_URL}/models`, { method: "GET" });
     expect(result.status).toBe(401);
     expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("aborts during a Retry-After wait without retrying", async () => {
+    const controller = new AbortController();
+    const timerScheduled = holdRetryTimer();
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 429,
+      statusText: "Too Many Requests",
+      headers: new Headers({ "Retry-After": "1" }),
+    } as any);
+
+    const request = fetchWithRetry(`${BASE_URL}/models`, {
+      method: "GET",
+      signal: controller.signal,
+    });
+    await timerScheduled;
+    controller.abort();
+
+    await expect(request).rejects.toMatchObject({ name: "AbortError" });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("aborts during a network retry wait without retrying", async () => {
+    const controller = new AbortController();
+    const timerScheduled = holdRetryTimer();
+    global.fetch = jest.fn().mockRejectedValue(new Error("Network error"));
+
+    const request = fetchWithRetry(`${BASE_URL}/models`, {
+      method: "GET",
+      signal: controller.signal,
+    });
+    await timerScheduled;
+    controller.abort();
+
+    await expect(request).rejects.toMatchObject({ name: "AbortError" });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns a 429 response immediately when Retry-After exceeds the retry limit", async () => {
+    const response = {
+      ok: false,
+      status: 429,
+      statusText: "Too Many Requests",
+      headers: new Headers({ "Retry-After": "120" }),
+    } as any;
+    global.fetch = jest.fn().mockResolvedValue(response);
+    jest.spyOn(global, "setTimeout").mockImplementation(() => {
+      throw new Error("A long Retry-After must not schedule a timer");
+    });
+
+    const result = await fetchWithRetry(`${BASE_URL}/models`, { method: "GET" });
+
+    expect(result).toBe(response);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not call fetch when the signal is already aborted", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    global.fetch = jest.fn();
+
+    await expect(
+      fetchWithRetry(`${BASE_URL}/models`, { method: "GET", signal: controller.signal }),
+    ).rejects.toMatchObject({ name: "AbortError" });
+    expect(fetch).not.toHaveBeenCalled();
   });
 });
 
@@ -116,7 +191,13 @@ describe("streamChatCompletion", () => {
 
   it("retries on 429 and eventually throws after exhausting retries", async () => {
     const originalSetTimeout = global.setTimeout;
-    global.setTimeout = ((cb: () => void) => cb()) as any;
+    global.setTimeout = ((callback: () => void, delay?: number) => {
+      if (delay === REQUEST_TIMEOUT_MS) {
+        return originalSetTimeout(callback, delay);
+      }
+      callback();
+      return 0 as any;
+    }) as any;
 
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,
@@ -161,6 +242,8 @@ describe("streamChatCompletion", () => {
     expect(fetch).toHaveBeenCalledTimes(3);
   });
   it("retries on 429 with Retry-After then succeeds", async () => {
+    const originalSetTimeout = global.setTimeout;
+    global.setTimeout = ((callback: () => void) => callback()) as any;
     const response = {
       ok: true,
       status: 200,
@@ -177,9 +260,13 @@ describe("streamChatCompletion", () => {
       } as any)
       .mockResolvedValueOnce(response);
 
-    const result = await fetchWithRetry(`${BASE_URL}/models`, { method: "GET" });
-    expect(result).toEqual(response);
-    expect(fetch).toHaveBeenCalledTimes(2);
+    try {
+      const result = await fetchWithRetry(`${BASE_URL}/models`, { method: "GET" });
+      expect(result).toEqual(response);
+      expect(fetch).toHaveBeenCalledTimes(2);
+    } finally {
+      global.setTimeout = originalSetTimeout;
+    }
   });
 
   it("retries on 503 then succeeds", async () => {

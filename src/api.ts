@@ -40,6 +40,44 @@ function getRetryAfterMs(response: Response): number | undefined {
   return undefined;
 }
 
+function getAbortReason(signal: AbortSignal): unknown {
+  if (signal.reason !== undefined) {
+    return signal.reason;
+  }
+
+  const error = new Error("The operation was aborted");
+  error.name = "AbortError";
+  return error;
+}
+
+function waitForRetry(delay: number, signal?: AbortSignal): Promise<void> {
+  if (!signal) {
+    return new Promise((resolve) => setTimeout(resolve, delay));
+  }
+
+  if (signal.aborted) {
+    return Promise.reject(getAbortReason(signal));
+  }
+
+  return new Promise((resolve, reject) => {
+    let timerCompleted = false;
+    const onAbort = () => {
+      clearTimeout(timeoutId);
+      signal.removeEventListener("abort", onAbort);
+      reject(getAbortReason(signal));
+    };
+
+    const timeoutId = setTimeout(() => {
+      timerCompleted = true;
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, delay);
+    if (!timerCompleted) {
+      signal.addEventListener("abort", onAbort, { once: true });
+    }
+  });
+}
+
 /**
  * Calculate delay with exponential backoff and full jitter.
  * This prevents thundering herd when multiple clients retry simultaneously.
@@ -47,7 +85,7 @@ function getRetryAfterMs(response: Response): number | undefined {
 function calculateRetryDelay(attempt: number, retryAfter?: number): number {
   if (retryAfter !== undefined && retryAfter > 0) {
     // Add jitter to server-provided retry-after (±25%)
-    // Do not cap server-provided retry-after with MAX_RETRY_DELAY_MS
+    // Longer server delays are returned to the caller without retrying.
     const jitter = retryAfter * 0.25 * (Math.random() * 2 - 1);
     return Math.max(Math.round(retryAfter + jitter), 0);
   }
@@ -64,26 +102,39 @@ export async function fetchWithRetry(
   retries = 3,
 ): Promise<Response> {
   let lastError: Error | undefined;
+  const signal = init.signal ?? undefined;
   for (let i = 0; i < retries; i++) {
+    if (signal?.aborted) {
+      throw getAbortReason(signal);
+    }
+
     try {
       const response = await fetch(url, init);
       if (response.ok || !isRetryableHttpError(response.status)) {
         return response;
       }
+
+      const retryAfter = getRetryAfterMs(response);
+      if (retryAfter !== undefined && retryAfter > MAX_RETRY_DELAY_MS) {
+        return response;
+      }
+
       lastError = new Error(`HTTP ${response.status} ${response.statusText}`);
       if (i < retries - 1) {
-        const retryAfter = getRetryAfterMs(response);
         const delay = calculateRetryDelay(i, retryAfter);
         debugLog(
           "fetchWithRetry",
           `Attempt ${i + 1} failed with ${response.status}, retrying after ${delay}ms`,
         );
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await waitForRetry(delay, signal);
       }
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       if (lastError.name === "AbortError") {
         throw lastError;
+      }
+      if (signal?.aborted) {
+        throw getAbortReason(signal);
       }
       if (i < retries - 1) {
         const delay = calculateRetryDelay(i);
@@ -91,7 +142,7 @@ export async function fetchWithRetry(
           "fetchWithRetry",
           `Attempt ${i + 1} failed with network error, retrying after ${delay}ms`,
         );
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await waitForRetry(delay, signal);
       }
     }
   }
@@ -162,9 +213,7 @@ export async function throwApiError(response: Response, label: string): Promise<
   if (response.status === 429) {
     const retryAfter = response.headers.get("retry-after");
     const retryInfo = retryAfter ? `Retry after ${retryAfter}. ` : "";
-    throw new Error(
-      `OpenCode Go rate limit reached (429). ${retryInfo}The request will be retried automatically.\n${detail}`,
-    );
+    throw new Error(`OpenCode Go rate limit reached (429). ${retryInfo}${detail}`);
   }
 
   if (response.status === 400) {
