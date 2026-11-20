@@ -104,7 +104,7 @@ describe("OcGoChatModelProvider", () => {
 
     const kimiK3 = infos.find((i: any) => i.id === "kimi-k3");
     expect(kimiK3).toBeDefined();
-    expect(kimiK3?.maxOutputTokens).toBe(131072);
+    expect(kimiK3?.maxOutputTokens).toBe(1048576);
     expect(kimiK3?.maxInputTokens).toBe(1048576 - 65536);
 
     const grok45 = infos.find((i: any) => i.id === "grok-4.5");
@@ -3496,6 +3496,7 @@ describe("OcGoChatModelProvider", () => {
         "deepseek-v4-pro",
         "deepseek-v4-flash",
         "deepseek-v4-flash-vision-exp",
+        "qwen4-max",
         "qwen3.7-max",
         "qwen3.8-max",
         "qwen3.8-flash",
@@ -3509,6 +3510,7 @@ describe("OcGoChatModelProvider", () => {
         "mimo-v2.5-pro",
         "mimo-v2.5",
         "hy4",
+        "hy4-flash-free",
         "hy4-preview",
         "hy3",
         "hy3-preview",

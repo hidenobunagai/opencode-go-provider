@@ -88,5 +88,15 @@
     "efforts": [],
     "source": "LongCat API docs (https://longcat.chat/platform/docs/api/chat and /api/messages, checked 2026-11-11): Chat Completions and Anthropic Messages expose thinking only as thinking.type enabled/disabled plus thinking_budget (max 262144) and no reasoning_effort. The Responses page (/api/responses) does list reasoning.effort none/minimal/low/medium/high/xhigh, but without any per-model mapping, and that transport does not apply here: pi-ai 1.5.2 and models.dev both serve this id over openai-completions, and models.dev's opencode-go entry explicitly marks its reasoning option as a toggle (not effort). Same decision as longcat-2.0 and longcat-2.5-preview-free.",
     "decided": "2026-11-11"
+  },
+  "qwen4-max": {
+    "efforts": ["low", "high", "xhigh"],
+    "source": "Alibaba Cloud Model Studio qwen4-max docs (https://www.alibabacloud.com/help/en/model-studio/qwen4-max, checked 2026-11-21) document reasoning_effort values low/high/xhigh (default high). models.dev's opencode-go entry lists the same three effort rungs (low/high/xhigh) for this gateway.",
+    "decided": "2026-11-21"
+  },
+  "hy4-flash-free": {
+    "efforts": ["high"],
+    "source": "Both gateway catalogs agree: pi-ai 1.6.0's opencode-go thinkingLevelMap for hy4-flash-free maps off to none and high to high and nulls every other rung, and models.dev's opencode-go entry lists reasoning effort values none/high. Hy4-Flash is Tencent's lower-cost Hy4 tier (released 2026-11-16), carrying the same single-rung ladder as hy4 and hy4-preview.",
+    "decided": "2026-11-21"
   }
 }

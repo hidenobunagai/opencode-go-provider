@@ -21,8 +21,8 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | Kimi K2.5 | 262,144 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | Kimi K2.6 | 262,144 | 65,536 | ✓ | ✓ | ✗ | OpenAI |
 | Kimi K2.7 Code | 262,144 | 262,144 | ✓ | ✓ | ✗ | OpenAI |
-| Kimi K3 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`max`) | OpenAI |
-| Kimi K3.1 Pro | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
+| Kimi K3 | 1,048,576 | 1,048,576 | ✓ | ✓ | ✓ (`max`) | OpenAI |
+| Kimi K3.1 Pro | 1,048,576 | 1,048,576 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
 
 > **Note**: Kimi models use `fixedTemperature: 1` for optimal performance. Kimi K2.5 also sends `top_p: 0.95`, matching the OpenCode CLI's per-model sampling defaults.
 > Kimi models other than K2.5 (K2.6, K2.7 Code, K3, K3.1 Pro, ...) require `REASONING_CONTENT_WORKAROUND_MODELS` for correct streaming output.
@@ -60,6 +60,7 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | Qwen3.7 Max | 1,000,000 | 65,536 | ✗ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | Qwen3.8 Max | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,xhigh`) | Anthropic |
 | Qwen3.8 Flash | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,xhigh`) | Anthropic |
+| Qwen4 Max | 1,000,000 | 262,144 | ✓ | ✓ | ✓ (`low,high,xhigh`) | Anthropic |
 
 > **Note**: Qwen models have a 1M context window — the largest in the lineup. The dynamic safety margin scales proportionally (~10,240 tokens). They send `temperature: 0.55` and `top_p: 1`, matching the OpenCode CLI's defaults.
 
@@ -107,6 +108,7 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | HY3 Preview | 256,000 | 64,000 | ✗ | ✓ | ✓ (`low,high`) | OpenAI |
 | Hy4 | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`high`) | OpenAI |
 | Hy4 preview | 1,024,000 | 64,000 | ✗ | ✓ | ✓ (`high`) | OpenAI |
+| Hy4 flash Free | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`high`) | OpenAI |
 
 ### LongCat Series
 

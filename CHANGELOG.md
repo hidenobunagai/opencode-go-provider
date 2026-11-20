@@ -1,5 +1,20 @@
 # Change Log
 
+## [0.1.88] - 2026-11-21
+
+### Added
+
+- **Two models the daily sync found in Pi's catalog are now bundled and documented: `qwen4-max` and `hy4-flash-free`.** Their context windows, output limits, vision flags and API formats come from pi-ai 1.6.0. `qwen4-max` is Alibaba's 1M-context Qwen4 Max flagship (262,144 output, vision, Anthropic Messages). `hy4-flash-free` is Tencent's lower-cost Hy4 tier (1,048,576 context, 65,536 output, vision, OpenAI chat completions). Both appear in `FALLBACK_MODELS`, the docs tables, and the README list.
+
+### Changed
+
+- **Updated `kimi-k3` and `kimi-k3.1-pro` max output limits to `1,048,576` (`1048576`)** in `FALLBACK_MODELS` and `docs/models.md` to match pi-ai 1.6.0.
+- **The new models' thinking ladders are researched and recorded in `docs/effort-decisions.json`.** `qwen4-max` takes `low,high,xhigh`: Alibaba Cloud Model Studio's `qwen4-max` reference documents `reasoning_effort` with `low`/`high`/`xhigh` (default `high`), and `models.dev`'s `opencode-go` entry lists the same three rungs. `hy4-flash-free` takes `high` only: pi-ai 1.6.0's `thinkingLevelMap` maps only `off` and `high`, and `models.dev`'s `opencode-go` entry lists `none,high`, matching `hy4` and `hy4-preview`. `iceman-contributor-free` is unchanged under `no ladder evidence`.
+
+### Fixed
+
+- **Retry waits are now abortable via `AbortSignal`, and long `Retry-After` responses are surfaced immediately.** When a caller aborts during a retry backoff, `fetchWithRetry` rejects promptly instead of waiting out the timer; responses whose `Retry-After` exceeds `MAX_RETRY_DELAY_MS` are returned to the caller right away instead of sleeping or failing opaquely.
+
 ## [0.1.87] - 2026-11-11
 
 ### Added

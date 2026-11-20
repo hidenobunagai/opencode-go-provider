@@ -40,12 +40,12 @@ At runtime the extension fetches the current model list from the OpenCode Go API
 - Kimi K2.5, Kimi K2.6, Kimi K2.7 Code, **Kimi K3**, **Kimi K3.1 Pro**
 - MiMo-V2-Pro, MiMo-V2-Omni, MiMo-V2.5-Pro, MiMo-V2.5, **MiMo-V2.6 Flash**, **MiMo-V2.6 Pro**
 - MiniMax M2.5, MiniMax M2.7, **MiniMax M3**, **MiniMax M3.1 Flash**, **MiniMax M3.1 Flash Free**
-- Qwen3.5 Plus, Qwen3.6 Plus, Qwen3.7 Plus, **Qwen3.7 Max**, **Qwen3.8 Max**, **Qwen3.8 Flash**
+- Qwen3.5 Plus, Qwen3.6 Plus, Qwen3.7 Plus, **Qwen3.7 Max**, **Qwen3.8 Max**, **Qwen3.8 Flash**, **Qwen4 Max**
 - **Grok 4.5**, **Grok 4.7**
 - **GPT 5.6 Luna**, **GPT-6 Luna**
 - **Muse Spark 1.2 Contributor**, **Muse Spark 1.3 Contributor**
 - **Claude Haiku 5.5**
-- **Hy3**, HY3 Preview, **Hy4**, **Hy4 Preview**
+- **Hy3**, HY3 Preview, **Hy4**, **Hy4 Preview**, **Hy4 flash Free**
 - **LongCat 2.0**, **LongCat 2.5 Free**, **LongCat 2.5 Preview Free**
 - **Cat Jam Free**, **Iceman Contributor Free**, **Space Bunny**, **Beam Free**, **Step 5 Preview**, **Step 5 Preview Free**
 
