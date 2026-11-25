@@ -1,5 +1,16 @@
 # Change Log
 
+## [0.1.89] - 2026-11-26
+
+### Added
+
+- **Two models the daily sync found in Pi's catalog are now bundled and documented: `longcat-2.5` and `hungerg-free`.** Their context windows, output limits, vision flags and API formats come from pi-ai 1.6.1. `longcat-2.5` is the paid tier of Meituan's LongCat 2.5 already bundled as `longcat-2.5-free` (1M context, 262,144 output, vision, OpenAI chat completions). `hungerg-free` is an undisclosed stealth reasoning model, free for a limited time (1M context, 65,536 output, vision, OpenAI chat completions). Both appear in `FALLBACK_MODELS`, the docs tables, and the README list.
+
+### Changed
+
+- **Updated `hy4-preview` limits to a 1,048,576-token context and 65,536 output tokens** (previously `1,024,000` / `64,000`) in `FALLBACK_MODELS` and `docs/models.md` to match pi-ai 1.6.1.
+- **The new models' thinking ladders are recorded or deliberately left open.** `longcat-2.5` gets an empty ladder in `docs/effort-decisions.json` (no Thinking Effort picker): LongCat's Chat Completions and Anthropic Messages references expose thinking only as an on/off switch plus a token budget, and models.dev's `opencode-go` entry marks its reasoning option as a toggle, the same decision as `longcat-2.5-free`, `longcat-2.0` and `longcat-2.5-preview-free`. `hungerg-free` has no recorded decision: its vendor is undisclosed, pi-ai gives it no `thinkingLevelMap`, and models.dev's empty `reasoning_options` is not evidence of "no ladder". It keeps the generic picker like `iceman-contributor-free`, and `sync:pi` lists both under `no ladder evidence` until a primary source states their rungs.
+
 ## [0.1.88] - 2026-11-21
 
 ### Added

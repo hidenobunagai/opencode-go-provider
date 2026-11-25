@@ -107,7 +107,7 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | Hy3 | 256,000 | 128,000 | ✗ | ✓ | ✓ (`low,high`) | OpenAI |
 | HY3 Preview | 256,000 | 64,000 | ✗ | ✓ | ✓ (`low,high`) | OpenAI |
 | Hy4 | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`high`) | OpenAI |
-| Hy4 preview | 1,024,000 | 64,000 | ✗ | ✓ | ✓ (`high`) | OpenAI |
+| Hy4 preview | 1,048,576 | 65,536 | ✗ | ✓ | ✓ (`high`) | OpenAI |
 | Hy4 flash Free | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`high`) | OpenAI |
 
 ### LongCat Series
@@ -115,6 +115,7 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
 | LongCat 2.0 | 1,000,000 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
+| LongCat-2.5 | 1,000,000 | 262,144 | ✓ | ✓ | ✗ | OpenAI |
 | LongCat 2.5 Free | 1,000,000 | 262,144 | ✓ | ✓ | ✗ | OpenAI |
 | LongCat 2.5 Preview Free | 1,000,000 | 131,072 | ✓ | ✓ | ✗ | OpenAI |
 
@@ -130,12 +131,13 @@ At runtime the extension fetches the available models from the OpenCode Go API (
 |-------|---------|------------|--------|-------|----------|-----|
 | Cat Jam Free | 262,144 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |
 | Iceman Contributor Free | 262,144 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high,max`, unverified) | OpenAI |
+| HungerG Free | 1,000,000 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high,max`, unverified) | OpenAI |
 | Space Bunny | 1,048,576 | 524,288 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |
 | Beam Free | 1,048,576 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |
 | Step 5 Preview | 1,000,000 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | Step 5 Preview Free | 1,000,000 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 
-> **Note**: Beam Free serves Reflection AI's Beam 1.0 (501B total / 23B active, 1M context); reasoning is mandatory and the ladder is Reflection's `supported_efforts`. Step 5 Preview and its free tier are StepFun models with a three-rung `low,medium,high` ladder. Iceman Contributor Free is an undisclosed stealth model, free for a limited time; it reasons, but neither pi-ai nor a vendor document states its effort ladder, so it keeps the generic `low,medium,high,max` picker and `sync:pi` lists it under `no ladder evidence`.
+> **Note**: Beam Free serves Reflection AI's Beam 1.0 (501B total / 23B active, 1M context); reasoning is mandatory and the ladder is Reflection's `supported_efforts`. Step 5 Preview and its free tier are StepFun models with a three-rung `low,medium,high` ladder. Iceman Contributor Free and HungerG Free are undisclosed stealth models, free for a limited time; they reason, but neither pi-ai nor a vendor document states their effort ladders, so they keep the generic `low,medium,high,max` picker and `sync:pi` lists them under `no ladder evidence`.
 
 ### Ox Series
 
@@ -184,7 +186,7 @@ Examples (see tables above for the full list):
 - `grok-4.5`: `low,medium,high` — **no `xhigh`/`max`**
 - `deepseek-v4-flash`: `low,high,max` — **no `medium`/`xhigh`**
 - `gpt-5.6-luna`: `low,medium,high,xhigh,max` — all levels
-- `kimi-k2.6` / `kimi-k2.7-code` / `minimax-m3` / MiniMax M2.x / `qwen3.7-plus` / `longcat-2.0` / `longcat-2.5-free` / `longcat-2.5-preview-free`: **no thinking UI** (`supportsThinking: false` — the vendor exposes only a thinking on/off toggle or a token budget, not effort rungs)
+- `kimi-k2.6` / `kimi-k2.7-code` / `minimax-m3` / MiniMax M2.x / `qwen3.7-plus` / `longcat-2.0` / `longcat-2.5` / `longcat-2.5-free` / `longcat-2.5-preview-free`: **no thinking UI** (`supportsThinking: false` — the vendor exposes only a thinking on/off toggle or a token budget, not effort rungs)
 - `step-5-preview` / `step-5-preview-free`: `low,medium,high` — StepFun's three-rung ladder
 - `kimi-k3.1-pro`: `low,high,max` — Moonshot's K3-series `reasoning_effort` (on this gateway `kimi-k3` takes only `max`)
 - `hy4` / `hy4-preview`: `high` only — a single rung (the gateway's other value is `none`, i.e. thinking off)

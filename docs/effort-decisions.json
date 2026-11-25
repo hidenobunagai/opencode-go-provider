@@ -98,5 +98,10 @@
     "efforts": ["high"],
     "source": "Both gateway catalogs agree: pi-ai 1.6.0's opencode-go thinkingLevelMap for hy4-flash-free maps off to none and high to high and nulls every other rung, and models.dev's opencode-go entry lists reasoning effort values none/high. Hy4-Flash is Tencent's lower-cost Hy4 tier (released 2026-11-16), carrying the same single-rung ladder as hy4 and hy4-preview.",
     "decided": "2026-11-21"
+  },
+  "longcat-2.5": {
+    "efforts": [],
+    "source": "LongCat API docs (https://longcat.chat/platform/docs/api/chat and /api/messages, checked 2026-11-26): Chat Completions and Anthropic Messages expose thinking only as thinking.type enabled/disabled plus thinking_budget (max 262144) and no reasoning_effort. The Responses page (/api/responses) lists reasoning.effort without any per-model mapping, and that transport does not apply here: pi-ai 1.6.1 serves this id over openai-completions and models.dev's opencode-go entry marks its reasoning option as a toggle (not effort). longcat-2.5 is the paid tier of the same Meituan model as longcat-2.5-free (models.dev gives both the canonical id meituan/longcat-2.5), so it carries the same decision as longcat-2.5-free, longcat-2.0 and longcat-2.5-preview-free.",
+    "decided": "2026-11-26"
   }
 }
